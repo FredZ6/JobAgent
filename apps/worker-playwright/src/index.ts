@@ -5,7 +5,8 @@ import {
   captureScreenshot,
   fillCommonFields,
   PrefillResponse,
-  type PrefillRequest
+  type PrefillRequest,
+  uploadResume
 } from "./prefill.js";
 
 const app = express();
@@ -29,13 +30,17 @@ app.post("/prefill", async (req: any, res: any) => {
   ];
   try {
     await page.goto(payload.applyUrl, { waitUntil: "domcontentloaded" });
-    const fieldResults = await fillCommonFields(page, buildSuggestions(payload.profile));
+    const basicFieldResults = await fillCommonFields(page, buildSuggestions(payload.profile));
+    const resumeUploadResult = await uploadResume(page, {
+      applicationId: payload.applicationId,
+      resume: payload.resume
+    });
     const screenshotPath = await captureScreenshot(page, payload.applicationId, storageDir);
 
     res.json({
       status: "completed",
       formSnapshot: { url: payload.applyUrl },
-      fieldResults,
+      fieldResults: [...basicFieldResults, resumeUploadResult],
       screenshotPaths: [screenshotPath],
       workerLog: [...log, { level: "info", message: "prefill completed", timestamp: new Date().toISOString() }],
       errorMessage: null
