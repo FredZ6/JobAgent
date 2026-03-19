@@ -1,0 +1,9 @@
+node_modules
+.next
+dist
+coverage
+.env
+.DS_Store
+apps/api/generated
+prisma/dev.db
+prisma/dev.db-journal

@@ -1,0 +1,119 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: job_agent
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+
+  temporal:
+    image: temporalio/auto-setup:latest
+    entrypoint: temporal
+    command: server start-dev --ip 0.0.0.0 --headless
+    ports:
+      - "7233:7233"
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    depends_on:
+      - postgres
+      - redis
+      - temporal
+      - worker-playwright
+      - worker-temporal
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/job_agent
+      REDIS_URL: redis://redis:6379
+      API_URL: http://api:3001
+      APP_URL: http://localhost:3000
+      APPLICATION_STORAGE_DIR: /app/storage/applications
+      WORKER_URL: http://worker-playwright:4000
+      TEMPORAL_ENABLED: ${TEMPORAL_ENABLED:-false}
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_NAMESPACE: default
+      TEMPORAL_TASK_QUEUE: openclaw-analysis
+    ports:
+      - "3001:3001"
+    volumes:
+      - .:/app
+      - api-node-modules:/app/node_modules
+      - storage-applications:/app/storage/applications
+    command: >
+      sh -c "npm install &&
+      npx prisma db push &&
+      npm run prisma:seed &&
+      npm run dev:api"
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    depends_on:
+      - api
+    env_file:
+      - .env
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+      API_URL: http://api:3001
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - web-node-modules:/app/node_modules
+    command: npm run dev:web
+
+  worker-playwright:
+    build:
+      context: .
+      dockerfile: apps/worker-playwright/Dockerfile
+    env_file:
+      - .env
+    environment:
+      APPLICATION_STORAGE_DIR: /app/storage/applications
+    ports:
+      - "4000:4000"
+    volumes:
+      - storage-applications:/app/storage/applications
+    command: npm run dev --workspace @openclaw/worker-playwright
+
+  worker-temporal:
+    build:
+      context: .
+      dockerfile: apps/worker-temporal/Dockerfile
+    depends_on:
+      - postgres
+      - redis
+      - temporal
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/job_agent
+      REDIS_URL: redis://redis:6379
+      APP_URL: http://localhost:3000
+      API_URL: http://api:3001
+      TEMPORAL_ENABLED: ${TEMPORAL_ENABLED:-false}
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_NAMESPACE: default
+      TEMPORAL_TASK_QUEUE: openclaw-analysis
+    volumes:
+      - .:/app
+      - worker-temporal-node-modules:/app/node_modules
+    command: >
+      sh -c "npm install &&
+      npm run dev --workspace @openclaw/worker-temporal"
+
+volumes:
+  postgres-data:
+  api-node-modules:
+  web-node-modules:
+  storage-applications:
+  worker-temporal-node-modules:

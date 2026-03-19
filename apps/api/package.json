@@ -1,0 +1,26 @@
+{
+  "name": "@openclaw/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.0.12",
+    "@nestjs/core": "^11.0.12",
+    "@nestjs/platform-express": "^11.0.12",
+    "@nestjs/testing": "^11.0.12",
+    "@openclaw/config": "0.1.0",
+    "@openclaw/shared-types": "0.1.0",
+    "@prisma/client": "^6.5.0",
+    "@temporalio/client": "^1.15.0",
+    "playwright": "^1.51.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "supertest": "^7.1.0",
+    "zod": "^3.24.2"
+  }
+}
