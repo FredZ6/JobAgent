@@ -4,7 +4,7 @@
 Define and approve a practical build plan for the OpenClaw Job Agent MVP, then implement the approved starter scope as a runnable local monorepo.
 
 ## Current Phase
-Phase 52
+Phase 53
 
 ## Phases
 ### Phase 1: Requirements & Discovery
@@ -542,4 +542,12 @@ Phase 52
 - [x] Present and validate the provider-adapter design in sections
 - [x] Write the approved design doc
 - [x] Write the implementation plan
+- **Status:** complete
+
+### Phase 53: Dual-Provider LLM Provider Layer Implementation
+- [x] Add provider-layer tests for OpenAI text, OpenAI structured JSON, Gemini text, Gemini structured JSON, and gateway dispatch
+- [x] Implement `OpenAiLlmProviderService` and `GeminiLlmProviderService`
+- [x] Implement `LlmGatewayService` for provider routing and unsupported-provider rejection
+- [x] Register the provider services in `AppModule`
+- [x] Verify the provider-layer API tests and the API build
 - **Status:** complete

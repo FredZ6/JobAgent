@@ -244,3 +244,4 @@
 - The right abstraction boundary is a shared provider adapter plus gateway in the API, not repeated provider branches inside each business service.
 - Structured outputs should remain locally validated with Zod even after adding provider-level JSON schema support, so vendor-side schema adherence is never the only correctness guard.
 - Long-answer `item 6` should be implemented on top of the new provider adapter instead of as an OpenAI-only layer, so we do not immediately refactor the same feature twice.
+- The provider layer now exists as its own API module with `OpenAI` and `Gemini` adapters plus a gateway, so later service migrations can focus only on routing and prompt/fallback behavior.

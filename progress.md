@@ -233,6 +233,26 @@
   - `findings.md` (modified)
   - `progress.md` (modified)
 
+### Phase 53: Dual-Provider LLM Provider Layer Implementation
+- **Status:** complete
+- Actions taken:
+  - Added a new `apps/api/src/llm/` provider layer with shared types plus OpenAI and Gemini adapter services.
+  - Implemented the `LlmGatewayService` so the API can route structured JSON and plain-text generation to the selected provider.
+  - Added targeted provider tests for OpenAI text/structured output, Gemini text/structured output, and gateway dispatch/error handling.
+  - Registered the new provider services in `AppModule` without touching the analysis, resume, or long-answer business flows yet.
+  - Verified the new `llm` test subset and the full API test suite, then ran the API build successfully.
+- Files created/modified:
+  - `apps/api/src/llm/llm-provider.types.ts` (created)
+  - `apps/api/src/llm/openai-llm-provider.service.ts` (created)
+  - `apps/api/src/llm/gemini-llm-provider.service.ts` (created)
+  - `apps/api/src/llm/llm-gateway.service.ts` (created)
+  - `apps/api/src/llm/openai-llm-provider.service.test.ts` (created)
+  - `apps/api/src/llm/gemini-llm-provider.service.test.ts` (created)
+  - `apps/api/src/llm/llm-gateway.service.test.ts` (created)
+  - `apps/api/src/app.module.ts` (modified)
+  - `task_plan.md` (modified)
+  - `progress.md` (modified)
+
 ### Phase 27: Workflow Run Cancel Controls
 - **Status:** complete
 - Actions taken:
