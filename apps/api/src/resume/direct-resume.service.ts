@@ -8,6 +8,7 @@ import {
   throwIfWorkflowRunCancelled
 } from "../lib/workflow-run-cancellation.js";
 import { PrismaService } from "../lib/prisma.service.js";
+import { type LlmProviderName } from "../llm/llm-provider.types.js";
 import { ProfileService } from "../profile/profile.service.js";
 import { SettingsService } from "../settings/settings.service.js";
 import { DirectRunCancellationRegistryService } from "../workflow-runs/direct-run-cancellation-registry.service.js";
@@ -79,6 +80,7 @@ export class DirectResumeService {
           jobTitle: job.title,
           jobCompany: job.company,
           jobDescription: job.description,
+          provider: settings.provider as LlmProviderName,
           analysis: job.analyses[0]
             ? {
                 matchScore: job.analyses[0].matchScore,
