@@ -10,6 +10,7 @@ import {
   throwIfWorkflowRunCancelled
 } from "../lib/workflow-run-cancellation.js";
 import { PrismaService } from "../lib/prisma.service.js";
+import { buildResumePdfDownloadUrl, buildWorkerResumePdfFileName } from "../resume/resume.service.js";
 import { TemporalService } from "../temporal/temporal.service.js";
 import { DirectRunCancellationRegistryService } from "../workflow-runs/direct-run-cancellation-registry.service.js";
 import { WorkflowRunsService } from "../workflow-runs/workflow-runs.service.js";
@@ -182,6 +183,19 @@ export class ApplicationsService {
         },
         orderBy: {
           createdAt: "desc"
+        },
+        include: {
+          job: {
+            select: {
+              title: true,
+              company: true
+            }
+          },
+          sourceProfile: {
+            select: {
+              fullName: true
+            }
+          }
         }
       });
 
@@ -225,6 +239,15 @@ export class ApplicationsService {
       const candidateProfile =
         storedProfile != null ? candidateProfileSchema.parse(storedProfile) : defaultCandidateProfile;
       const workerProfile = this.toWorkerProfile(candidateProfile);
+      const latestAnalysis = await this.prisma.jobAnalysis.findFirst({
+        where: {
+          jobId,
+          status: "completed"
+        },
+        orderBy: {
+          createdAt: "desc"
+        }
+      });
 
       await this.prisma.application.update({
         where: { id: application.id },
@@ -242,8 +265,39 @@ export class ApplicationsService {
         resume: {
           id: resumeVersion.id,
           headline: resumeVersion.headline,
-          status: resumeVersion.status
+          status: resumeVersion.status,
+          pdfDownloadUrl: buildResumePdfDownloadUrl(resumeVersion.id),
+          pdfFileName: buildWorkerResumePdfFileName({
+            fullName: candidateProfile.fullName || resumeVersion.sourceProfile?.fullName || "candidate",
+            company: job.company,
+            title: job.title
+          })
         },
+        job: {
+          id: job.id,
+          title: job.title,
+          company: job.company,
+          location: job.location,
+          description: job.description,
+          applyUrl: job.applyUrl
+        },
+        analysis: latestAnalysis
+          ? {
+              matchScore: latestAnalysis.matchScore,
+              summary: latestAnalysis.summary,
+              requiredSkills: Array.isArray(latestAnalysis.requiredSkills)
+                ? latestAnalysis.requiredSkills
+                : [],
+              missingSkills: Array.isArray(latestAnalysis.missingSkills)
+                ? latestAnalysis.missingSkills
+                : [],
+              redFlags: Array.isArray(latestAnalysis.redFlags) ? latestAnalysis.redFlags : []
+            }
+          : null,
+        defaultAnswers:
+          candidateProfile.defaultAnswers && typeof candidateProfile.defaultAnswers === "object"
+            ? candidateProfile.defaultAnswers
+            : {},
         signal: mergedSignal
       });
 
@@ -728,7 +782,29 @@ export class ApplicationsService {
     applicationId: string;
     applyUrl: string;
     profile: { fullName: string; email: string; phone: string; linkedinUrl: string; githubUrl: string; location: string };
-    resume: { id: string; headline: string; status: string };
+    resume: {
+      id: string;
+      headline: string;
+      status: string;
+      pdfDownloadUrl: string;
+      pdfFileName: string;
+    };
+    job: {
+      id: string;
+      title: string;
+      company: string;
+      location: string;
+      description: string;
+      applyUrl: string;
+    };
+    analysis: {
+      matchScore: number;
+      summary: string;
+      requiredSkills: unknown[];
+      missingSkills: unknown[];
+      redFlags: unknown[];
+    } | null;
+    defaultAnswers: Record<string, string>;
     signal?: AbortSignal;
   }) {
     const workerUrl = process.env.WORKER_URL ?? "http://worker-playwright:4000";
@@ -742,7 +818,10 @@ export class ApplicationsService {
         applicationId: payload.applicationId,
         applyUrl: payload.applyUrl,
         profile: payload.profile,
-        resume: payload.resume
+        resume: payload.resume,
+        job: payload.job,
+        analysis: payload.analysis,
+        defaultAnswers: payload.defaultAnswers
       })
     });
 

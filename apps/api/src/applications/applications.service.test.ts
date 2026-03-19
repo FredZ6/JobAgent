@@ -59,6 +59,9 @@ const mockPrisma = () => {
     job: {
       findUnique: vi.fn()
     },
+    jobAnalysis: {
+      findFirst: vi.fn().mockResolvedValue(null)
+    },
     resumeVersion: {
       findFirst: vi.fn()
     },
@@ -435,6 +438,146 @@ describe("ApplicationsService", () => {
     expect(payload.profile.fullName).toBe("Ada Lovelace");
     expect(payload.profile.email).toBe("ada@example.com");
     expect(payload.profile.location).toBe("Winnipeg");
+  });
+
+  it("prefillJob sends resume pdf metadata, job context, analysis, and default answers to the worker", async () => {
+    const prisma = mockPrisma();
+    prisma.job.findUnique.mockResolvedValue({
+      id: "job_1",
+      applyUrl: "https://apply.example.com",
+      sourceUrl: "https://source.example.com/job_1",
+      title: "Platform Engineer",
+      company: "Orbital",
+      location: "Remote",
+      description: "Build internal platform systems."
+    });
+    prisma.jobAnalysis.findFirst.mockResolvedValue({
+      id: "analysis_1",
+      jobId: "job_1",
+      matchScore: 88,
+      summary: "Strong platform fit.",
+      requiredSkills: ["TypeScript", "PostgreSQL"],
+      missingSkills: [],
+      redFlags: [],
+      structuredResult: {
+        matchScore: 88,
+        summary: "Strong platform fit.",
+        requiredSkills: ["TypeScript", "PostgreSQL"],
+        missingSkills: [],
+        redFlags: []
+      }
+    });
+    prisma.resumeVersion.findFirst.mockResolvedValue({
+      id: "resume_1",
+      jobId: "job_1",
+      sourceProfileId: "profile_1",
+      status: "completed",
+      headline: "Platform Engineer",
+      job: {
+        title: "Platform Engineer",
+        company: "Orbital"
+      },
+      sourceProfile: {
+        fullName: "Ada Lovelace"
+      }
+    });
+    prisma.candidateProfile.findFirst.mockResolvedValue({
+      id: "profile_1",
+      fullName: "Ada Lovelace",
+      email: "ada@example.com",
+      phone: "555-0101",
+      linkedinUrl: "https://linkedin.com/in/ada",
+      githubUrl: "https://github.com/ada",
+      location: "Winnipeg",
+      workAuthorization: "Authorized",
+      summary: "Platform engineer.",
+      skills: ["TypeScript"],
+      experienceLibrary: [],
+      projectLibrary: [],
+      defaultAnswers: {
+        "Why do you want to work here?": "I like building reliable developer platforms."
+      }
+    });
+    prisma.application.create.mockResolvedValue({
+      id: "app_1",
+      jobId: "job_1",
+      resumeVersionId: "resume_1",
+      status: "queued",
+      approvalStatus: "pending_review",
+      applyUrl: "https://apply.example.com",
+      formSnapshot: {},
+      fieldResults: [],
+      screenshotPaths: [],
+      workerLog: [],
+      submissionStatus: "not_ready",
+      submittedAt: null,
+      submissionNote: "",
+      submittedByUser: false,
+      finalSubmissionSnapshot: null,
+      reviewNote: "",
+      errorMessage: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      job: { id: "job_1", title: "Platform Engineer", company: "Orbital", applyUrl: "https://apply.example.com" },
+      resumeVersion: { id: "resume_1", headline: "Platform Engineer", status: "completed" }
+    });
+    prisma.application.update.mockResolvedValueOnce({});
+    prisma.__tx.application.update.mockResolvedValue({
+      id: "app_1",
+      jobId: "job_1",
+      resumeVersionId: "resume_1",
+      status: "completed",
+      approvalStatus: "pending_review",
+      applyUrl: "https://apply.example.com",
+      formSnapshot: {},
+      fieldResults: [],
+      screenshotPaths: [],
+      workerLog: [],
+      submissionStatus: "not_ready",
+      submittedAt: null,
+      submissionNote: "",
+      submittedByUser: false,
+      finalSubmissionSnapshot: null,
+      reviewNote: "",
+      errorMessage: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      job: { id: "job_1", title: "Platform Engineer", company: "Orbital", applyUrl: "https://apply.example.com" },
+      resumeVersion: { id: "resume_1", headline: "Platform Engineer", status: "completed" }
+    });
+    const workflowRunsService = mockWorkflowRunsService();
+    const service = new ApplicationsService(prisma as any, undefined, workflowRunsService as any);
+
+    await service.prefillJob("job_1");
+
+    const fetchOptions = mockFetch.mock.calls[0][1];
+    const payload = JSON.parse(fetchOptions.body);
+
+    expect(payload.resume).toMatchObject({
+      id: "resume_1",
+      headline: "Platform Engineer",
+      status: "completed",
+      pdfDownloadUrl: "http://localhost:3001/resume-versions/resume_1/pdf",
+      pdfFileName: "ada-lovelace-orbital-platform-engineer-resume.pdf"
+    });
+    expect(payload.job).toEqual({
+      id: "job_1",
+      title: "Platform Engineer",
+      company: "Orbital",
+      location: "Remote",
+      description: "Build internal platform systems.",
+      applyUrl: "https://apply.example.com"
+    });
+    expect(payload.analysis).toEqual({
+      matchScore: 88,
+      summary: "Strong platform fit.",
+      requiredSkills: ["TypeScript", "PostgreSQL"],
+      missingSkills: [],
+      redFlags: []
+    });
+    expect(payload.defaultAnswers).toEqual({
+      "Why do you want to work here?": "I like building reliable developer platforms."
+    });
   });
 
   it("prefillJob creates a fresh application record for each rerun", async () => {

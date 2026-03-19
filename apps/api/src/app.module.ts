@@ -21,6 +21,7 @@ import { ApplicationsService } from "./applications/applications.service.js";
 import { DashboardController } from "./dashboard/dashboard.controller.js";
 import { DashboardService } from "./dashboard/dashboard.service.js";
 import { InternalController } from "./internal/internal.controller.js";
+import { LongAnswerService } from "./internal/long-answer.service.js";
 import { TemporalService } from "./temporal/temporal.service.js";
 import { WorkflowRunBulkActionsService } from "./workflow-runs/workflow-run-bulk-actions.service.js";
 import { WorkflowRunCancelService } from "./workflow-runs/workflow-run-cancel.service.js";
@@ -55,6 +56,7 @@ import { WorkflowRunsService } from "./workflow-runs/workflow-runs.service.js";
     LlmResumeService,
     ApplicationsService,
     DashboardService,
+    LongAnswerService,
     TemporalService,
     WorkflowRunsService,
     DirectRunCancellationRegistryService,

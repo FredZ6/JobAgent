@@ -5,6 +5,20 @@ import { ResumeVersion as PrismaResumeVersion } from "@prisma/client";
 import { PrismaService } from "../lib/prisma.service.js";
 import { TemporalService } from "../temporal/temporal.service.js";
 import { DirectResumeService } from "./direct-resume.service.js";
+import { buildResumePdfFileName } from "./resume-pdf.service.js";
+
+export function buildResumePdfDownloadUrl(id: string) {
+  const baseUrl = (process.env.API_URL ?? "http://localhost:3001").replace(/\/$/, "");
+  return `${baseUrl}/resume-versions/${id}/pdf`;
+}
+
+export function buildWorkerResumePdfFileName(input: {
+  fullName: string;
+  company: string;
+  title: string;
+}) {
+  return buildResumePdfFileName(input);
+}
 
 @Injectable()
 export class ResumeService {

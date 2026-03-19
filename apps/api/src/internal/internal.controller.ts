@@ -1,18 +1,39 @@
 import { Body, Controller, Headers, Inject, Param, Post, Req, UnauthorizedException } from "@nestjs/common";
 import { orchestrationMetadataSchema, type OrchestrationMetadata } from "@openclaw/shared-types";
+import { z } from "zod";
 
 import { DirectAnalysisService } from "../analysis/direct-analysis.service.js";
 import { ApplicationsService } from "../applications/applications.service.js";
 import { buildRequestAbortSignal } from "../lib/workflow-run-cancellation.js";
+import { parseOrThrow } from "../lib/zod.js";
 import { DirectResumeService } from "../resume/direct-resume.service.js";
+import { LongAnswerService } from "./long-answer.service.js";
+
+const longAnswerQuestionSchema = z.object({
+  fieldName: z.string().trim().min(1),
+  fieldLabel: z.string().trim().min(1).optional(),
+  questionText: z.string().trim().min(1).optional(),
+  hints: z.array(z.string().trim().min(1)).optional()
+});
+
+const generateLongAnswersRequestSchema = z.object({
+  questions: z.array(longAnswerQuestionSchema).min(1)
+});
 
 @Controller("internal")
 export class InternalController {
   constructor(
     @Inject(DirectAnalysisService) private readonly directAnalysisService: DirectAnalysisService,
     @Inject(DirectResumeService) private readonly directResumeService: DirectResumeService,
-    @Inject(ApplicationsService) private readonly applicationsService: ApplicationsService
+    @Inject(ApplicationsService) private readonly applicationsService: ApplicationsService,
+    @Inject(LongAnswerService) private readonly longAnswerService: LongAnswerService
   ) {}
+
+  private assertInternalToken(internalToken?: string) {
+    if (!process.env.JWT_SECRET || internalToken !== process.env.JWT_SECRET) {
+      throw new UnauthorizedException("Invalid internal token");
+    }
+  }
 
   private parseOrchestration(
     body: { orchestration?: OrchestrationMetadata; workflowRunId?: string } | undefined
@@ -39,9 +60,7 @@ export class InternalController {
     @Headers("x-internal-token") internalToken?: string,
     @Body() body?: { orchestration?: OrchestrationMetadata; workflowRunId?: string }
   ) {
-    if (!process.env.JWT_SECRET || internalToken !== process.env.JWT_SECRET) {
-      throw new UnauthorizedException("Invalid internal token");
-    }
+    this.assertInternalToken(internalToken);
 
     return this.directAnalysisService.analyzeJob(
       id,
@@ -58,9 +77,7 @@ export class InternalController {
     @Headers("x-internal-token") internalToken?: string,
     @Body() body?: { orchestration?: OrchestrationMetadata; workflowRunId?: string }
   ) {
-    if (!process.env.JWT_SECRET || internalToken !== process.env.JWT_SECRET) {
-      throw new UnauthorizedException("Invalid internal token");
-    }
+    this.assertInternalToken(internalToken);
 
     return this.directResumeService.generateResume(
       id,
@@ -77,9 +94,7 @@ export class InternalController {
     @Headers("x-internal-token") internalToken?: string,
     @Body() body?: { orchestration?: OrchestrationMetadata; workflowRunId?: string }
   ) {
-    if (!process.env.JWT_SECRET || internalToken !== process.env.JWT_SECRET) {
-      throw new UnauthorizedException("Invalid internal token");
-    }
+    this.assertInternalToken(internalToken);
 
     return this.applicationsService.prefillJobDirect(
       id,
@@ -87,5 +102,16 @@ export class InternalController {
       this.parseWorkflowRunId(body),
       buildRequestAbortSignal(request)
     );
+  }
+
+  @Post("applications/:id/generate-long-answers")
+  async generateLongAnswers(
+    @Param("id") id: string,
+    @Headers("x-internal-token") internalToken?: string,
+    @Body() body?: unknown
+  ) {
+    this.assertInternalToken(internalToken);
+    const input = parseOrThrow(generateLongAnswersRequestSchema, body);
+    return this.longAnswerService.generateForApplication(id, input.questions);
   }
 }
