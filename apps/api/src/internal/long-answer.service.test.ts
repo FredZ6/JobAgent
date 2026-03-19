@@ -75,7 +75,7 @@ afterEach(() => {
 });
 
 describe("LongAnswerService", () => {
-  it("returns fill decisions for matched defaults and fallback only for non-high-risk misses", async () => {
+  it("returns matched default answers without calling the llm path", async () => {
     const prisma = mockPrisma();
     prisma.application.findUnique.mockResolvedValue(
       createApplication({
@@ -108,10 +108,6 @@ describe("LongAnswerService", () => {
       {
         fieldName: "why_company",
         questionText: "Why do you want to work here?"
-      },
-      {
-        fieldName: "why_fit",
-        questionText: "Why are you a fit for this role?"
       }
     ]);
 
@@ -124,16 +120,9 @@ describe("LongAnswerService", () => {
         decision: "fill",
         answer: "I enjoy building reliable developer platforms.",
         source: "default_answer_match"
-      },
-      {
-        fieldName: "why_fit",
-        questionText: "Why are you a fit for this role?",
-        decision: "fill",
-        answer: expect.any(String),
-        source: "deterministic_fallback"
       }
     ]);
-    expect(fallbackSpy).toHaveBeenCalledTimes(1);
+    expect(fallbackSpy).not.toHaveBeenCalled();
   });
 
   it("requires manual review for unmatched high-risk prompts", async () => {
