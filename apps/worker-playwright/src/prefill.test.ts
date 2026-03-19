@@ -270,4 +270,47 @@ describe("prefill helpers", () => {
     });
     expect(fetchSpy).not.toHaveBeenCalled();
   });
+
+  it("returns a failed upload result instead of throwing when a dropzone upload errors", async () => {
+    const dropzone = {
+      $: vi.fn(async () => ({
+        setInputFiles: vi.fn().mockRejectedValue(new Error("dropzone upload failed"))
+      })),
+      dispatchEvent: vi.fn().mockResolvedValue(undefined)
+    } satisfies MockDropzone;
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        arrayBuffer: async () => new TextEncoder().encode("pdf-data").buffer
+      })
+    );
+
+    const page = makeUploadPage({
+      resolveSelector: (selector) => (selector.includes("dropzone") ? dropzone : null)
+    });
+
+    await expect(
+      uploadResume(page, {
+        applicationId: "app_5",
+        resume: {
+          id: "resume_5",
+          headline: "Platform Engineer",
+          status: "completed",
+          pdfDownloadUrl: "http://api:3001/resume-versions/resume_5/pdf",
+          pdfFileName: "ada-lovelace-resume.pdf"
+        },
+        tempBaseDir: tempDir
+      })
+    ).resolves.toMatchObject({
+      fieldName: "resume",
+      fieldType: "resume_upload",
+      filled: false,
+      status: "failed",
+      strategy: "file_input_then_dropzone",
+      source: "resume_pdf",
+      failureReason: "dropzone upload failed"
+    });
+  });
 });

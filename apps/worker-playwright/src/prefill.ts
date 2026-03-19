@@ -359,28 +359,41 @@ export async function uploadResume(
   const dropzoneTarget = await findFirstMatchingTarget(page, dropzoneSelectors);
   if (dropzoneTarget) {
     const filePath = await ensureDownloadedFile();
-    const nestedInput = await dropzoneTarget.$('input[type="file"]');
 
-    if (nestedInput && typeof nestedInput.setInputFiles === "function") {
-      await nestedInput.setInputFiles(filePath);
+    try {
+      const nestedInput = await dropzoneTarget.$('input[type="file"]');
+
+      if (nestedInput && typeof nestedInput.setInputFiles === "function") {
+        await nestedInput.setInputFiles(filePath);
+        return buildResumeUploadResult({
+          resumeId: input.resume.id,
+          fileName,
+          attemptedStrategies,
+          filled: true,
+          status: "filled",
+          strategy: "dropzone"
+        });
+      }
+
+      if (await dispatchDropzoneUpload(page, dropzoneTarget, filePath, fileName)) {
+        return buildResumeUploadResult({
+          resumeId: input.resume.id,
+          fileName,
+          attemptedStrategies,
+          filled: true,
+          status: "filled",
+          strategy: "dropzone"
+        });
+      }
+    } catch (error) {
       return buildResumeUploadResult({
         resumeId: input.resume.id,
         fileName,
         attemptedStrategies,
-        filled: true,
-        status: "filled",
-        strategy: "dropzone"
-      });
-    }
-
-    if (await dispatchDropzoneUpload(page, dropzoneTarget, filePath, fileName)) {
-      return buildResumeUploadResult({
-        resumeId: input.resume.id,
-        fileName,
-        attemptedStrategies,
-        filled: true,
-        status: "filled",
-        strategy: "dropzone"
+        filled: false,
+        status: "failed",
+        strategy: "file_input_then_dropzone",
+        failureReason: (error as Error).message
       });
     }
   }

@@ -32,7 +32,8 @@ app.post("/prefill", async (req: any, res: any) => {
     await page.goto(payload.applyUrl, { waitUntil: "domcontentloaded" });
     const resumeUploadResult = await uploadResume(page, {
       applicationId: payload.applicationId,
-      resume: payload.resume
+      resume: payload.resume,
+      tempBaseDir: storageDir
     });
     log.push({
       level: resumeUploadResult.filled ? "info" : resumeUploadResult.status === "failed" ? "warn" : "info",
@@ -47,7 +48,7 @@ app.post("/prefill", async (req: any, res: any) => {
     res.json({
       status: "completed",
       formSnapshot: { url: payload.applyUrl },
-      fieldResults: [...basicFieldResults, resumeUploadResult],
+      fieldResults: [resumeUploadResult, ...basicFieldResults],
       screenshotPaths: [screenshotPath],
       workerLog: [...log, { level: "info", message: "prefill completed", timestamp: new Date().toISOString() }],
       errorMessage: null
