@@ -580,6 +580,227 @@ describe("ApplicationsService", () => {
     });
   });
 
+  it("prefillJob persists richer upload and long-answer field results without failing a completed run", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        status: "completed",
+        formSnapshot: { url: "https://apply.example.com" },
+        fieldResults: [
+          {
+            fieldName: "email",
+            fieldType: "basic_text",
+            suggestedValue: "ada@example.com",
+            filled: true,
+            status: "filled",
+            strategy: "text_input",
+            source: "profile"
+          },
+          {
+            fieldName: "resume",
+            fieldType: "resume_upload",
+            suggestedValue: "ada-lovelace-resume.pdf",
+            filled: false,
+            status: "unhandled",
+            strategy: "file_input_then_dropzone",
+            source: "resume_pdf",
+            failureReason: "resume upload control not found",
+            metadata: {
+              resumeVersionId: "resume_1",
+              fileName: "ada-lovelace-resume.pdf",
+              attemptedStrategies: ["file_input", "dropzone"]
+            }
+          },
+          {
+            fieldName: "why_company",
+            fieldLabel: "Why do you want to work here?",
+            fieldType: "long_text",
+            questionText: "Why do you want to work here?",
+            suggestedValue: "",
+            filled: false,
+            status: "failed",
+            strategy: "textarea",
+            source: "llm_generated",
+            failureReason: "long-answer generation failed (500)"
+          }
+        ],
+        screenshotPaths: [],
+        workerLog: [],
+        errorMessage: null
+      })
+    });
+
+    const prisma = mockPrisma();
+    prisma.job.findUnique.mockResolvedValue({
+      id: "job_1",
+      applyUrl: "https://apply.example.com",
+      title: "Platform Engineer",
+      company: "Orbital",
+      location: "Remote",
+      description: "Build internal platform systems."
+    });
+    prisma.resumeVersion.findFirst.mockResolvedValue({
+      id: "resume_1",
+      jobId: "job_1",
+      sourceProfileId: "profile_1",
+      status: "completed",
+      headline: "Platform Engineer",
+      sourceProfile: {
+        fullName: "Ada Lovelace"
+      },
+      job: {
+        title: "Platform Engineer",
+        company: "Orbital"
+      }
+    });
+    prisma.candidateProfile.findFirst.mockResolvedValue({
+      id: "profile_1",
+      fullName: "Ada Lovelace",
+      email: "ada@example.com",
+      phone: "555-0101",
+      linkedinUrl: "https://linkedin.com/in/ada",
+      githubUrl: "https://github.com/ada",
+      location: "Winnipeg",
+      workAuthorization: "Authorized",
+      summary: "Platform engineer.",
+      skills: ["TypeScript"],
+      experienceLibrary: [],
+      projectLibrary: [],
+      defaultAnswers: {}
+    });
+    prisma.application.create.mockResolvedValue({
+      id: "app_1",
+      jobId: "job_1",
+      resumeVersionId: "resume_1",
+      status: "queued",
+      approvalStatus: "pending_review",
+      applyUrl: "https://apply.example.com",
+      formSnapshot: {},
+      fieldResults: [],
+      screenshotPaths: [],
+      workerLog: [],
+      submissionStatus: "not_ready",
+      submittedAt: null,
+      submissionNote: "",
+      submittedByUser: false,
+      finalSubmissionSnapshot: null,
+      reviewNote: "",
+      errorMessage: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      job: { id: "job_1", title: "Platform Engineer", company: "Orbital", applyUrl: "https://apply.example.com" },
+      resumeVersion: { id: "resume_1", headline: "Platform Engineer", status: "completed" }
+    });
+    prisma.application.update.mockResolvedValueOnce({ status: "running" });
+    prisma.__tx.application.update.mockResolvedValue({
+      id: "app_1",
+      jobId: "job_1",
+      resumeVersionId: "resume_1",
+      status: "completed",
+      approvalStatus: "pending_review",
+      applyUrl: "https://apply.example.com",
+      formSnapshot: { url: "https://apply.example.com" },
+      fieldResults: [
+        {
+          fieldName: "email",
+          fieldType: "basic_text",
+          suggestedValue: "ada@example.com",
+          filled: true,
+          status: "filled",
+          strategy: "text_input",
+          source: "profile"
+        },
+        {
+          fieldName: "resume",
+          fieldType: "resume_upload",
+          suggestedValue: "ada-lovelace-resume.pdf",
+          filled: false,
+          status: "unhandled",
+          strategy: "file_input_then_dropzone",
+          source: "resume_pdf",
+          failureReason: "resume upload control not found",
+          metadata: {
+            resumeVersionId: "resume_1",
+            fileName: "ada-lovelace-resume.pdf",
+            attemptedStrategies: ["file_input", "dropzone"]
+          }
+        },
+        {
+          fieldName: "why_company",
+          fieldLabel: "Why do you want to work here?",
+          fieldType: "long_text",
+          questionText: "Why do you want to work here?",
+          suggestedValue: "",
+          filled: false,
+          status: "failed",
+          strategy: "textarea",
+          source: "llm_generated",
+          failureReason: "long-answer generation failed (500)"
+        }
+      ],
+      screenshotPaths: [],
+      workerLog: [],
+      submissionStatus: "not_ready",
+      submittedAt: null,
+      submissionNote: "",
+      submittedByUser: false,
+      finalSubmissionSnapshot: null,
+      reviewNote: "",
+      errorMessage: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      job: { id: "job_1", title: "Platform Engineer", company: "Orbital", applyUrl: "https://apply.example.com" },
+      resumeVersion: { id: "resume_1", headline: "Platform Engineer", status: "completed" }
+    });
+
+    const service = new ApplicationsService(prisma as any, undefined, mockWorkflowRunsService() as any);
+
+    const result = await service.prefillJob("job_1");
+
+    expect(prisma.__tx.application.update).toHaveBeenCalledWith({
+      where: { id: "app_1" },
+      data: expect.objectContaining({
+        status: "completed",
+        fieldResults: expect.arrayContaining([
+          expect.objectContaining({
+            fieldName: "resume",
+            fieldType: "resume_upload",
+            status: "unhandled"
+          }),
+          expect.objectContaining({
+            fieldName: "why_company",
+            fieldType: "long_text",
+            status: "failed"
+          })
+        ])
+      }),
+      include: {
+        job: true,
+        resumeVersion: true
+      }
+    });
+    expect(result.application.status).toBe("completed");
+    expect(result.application.fieldResults).toEqual([
+      expect.objectContaining({
+        fieldName: "email",
+        fieldType: "basic_text",
+        status: "filled"
+      }),
+      expect.objectContaining({
+        fieldName: "resume",
+        fieldType: "resume_upload",
+        status: "unhandled",
+        suggestedValue: "ada-lovelace-resume.pdf"
+      }),
+      expect.objectContaining({
+        fieldName: "why_company",
+        fieldType: "long_text",
+        status: "failed",
+        suggestedValue: ""
+      })
+    ]);
+  });
+
   it("prefillJob creates a fresh application record for each rerun", async () => {
     const prisma = mockPrisma();
     prisma.job.findUnique.mockResolvedValue({
@@ -870,6 +1091,107 @@ describe("ApplicationsService", () => {
     expect(result.application.submissionStatus).toBe("submitted");
     expect(result.application.submissionNote).toBe("Submitted manually.");
     expect(result.application.finalSubmissionSnapshot).not.toBeNull();
+  });
+
+  it("markSubmitted keeps unresolved and failed counts stable for richer field result shapes", async () => {
+    const prisma = mockPrisma();
+    prisma.application.findUnique.mockResolvedValue({
+      id: "app_2",
+      jobId: "job_1",
+      resumeVersionId: "resume_1",
+      status: "completed",
+      approvalStatus: "approved_for_submit",
+      submissionStatus: "ready_to_submit",
+      applyUrl: "https://example.com/apply",
+      formSnapshot: {},
+      fieldResults: [
+        {
+          fieldName: "email",
+          fieldType: "basic_text",
+          suggestedValue: "ada@example.com",
+          filled: true,
+          status: "filled",
+          strategy: "text_input",
+          source: "profile"
+        },
+        {
+          fieldName: "resume",
+          fieldType: "resume_upload",
+          suggestedValue: "ada-lovelace-resume.pdf",
+          filled: false,
+          status: "unhandled",
+          strategy: "file_input_then_dropzone",
+          source: "resume_pdf",
+          failureReason: "resume upload control not found"
+        },
+        {
+          fieldName: "why_company",
+          fieldType: "long_text",
+          questionText: "Why do you want to work here?",
+          suggestedValue: "",
+          filled: false,
+          status: "failed",
+          strategy: "textarea",
+          source: "llm_generated",
+          failureReason: "long-answer generation failed (500)"
+        }
+      ],
+      screenshotPaths: [],
+      workerLog: [],
+      reviewNote: "Looks ready",
+      submissionNote: "",
+      submittedByUser: false,
+      finalSubmissionSnapshot: null,
+      errorMessage: null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+    prisma.__tx.application.update.mockResolvedValue({
+      id: "app_2",
+      jobId: "job_1",
+      resumeVersionId: "resume_1",
+      status: "completed",
+      approvalStatus: "approved_for_submit",
+      submissionStatus: "submitted",
+      applyUrl: "https://example.com/apply",
+      formSnapshot: {},
+      fieldResults: [],
+      screenshotPaths: [],
+      workerLog: [],
+      reviewNote: "Looks ready",
+      submissionNote: "Submitted manually.",
+      submittedByUser: true,
+      finalSubmissionSnapshot: {
+        approvalStatus: "approved_for_submit",
+        resumeVersionId: "resume_1",
+        applyUrl: "https://example.com/apply",
+        unresolvedFieldCount: 2,
+        failedFieldCount: 2
+      },
+      submittedAt: new Date(),
+      errorMessage: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      job: { id: "job_1", title: "Role", company: "Co", applyUrl: "https://example.com/apply" },
+      resumeVersion: { id: "resume_1", headline: "Headline", status: "completed" }
+    });
+    const service = new ApplicationsService(prisma as any);
+
+    await service.markSubmitted("app_2", { submissionNote: "Submitted manually." });
+
+    expect(prisma.__tx.application.update).toHaveBeenCalledWith({
+      where: { id: "app_2" },
+      data: expect.objectContaining({
+        finalSubmissionSnapshot: {
+          approvalStatus: "approved_for_submit",
+          resumeVersionId: "resume_1",
+          applyUrl: "https://example.com/apply",
+          unresolvedFieldCount: 2,
+          failedFieldCount: 2
+        }
+      }),
+      include: { job: true, resumeVersion: true }
+    });
   });
 
   it("reopenSubmission rejects applications that are not submitted", async () => {
