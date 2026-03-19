@@ -4,7 +4,7 @@
 Define and approve a practical build plan for the OpenClaw Job Agent MVP, then implement the approved starter scope as a runnable local monorepo.
 
 ## Current Phase
-Phase 49
+Phase 51
 
 ## Phases
 ### Phase 1: Requirements & Discovery
@@ -511,9 +511,26 @@ Phase 49
 ### Phase 49: Prefill Upgrade Implementation
 - [x] Extend shared field-result schema for resume uploads and long-answer autofill
 - [x] Add API groundwork for richer worker payloads and internal long-answer generation
-- [ ] Implement worker-side resume upload support for standard inputs and common dropzones
-- [ ] Implement worker-side long-answer detection and autofill
-- [ ] Update review UI for grouped basic-field, resume-upload, and long-answer results
-- [ ] Add additive `automation_sessions` persistence and read-path support
-- [ ] Run targeted and end-to-end verification for the upgraded prefill flow
+- [x] Implement worker-side resume upload support for standard inputs and common dropzones
+- [x] Implement worker-side long-answer detection and autofill
+- [x] Update review UI for grouped basic-field, resume-upload, and long-answer results
+- [x] Add additive `automation_sessions` persistence and read-path support
+- [x] Run targeted and end-to-end verification for the upgraded prefill flow
+- **Status:** complete
+
+### Phase 50: Default Answers Editor & Open-Source Checklist Planning
+- [x] Confirm the UI shape for `defaultAnswers` editing
+- [x] Confirm the high-risk manual-review rule for unmatched prompts
+- [x] Present and validate the design in sections
+- [x] Write the approved design doc
+- [x] Write the implementation plan
+- [x] Write the 10-item open-source release checklist into a repo file
+- **Status:** complete
+
+### Phase 51: Default Answers Editor & High-Risk Manual Review Implementation
+- [ ] Add a `Question / Answer` editor to the Profile page
+- [ ] Validate partial rows and duplicate questions before save
+- [ ] Return explicit `fill` vs `manual_review_required` decisions from long-answer generation
+- [ ] Block auto-fill for unmatched high-risk prompts and surface review evidence instead
+- [ ] Run targeted verification for web, API, and worker behavior
 - **Status:** in progress

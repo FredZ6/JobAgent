@@ -1445,3 +1445,26 @@
   - `task_plan.md` (modified)
   - `findings.md` (modified)
   - `progress.md` (modified)
+
+### Phase 50: Default Answers Editor & Open-Source Checklist Planning
+- **Status:** complete
+- Actions taken:
+  - Re-read the current Profile page, profile persistence path, long-answer service, and worker-side long-answer fill flow.
+  - Confirmed that `defaultAnswers` already persists on `CandidateProfile` but currently has no editable UI on the Profile page.
+  - Collected user decisions for the row-based editor UX, empty-state examples, and the high-risk manual-review rule.
+  - Wrote the approved design doc to `docs/plans/2026-03-19-default-answers-editor-high-risk-manual-review-design.md`.
+  - Wrote the implementation plan to `docs/plans/2026-03-19-default-answers-editor-high-risk-manual-review.md`.
+  - Wrote the 10-item open-source release checklist to `docs/plans/2026-03-19-open-source-release-checklist.md`.
+- Files created/modified:
+  - `docs/plans/2026-03-19-default-answers-editor-high-risk-manual-review-design.md` (created)
+  - `docs/plans/2026-03-19-default-answers-editor-high-risk-manual-review.md` (created)
+  - `docs/plans/2026-03-19-open-source-release-checklist.md` (created)
+  - `task_plan.md` (modified)
+  - `findings.md` (modified)
+  - `progress.md` (modified)
+
+### Phase 51: Default Answers Editor & High-Risk Manual Review Implementation
+- **Status:** in progress
+- Actions taken:
+  - Approved the lightweight implementation path that keeps `defaultAnswers` stored as `Record<string, string>`.
+  - Set up the next implementation slice to proceed with TDD across web, API, and worker behavior.

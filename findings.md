@@ -228,3 +228,9 @@
 - The first implementation slice can land in two low-risk steps before worker/browser changes: extend shared field-result schemas, then add API groundwork for richer worker payloads and internal long-answer generation.
 - The richer prefill upgrade can preserve the public product flow while extending only API -> worker payload fields and worker-facing internal APIs.
 - The first long-answer implementation is acceptable as `defaultAnswers`-first plus deterministic fallback so the protocol, auditability, and review surfaces can be built before real model integration.
+- `defaultAnswers` are not auto-generated; they are user-maintained candidate-profile data that should be editable on the Profile page.
+- The current repo already persists `defaultAnswers`, but the Profile page does not yet render an editor for them, so the feature is effectively backend-only.
+- The approved first UI for `defaultAnswers` is a `Question / Answer` row editor with add/remove controls, empty-state example prompts, and no automatic seeding of real values.
+- High-risk long-answer prompts should be gated by saved defaults: if no saved default answer matches, the system should not auto-fill and should instead return `manual_review_required`.
+- The first high-risk categories should be keyword-based and conservative: sponsorship/work authorization, salary expectations, notice/start-date availability, relocation, and legal declarations.
+- The ten most important open-source release tasks are now tracked in `docs/plans/2026-03-19-open-source-release-checklist.md`, with the current slice starting at item 6.
