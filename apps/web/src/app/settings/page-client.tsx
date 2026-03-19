@@ -20,6 +20,14 @@ const providerDefaults = {
 
 type Provider = keyof typeof providerDefaults;
 
+function isProvider(value: string): value is Provider {
+  return value in providerDefaults;
+}
+
+function getProviderDefaults(provider: string) {
+  return isProvider(provider) ? providerDefaults[provider] : null;
+}
+
 const initialState = {
   provider: "openai",
   model: "gpt-5.4",
@@ -48,19 +56,20 @@ export default function SettingsPage() {
 
   const isDirty = JSON.stringify(form) !== JSON.stringify(savedForm);
   const isValid = Object.keys(validationErrors).length === 0;
-  const apiKeyPlaceholder = providerDefaults[form.provider as Provider]?.apiKeyPlaceholder ?? "sk-...";
+  const apiKeyPlaceholder = getProviderDefaults(form.provider)?.apiKeyPlaceholder ?? "sk-...";
 
   function handleProviderChange(nextProviderValue: string) {
     const nextProvider = nextProviderValue as Provider;
 
     setForm((current) => {
-      const previousProvider = current.provider as Provider;
-      const shouldSwapModel = current.model === providerDefaults[previousProvider].model;
+      const previousDefaults = getProviderDefaults(current.provider);
+      const nextDefaults = getProviderDefaults(nextProvider);
+      const shouldSwapModel = Boolean(previousDefaults && current.model === previousDefaults.model && nextDefaults);
 
       return {
         ...current,
         provider: nextProvider,
-        model: shouldSwapModel ? providerDefaults[nextProvider].model : current.model
+        model: shouldSwapModel && nextDefaults ? nextDefaults.model : current.model
       };
     });
   }

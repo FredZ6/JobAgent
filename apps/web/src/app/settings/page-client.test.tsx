@@ -89,6 +89,28 @@ describe("SettingsPage provider selector", () => {
     expect(screen.getByPlaceholderText("AIza...")).not.toBeNull();
   });
 
+  it("does not crash when hydrating an unexpected saved provider and switching to a valid one", async () => {
+    const user = userEvent.setup();
+
+    mockedFetchSettings.mockResolvedValue({
+      provider: "legacy-provider",
+      model: "custom-model",
+      apiKey: "legacy-key",
+      isConfigured: true
+    } as never);
+
+    renderSettingsPage();
+
+    const providerSelect = await screen.findByRole("combobox", { name: "Provider" });
+    const modelInput = screen.getByLabelText("Model");
+
+    await expect(user.selectOptions(providerSelect, "gemini")).resolves.toBeUndefined();
+
+    expect((providerSelect as HTMLSelectElement).value).toBe("gemini");
+    expect((modelInput as HTMLInputElement).value).toBe("custom-model");
+    expect(screen.getByPlaceholderText("AIza...")).not.toBeNull();
+  });
+
   it("preserves save behavior with the selected provider and editable model", async () => {
     const user = userEvent.setup();
 
