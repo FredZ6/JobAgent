@@ -215,6 +215,24 @@
   - `findings.md` (modified)
   - `progress.md` (modified)
 
+### Phase 52: Dual-Provider LLM Design & Plan
+- **Status:** complete
+- Actions taken:
+  - Re-read the current OpenAI-only analysis, resume, and long-answer services plus the existing settings flow.
+  - Confirmed with the user that the first provider slice should cover job analysis, tailored resume generation, and long-answer generation together.
+  - Confirmed that the product should remain globally single-provider, with one shared `provider + model + apiKey` setting for all LLM-backed flows.
+  - Confirmed the Settings UI should use a provider select and keep model editable with provider-specific recommended defaults.
+  - Designed a unified provider-adapter architecture with a shared gateway, `OpenAI` and `Gemini` implementations, and business services that keep prompts/schemas while delegating vendor communication.
+  - Folded long-answer `item 6` into the same design so eligible non-high-risk prompts use the new provider layer while unmatched high-risk prompts still require manual review.
+  - Wrote the approved design doc to `docs/plans/2026-03-19-openai-gemini-provider-adapter-design.md`.
+  - Wrote the implementation plan to `docs/plans/2026-03-19-openai-gemini-provider-adapter.md`.
+- Files created/modified:
+  - `docs/plans/2026-03-19-openai-gemini-provider-adapter-design.md` (created)
+  - `docs/plans/2026-03-19-openai-gemini-provider-adapter.md` (created)
+  - `task_plan.md` (modified)
+  - `findings.md` (modified)
+  - `progress.md` (modified)
+
 ### Phase 27: Workflow Run Cancel Controls
 - **Status:** complete
 - Actions taken:

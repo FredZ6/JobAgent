@@ -4,7 +4,7 @@
 Define and approve a practical build plan for the OpenClaw Job Agent MVP, then implement the approved starter scope as a runnable local monorepo.
 
 ## Current Phase
-Phase 51
+Phase 52
 
 ## Phases
 ### Phase 1: Requirements & Discovery
@@ -533,4 +533,13 @@ Phase 51
 - [x] Return explicit `fill` vs `manual_review_required` decisions from long-answer generation
 - [x] Block auto-fill for unmatched high-risk prompts and surface review evidence instead
 - [x] Run targeted verification for web, API, and worker behavior
+- **Status:** complete
+
+### Phase 52: Dual-Provider LLM Design & Plan
+- [x] Confirm the provider scope covers analysis, resume generation, and long-answer generation
+- [x] Confirm the product remains globally single-provider
+- [x] Confirm the Settings UI uses a provider select plus provider-specific recommended defaults
+- [x] Present and validate the provider-adapter design in sections
+- [x] Write the approved design doc
+- [x] Write the implementation plan
 - **Status:** complete

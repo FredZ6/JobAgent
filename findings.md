@@ -237,3 +237,10 @@
 - The Profile page now exposes `defaultAnswers` as a true `Question / Answer` editor with add/remove controls, duplicate-question validation, partial-row validation, and example prompts in the empty state.
 - High-risk long-answer prompts are now handled conservatively: unmatched salary, sponsorship, availability, relocation, and legal-declaration questions return `manual_review_required` instead of falling back to auto-generated copy.
 - The worker now treats `manual_review_required` as a distinct outcome and records an `unhandled` `FieldResult` instead of trying to fill a missing answer into the page.
+- The current repo still stores `provider` in `LlmSetting`, but analysis and resume generation remain effectively OpenAI-only because both services hard-code OpenAI `Responses API` calls.
+- Gemini is a strong addition for open-source ergonomics because the official Gemini Developer API currently publishes a free tier, while OpenAI's public API docs currently emphasize prepaid billing rather than a broad developer free tier.
+- The approved provider scope is all-or-nothing for the first slice: analysis, resume generation, and eligible long-answer generation should all honor the same global provider setting.
+- The approved configuration model remains intentionally narrow: one global provider, one model string, one API key, with `provider` restricted to `openai | gemini`.
+- The right abstraction boundary is a shared provider adapter plus gateway in the API, not repeated provider branches inside each business service.
+- Structured outputs should remain locally validated with Zod even after adding provider-level JSON schema support, so vendor-side schema adherence is never the only correctness guard.
+- Long-answer `item 6` should be implemented on top of the new provider adapter instead of as an OpenAI-only layer, so we do not immediately refactor the same feature twice.
