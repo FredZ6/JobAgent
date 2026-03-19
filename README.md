@@ -2,6 +2,14 @@
 
 OpenClaw Job Agent is a local-first MVP for a semi-automated job application copilot. The current delivery focuses on a practical end-to-end loop: save candidate context, import a job by URL, run structured analysis, and generate a structured tailored resume version before you decide whether the role deserves deeper effort.
 
+## Delivery Status
+
+The current repo is in **closeout / handoff** state for the agreed MVP scope.
+
+- The core candidate -> job -> analysis -> resume -> prefill -> review loop is complete.
+- Workflow tracking, retry/cancel controls, audit history, and Temporal starter slices are also in place.
+- A delivery-facing summary, demo walkthrough, verification snapshot, and known limitations are collected in [docs/closeout/2026-03-18-delivery-package.md](docs/closeout/2026-03-18-delivery-package.md).
+
 ## Current Scope
 
 - Settings page for a single LLM provider, model, and API key

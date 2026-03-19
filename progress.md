@@ -1375,3 +1375,21 @@
   - `task_plan.md` (modified)
   - `findings.md` (modified)
   - `progress.md` (modified)
+
+### Phase 46: Closeout Delivery Package
+- **Status:** complete
+- Actions taken:
+  - Wrote the closeout design doc to `docs/plans/2026-03-18-closeout-delivery-package-design.md`.
+  - Wrote the implementation plan to `docs/plans/2026-03-18-closeout-delivery-package.md`.
+  - Added a dedicated delivery package at `docs/closeout/2026-03-18-delivery-package.md` covering delivery status, capability map, demo walkthrough, verification snapshot, known limitations, and suggested next steps.
+  - Updated `README.md` so the repo now explicitly points evaluators at the delivery package and describes the current repo state as closeout / handoff.
+  - Advanced `task_plan.md` into a closeout phase rather than another feature phase.
+  - Re-ran the final smoke verification for closeout: `npm test`, `npm run build`, `docker compose up --build -d`, and `curl http://localhost:3001/health`.
+  - Confirmed the Docker stack settled back into the default non-Temporal mode after the closeout verification pass.
+- Files created/modified:
+  - `docs/plans/2026-03-18-closeout-delivery-package-design.md` (created)
+  - `docs/plans/2026-03-18-closeout-delivery-package.md` (created)
+  - `docs/closeout/2026-03-18-delivery-package.md` (created)
+  - `README.md` (modified)
+  - `task_plan.md` (modified)
+  - `progress.md` (modified)
