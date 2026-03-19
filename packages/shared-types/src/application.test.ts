@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  automationSessionSchema,
   applicationSchema,
   applicationEventSchema,
   applicationEventTypeSchema,
@@ -140,6 +141,29 @@ describe("application schemas", () => {
     expect(longAnswerResult.success ? longAnswerResult.data.questionText : null).toBe(
       "Why do you want to work here?"
     );
+  });
+
+  it("accepts a valid automation session payload with optional workflow and resume links", () => {
+    const result = automationSessionSchema.safeParse({
+      id: "session_123",
+      applicationId: "app_123",
+      workflowRunId: null,
+      kind: "prefill",
+      status: "running",
+      applyUrl: "https://example.com/apply",
+      resumeVersionId: null,
+      formSnapshot: { step: "prefill" },
+      fieldResults: [richResumeUploadFieldResult, richLongAnswerFieldResult],
+      screenshotPaths: ["session-shot-1.png"],
+      workerLog: [{ level: "info", message: "session started" }],
+      errorMessage: null,
+      startedAt: "2026-03-16T00:00:00.000Z",
+      completedAt: null,
+      createdAt: "2026-03-16T00:00:00.000Z",
+      updatedAt: "2026-03-16T00:00:00.000Z"
+    });
+
+    expect(result.success).toBe(true);
   });
 
   it("accepts legacy field results alongside richer ones", () => {

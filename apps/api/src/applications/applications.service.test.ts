@@ -52,6 +52,12 @@ const mockPrisma = () => {
     applicationEvent: {
       create: vi.fn(),
       findMany: vi.fn()
+    },
+    automationSession: {
+      create: vi.fn().mockResolvedValue({ id: "session_default" }),
+      findFirst: vi.fn().mockResolvedValue(null),
+      update: vi.fn().mockResolvedValue({ id: "session_default" }),
+      findMany: vi.fn()
     }
   };
 
@@ -76,6 +82,12 @@ const mockPrisma = () => {
     },
     applicationEvent: {
       create: vi.fn(),
+      findMany: vi.fn()
+    },
+    automationSession: {
+      create: vi.fn().mockResolvedValue({ id: "session_default" }),
+      findFirst: vi.fn().mockResolvedValue(null),
+      update: vi.fn().mockResolvedValue({ id: "session_default" }),
       findMany: vi.fn()
     },
     $transaction: vi.fn(async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx)),
@@ -799,6 +811,183 @@ describe("ApplicationsService", () => {
         suggestedValue: ""
       })
     ]);
+  });
+
+  it("prefillJob creates and finalizes an automation session for each run", async () => {
+    const prisma = mockPrisma();
+    prisma.job.findUnique.mockResolvedValue({
+      id: "job_1",
+      applyUrl: "https://apply.example.com",
+      title: "Platform Engineer",
+      company: "Orbital",
+      location: "Remote",
+      description: "Build internal platform systems."
+    });
+    prisma.resumeVersion.findFirst.mockResolvedValue({
+      id: "resume_1",
+      jobId: "job_1",
+      sourceProfileId: "profile_1",
+      status: "completed",
+      headline: "Platform Engineer",
+      sourceProfile: {
+        fullName: "Ada Lovelace"
+      },
+      job: {
+        title: "Platform Engineer",
+        company: "Orbital"
+      }
+    });
+    prisma.application.create.mockResolvedValue({
+      id: "app_1",
+      jobId: "job_1",
+      resumeVersionId: "resume_1",
+      status: "queued",
+      approvalStatus: "pending_review",
+      applyUrl: "https://apply.example.com",
+      formSnapshot: {},
+      fieldResults: [],
+      screenshotPaths: [],
+      workerLog: [],
+      submissionStatus: "not_ready",
+      submittedAt: null,
+      submissionNote: "",
+      submittedByUser: false,
+      finalSubmissionSnapshot: null,
+      reviewNote: "",
+      errorMessage: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      job: { id: "job_1", title: "Platform Engineer", company: "Orbital", applyUrl: "https://apply.example.com" },
+      resumeVersion: { id: "resume_1", headline: "Platform Engineer", status: "completed" }
+    });
+    prisma.automationSession.create.mockResolvedValue({
+      id: "session_1"
+    });
+    prisma.application.update.mockResolvedValueOnce({ status: "running" });
+    prisma.__tx.application.update.mockResolvedValue({
+      id: "app_1",
+      jobId: "job_1",
+      resumeVersionId: "resume_1",
+      status: "completed",
+      approvalStatus: "pending_review",
+      applyUrl: "https://apply.example.com",
+      formSnapshot: { url: "https://apply.example.com" },
+      fieldResults: [],
+      screenshotPaths: [],
+      workerLog: [],
+      submissionStatus: "not_ready",
+      submittedAt: null,
+      submissionNote: "",
+      submittedByUser: false,
+      finalSubmissionSnapshot: null,
+      reviewNote: "",
+      errorMessage: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      job: { id: "job_1", title: "Platform Engineer", company: "Orbital", applyUrl: "https://apply.example.com" },
+      resumeVersion: { id: "resume_1", headline: "Platform Engineer", status: "completed" }
+    });
+    prisma.__tx.automationSession.update.mockResolvedValue({
+      id: "session_1"
+    });
+
+    const service = new ApplicationsService(prisma as any, undefined, mockWorkflowRunsService() as any);
+
+    await service.prefillJob("job_1");
+
+    expect(prisma.automationSession.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        applicationId: "app_1",
+        workflowRunId: "run_direct",
+        resumeVersionId: "resume_1",
+        kind: "prefill",
+        status: "running",
+        applyUrl: "https://apply.example.com",
+        formSnapshot: {},
+        fieldResults: [],
+        screenshotPaths: [],
+        workerLog: [],
+        errorMessage: null
+      })
+    });
+    expect(prisma.__tx.automationSession.update).toHaveBeenCalledWith({
+      where: { id: "session_1" },
+      data: expect.objectContaining({
+        status: "completed",
+        formSnapshot: {},
+        fieldResults: [],
+        screenshotPaths: [],
+        workerLog: [],
+        errorMessage: null
+      })
+    });
+  });
+
+  it("lists automation sessions newest first for an application", async () => {
+    const prisma = mockPrisma();
+    prisma.application.findUnique.mockResolvedValue({
+      id: "app_1"
+    });
+    prisma.automationSession.findMany.mockResolvedValue([
+      {
+        id: "session_new",
+        applicationId: "app_1",
+        workflowRunId: "run_2",
+        resumeVersionId: "resume_1",
+        kind: "prefill",
+        status: "completed",
+        applyUrl: "https://apply.example.com",
+        formSnapshot: { url: "https://apply.example.com" },
+        fieldResults: [],
+        screenshotPaths: ["session-new.png"],
+        workerLog: [{ level: "info", message: "prefill completed" }],
+        errorMessage: null,
+        startedAt: new Date("2026-03-19T10:00:00.000Z"),
+        completedAt: new Date("2026-03-19T10:01:00.000Z"),
+        createdAt: new Date("2026-03-19T10:00:00.000Z"),
+        updatedAt: new Date("2026-03-19T10:01:00.000Z")
+      },
+      {
+        id: "session_old",
+        applicationId: "app_1",
+        workflowRunId: "run_1",
+        resumeVersionId: "resume_1",
+        kind: "prefill",
+        status: "failed",
+        applyUrl: "https://apply.example.com",
+        formSnapshot: {},
+        fieldResults: [],
+        screenshotPaths: [],
+        workerLog: [{ level: "error", message: "prefill failed" }],
+        errorMessage: "prefill failed",
+        startedAt: new Date("2026-03-18T10:00:00.000Z"),
+        completedAt: new Date("2026-03-18T10:01:00.000Z"),
+        createdAt: new Date("2026-03-18T10:00:00.000Z"),
+        updatedAt: new Date("2026-03-18T10:01:00.000Z")
+      }
+    ]);
+    const service = new ApplicationsService(prisma as any);
+
+    await expect(service.listAutomationSessions("app_1")).resolves.toEqual([
+      expect.objectContaining({
+        id: "session_new",
+        applicationId: "app_1",
+        workflowRunId: "run_2",
+        resumeVersionId: "resume_1",
+        status: "completed"
+      }),
+      expect.objectContaining({
+        id: "session_old",
+        applicationId: "app_1",
+        workflowRunId: "run_1",
+        resumeVersionId: "resume_1",
+        status: "failed"
+      })
+    ]);
+    expect(prisma.automationSession.findMany).toHaveBeenCalledWith({
+      where: { applicationId: "app_1" },
+      orderBy: { createdAt: "desc" }
+    });
   });
 
   it("prefillJob creates a fresh application record for each rerun", async () => {

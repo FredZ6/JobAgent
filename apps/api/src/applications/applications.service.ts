@@ -3,7 +3,7 @@ import { access } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
 import { basename, resolve } from "node:path";
 import { Prisma } from "@prisma/client";
-import type { Application, Job, ResumeVersion } from "@prisma/client";
+import type { Application, AutomationSession, Job, ResumeVersion } from "@prisma/client";
 import {
   isWorkflowRunCancelledError,
   mergeWorkflowRunCancellationSignals,
@@ -16,6 +16,7 @@ import { DirectRunCancellationRegistryService } from "../workflow-runs/direct-ru
 import { WorkflowRunsService } from "../workflow-runs/workflow-runs.service.js";
 import {
   applicationEventSchema,
+  automationSessionSchema,
   ApprovalRequest,
   ApplicationEventType,
   MarkRetryReadyRequest,
@@ -163,6 +164,7 @@ export class ApplicationsService {
         : undefined;
     const mergedSignal = mergeWorkflowRunCancellationSignals(signal, directCancellationSignal);
     let applicationId: string | undefined;
+    let automationSessionId: string | undefined;
 
     try {
       throwIfWorkflowRunCancelled(mergedSignal);
@@ -230,6 +232,24 @@ export class ApplicationsService {
         }
       });
       applicationId = application.id;
+      const automationSession = await this.prisma.automationSession.create({
+        data: {
+          applicationId: application.id,
+          workflowRunId: run.id,
+          kind: "prefill",
+          status: "running",
+          applyUrl: job.applyUrl,
+          resumeVersionId: resumeVersion.id,
+          formSnapshot: {} as Prisma.InputJsonValue,
+          fieldResults: [] as Prisma.InputJsonValue,
+          screenshotPaths: [] as Prisma.InputJsonValue,
+          workerLog: [] as Prisma.InputJsonValue,
+          errorMessage: null,
+          startedAt: new Date(),
+          completedAt: null
+        }
+      });
+      automationSessionId = automationSession.id;
 
       const storedProfile = await this.prisma.candidateProfile.findFirst({
         orderBy: {
@@ -340,6 +360,21 @@ export class ApplicationsService {
           workerPrefillActor
         );
 
+        if (automationSessionId) {
+          await tx.automationSession.update({
+            where: { id: automationSessionId },
+            data: {
+              status: workerResult.status === "completed" ? "completed" : "failed",
+              formSnapshot: workerResult.formSnapshot as Prisma.InputJsonValue,
+              fieldResults: workerResult.fieldResults as Prisma.InputJsonValue,
+              screenshotPaths: workerResult.screenshotPaths as Prisma.InputJsonValue,
+              workerLog: workerResult.workerLog as Prisma.InputJsonValue,
+              errorMessage: workerResult.errorMessage,
+              completedAt: new Date()
+            }
+          });
+        }
+
         return savedApplication;
       });
 
@@ -356,6 +391,19 @@ export class ApplicationsService {
 
       return this.formatApplication(updated);
     } catch (error) {
+      if (automationSessionId) {
+        await this.prisma.automationSession
+          .update({
+            where: { id: automationSessionId },
+            data: {
+              status: isWorkflowRunCancelledError(error, mergedSignal) ? "cancelled" : "failed",
+              errorMessage: error instanceof Error ? error.message : "Prefill failed",
+              completedAt: new Date()
+            }
+          })
+          .catch(() => undefined);
+      }
+
       if (isWorkflowRunCancelledError(error, mergedSignal)) {
         if (applicationId) {
           await this.prisma.application.update({
@@ -458,6 +506,24 @@ export class ApplicationsService {
     }
 
     return this.formatApplication(application);
+  }
+
+  async listAutomationSessions(applicationId: string) {
+    const application = await this.prisma.application.findUnique({
+      where: { id: applicationId },
+      select: { id: true }
+    });
+
+    if (!application) {
+      throw new NotFoundException("Application not found");
+    }
+
+    const sessions = await this.prisma.automationSession.findMany({
+      where: { applicationId },
+      orderBy: { createdAt: "desc" }
+    });
+
+    return sessions.map((session) => this.formatAutomationSession(session));
   }
 
   async updateApproval(id: string, payload: ApprovalRequest) {
@@ -726,6 +792,18 @@ export class ApplicationsService {
       job: this.includeJobSummary(application.job),
       resumeVersion: this.includeResumeSummary(application.resumeVersion)
     };
+  }
+
+  private formatAutomationSession(session: AutomationSession) {
+    return automationSessionSchema.parse({
+      ...session,
+      workflowRunId: session.workflowRunId ?? null,
+      errorMessage: session.errorMessage ?? null,
+      startedAt: session.startedAt?.toISOString() ?? null,
+      completedAt: session.completedAt?.toISOString() ?? null,
+      createdAt: session.createdAt.toISOString(),
+      updatedAt: session.updatedAt.toISOString()
+    });
   }
 
   private formatApplicationEvent(event: ApplicationEventRecord) {
@@ -1193,6 +1271,20 @@ export class ApplicationsService {
             actorId?: string | null;
             source?: string;
             payload: Prisma.InputJsonValue;
+          };
+        }): Promise<unknown>;
+      };
+      automationSession: {
+        update(args: {
+          where: { id: string };
+          data: {
+            status?: string;
+            formSnapshot?: Prisma.InputJsonValue;
+            fieldResults?: Prisma.InputJsonValue;
+            screenshotPaths?: Prisma.InputJsonValue;
+            workerLog?: Prisma.InputJsonValue;
+            errorMessage?: string | null;
+            completedAt?: Date;
           };
         }): Promise<unknown>;
       };
