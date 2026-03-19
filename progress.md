@@ -1419,3 +1419,29 @@
   - `task_plan.md` (modified)
   - `findings.md` (modified)
   - `progress.md` (modified)
+
+### Phase 49: Prefill Upgrade Implementation
+- **Status:** in progress
+- Actions taken:
+  - Created an isolated implementation worktree at `.worktrees/prefill-upgrades` on branch `codex-prefill-upgrades-impl`.
+  - Extended the shared `fieldResults` schema so prefill evidence can describe `basic_text`, `resume_upload`, and `long_text` results while remaining backward-compatible with older application rows.
+  - Added API groundwork for the richer prefill flow without changing the public `POST /jobs/:id/prefill` entrypoint.
+  - Extended the API -> worker payload with `resume.pdfDownloadUrl`, `resume.pdfFileName`, `job`, `analysis`, and `defaultAnswers`.
+  - Added `POST /internal/applications/:id/generate-long-answers` with internal-token auth plus request validation.
+  - Added a small `LongAnswerService` that prefers `defaultAnswers` and falls back to deterministic API-side answer generation until real LLM-backed drafting is wired in.
+  - Re-ran shared-types tests, targeted API tests, the full API package tests, and the API TypeScript build after the groundwork changes.
+- Files created/modified:
+  - `packages/shared-types/src/application.ts` (modified)
+  - `packages/shared-types/src/application.test.ts` (modified)
+  - `apps/api/src/app.module.ts` (modified)
+  - `apps/api/src/applications/applications.service.ts` (modified)
+  - `apps/api/src/applications/applications.service.test.ts` (modified)
+  - `apps/api/src/internal/internal.controller.ts` (modified)
+  - `apps/api/src/internal/internal.controller.test.ts` (created)
+  - `apps/api/src/internal/long-answer.service.ts` (created)
+  - `apps/api/src/internal/long-answer.service.test.ts` (created)
+  - `apps/api/src/profile/profile.service.ts` (modified)
+  - `apps/api/src/resume/resume.service.ts` (modified)
+  - `task_plan.md` (modified)
+  - `findings.md` (modified)
+  - `progress.md` (modified)

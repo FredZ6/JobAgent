@@ -225,3 +225,6 @@
 - Resume upload should reuse the existing API-generated resume PDF path instead of introducing a new stored upload artifact for the first slice.
 - Long-answer generation should stay API-owned so worker code does not need direct LLM access or business-truth logic.
 - `automation_sessions` should be introduced as an additive execution-layer record after upload and long-answer autofill are working, while `Application` remains the business object.
+- The first implementation slice can land in two low-risk steps before worker/browser changes: extend shared field-result schemas, then add API groundwork for richer worker payloads and internal long-answer generation.
+- The richer prefill upgrade can preserve the public product flow while extending only API -> worker payload fields and worker-facing internal APIs.
+- The first long-answer implementation is acceptable as `defaultAnswers`-first plus deterministic fallback so the protocol, auditability, and review surfaces can be built before real model integration.
