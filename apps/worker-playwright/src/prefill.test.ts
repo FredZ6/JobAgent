@@ -541,6 +541,74 @@ describe("prefill helpers", () => {
     ]);
   });
 
+  it("autofills long-answer fields when the API returns llm-generated answers", async () => {
+    process.env.JWT_SECRET = "secret";
+
+    const textarea = {
+      getAttribute: vi.fn(async (name: string) => {
+        if (name === "name") {
+          return "why_fit";
+        }
+        if (name === "placeholder") {
+          return "Why are you a fit for this role?";
+        }
+        return null;
+      }),
+      fill: vi.fn().mockResolvedValue(undefined)
+    };
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          applicationId: "app_8",
+          answers: [
+            {
+              fieldName: "why_fit",
+              questionText: "Why are you a fit for this role?",
+              decision: "fill",
+              answer: "I enjoy building reliable internal tools for product teams.",
+              source: "llm_generated"
+            }
+          ]
+        })
+      })
+    );
+
+    const page = makeLongAnswerPage({
+      textareas: [textarea]
+    });
+
+    const results = await fillLongAnswerFields(page, {
+      applicationId: "app_8",
+      resume: {
+        id: "resume_8",
+        headline: "Platform Engineer",
+        status: "completed",
+        pdfDownloadUrl: "http://api:3001/resume-versions/resume_8/pdf",
+        pdfFileName: "ada-lovelace-resume.pdf"
+      }
+    });
+
+    expect(textarea.fill).toHaveBeenCalledWith(
+      "I enjoy building reliable internal tools for product teams."
+    );
+    expect(results).toEqual([
+      {
+        fieldName: "why_fit",
+        fieldLabel: "Why are you a fit for this role?",
+        fieldType: "long_text",
+        questionText: "Why are you a fit for this role?",
+        suggestedValue: "I enjoy building reliable internal tools for product teams.",
+        filled: true,
+        status: "filled",
+        strategy: "textarea",
+        source: "llm_generated"
+      }
+    ]);
+  });
+
   it("returns failed long-answer results with empty suggested values when generation fails", async () => {
     process.env.JWT_SECRET = "secret";
 
