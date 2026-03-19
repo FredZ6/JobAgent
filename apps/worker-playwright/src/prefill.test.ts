@@ -395,12 +395,14 @@ describe("prefill helpers", () => {
           {
             fieldName: "why_company",
             questionText: "Why do you want to work here?",
+            decision: "fill",
             answer: "I enjoy building reliable developer platforms.",
             source: "default_answer_match"
           },
           {
             fieldName: "describe_a_project_you_are_proud_of",
             questionText: "Describe a project you are proud of",
+            decision: "fill",
             answer: "I led a platform migration that cut deploy time.",
             source: "llm_generated"
           }
@@ -464,6 +466,77 @@ describe("prefill helpers", () => {
         status: "filled",
         strategy: "contenteditable",
         source: "llm_generated"
+      }
+    ]);
+  });
+
+  it("does not autofill long-answer fields when the API requires manual review", async () => {
+    process.env.JWT_SECRET = "secret";
+
+    const textarea = {
+      getAttribute: vi.fn(async (name: string) => {
+        if (name === "name") {
+          return "salary_expectation";
+        }
+        if (name === "placeholder") {
+          return "What is your salary expectation?";
+        }
+        return null;
+      }),
+      fill: vi.fn().mockResolvedValue(undefined)
+    };
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          applicationId: "app_7",
+          answers: [
+            {
+              fieldName: "salary_expectation",
+              questionText: "What is your salary expectation?",
+              decision: "manual_review_required",
+              source: "manual_review_required",
+              manualReason: "high_risk_question_missing_default_answer",
+              matchedRiskCategory: "salary_expectation"
+            }
+          ]
+        })
+      })
+    );
+
+    const page = makeLongAnswerPage({
+      textareas: [textarea]
+    });
+
+    const results = await fillLongAnswerFields(page, {
+      applicationId: "app_7",
+      resume: {
+        id: "resume_7",
+        headline: "Platform Engineer",
+        status: "completed",
+        pdfDownloadUrl: "http://api:3001/resume-versions/resume_7/pdf",
+        pdfFileName: "ada-lovelace-resume.pdf"
+      }
+    });
+
+    expect(textarea.fill).not.toHaveBeenCalled();
+    expect(results).toEqual([
+      {
+        fieldName: "salary_expectation",
+        fieldLabel: "What is your salary expectation?",
+        fieldType: "long_text",
+        questionText: "What is your salary expectation?",
+        suggestedValue: "",
+        filled: false,
+        status: "unhandled",
+        strategy: "textarea",
+        source: "manual_review_required",
+        failureReason: "high_risk_question_missing_default_answer",
+        metadata: {
+          matchedRiskCategory: "salary_expectation"
+        }
       }
     ]);
   });

@@ -339,8 +339,11 @@ async function requestLongAnswers(
       fieldName: string;
       fieldLabel?: string;
       questionText?: string;
-      answer: string;
+      decision?: "fill" | "manual_review_required";
+      answer?: string;
       source: string;
+      manualReason?: string;
+      matchedRiskCategory?: string;
     }>;
   };
 
@@ -610,6 +613,43 @@ export async function fillLongAnswerFields(
         results.push({
           fieldName: target.fieldName,
           fieldLabel: target.fieldLabel,
+          fieldType: "long_text",
+          questionText: target.questionText,
+          suggestedValue: "",
+          filled: false,
+          status: "failed",
+          strategy: target.strategy,
+          source: "answer_missing",
+          failureReason: "answer not returned"
+        });
+        continue;
+      }
+
+      if (answer.decision === "manual_review_required") {
+        results.push({
+          fieldName: target.fieldName,
+          fieldLabel: target.fieldLabel ?? answer.fieldLabel,
+          fieldType: "long_text",
+          questionText: target.questionText,
+          suggestedValue: "",
+          filled: false,
+          status: "unhandled",
+          strategy: target.strategy,
+          source: answer.source,
+          failureReason: answer.manualReason ?? "manual review required",
+          metadata: answer.matchedRiskCategory
+            ? {
+                matchedRiskCategory: answer.matchedRiskCategory
+              }
+            : undefined
+        });
+        continue;
+      }
+
+      if (typeof answer.answer !== "string") {
+        results.push({
+          fieldName: target.fieldName,
+          fieldLabel: target.fieldLabel ?? answer.fieldLabel,
           fieldType: "long_text",
           questionText: target.questionText,
           suggestedValue: "",

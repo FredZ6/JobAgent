@@ -234,3 +234,6 @@
 - High-risk long-answer prompts should be gated by saved defaults: if no saved default answer matches, the system should not auto-fill and should instead return `manual_review_required`.
 - The first high-risk categories should be keyword-based and conservative: sponsorship/work authorization, salary expectations, notice/start-date availability, relocation, and legal declarations.
 - The ten most important open-source release tasks are now tracked in `docs/plans/2026-03-19-open-source-release-checklist.md`, with the current slice starting at item 6.
+- The Profile page now exposes `defaultAnswers` as a true `Question / Answer` editor with add/remove controls, duplicate-question validation, partial-row validation, and example prompts in the empty state.
+- High-risk long-answer prompts are now handled conservatively: unmatched salary, sponsorship, availability, relocation, and legal-declaration questions return `manual_review_required` instead of falling back to auto-generated copy.
+- The worker now treats `manual_review_required` as a distinct outcome and records an `unhandled` `FieldResult` instead of trying to fill a missing answer into the page.

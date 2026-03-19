@@ -31,6 +31,7 @@ describe("InternalController long-answer generation", () => {
         {
           fieldName: "why_company",
           questionText: "Why do you want to work here?",
+          decision: "fill",
           answer: "I enjoy building stable internal tools.",
           source: "default_answer_match"
         }
@@ -62,6 +63,7 @@ describe("InternalController long-answer generation", () => {
         {
           fieldName: "why_company",
           questionText: "Why do you want to work here?",
+          decision: "fill",
           answer: "I enjoy building stable internal tools.",
           source: "default_answer_match"
         }

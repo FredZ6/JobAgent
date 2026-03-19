@@ -1464,7 +1464,23 @@
   - `progress.md` (modified)
 
 ### Phase 51: Default Answers Editor & High-Risk Manual Review Implementation
-- **Status:** in progress
+- **Status:** complete
 - Actions taken:
-  - Approved the lightweight implementation path that keeps `defaultAnswers` stored as `Record<string, string>`.
-  - Set up the next implementation slice to proceed with TDD across web, API, and worker behavior.
+  - Took over the Profile-page work after an interrupted subagent attempt and used TDD to add/verify the new `defaultAnswers` editor behavior.
+  - Added `apps/web/src/app/profile/page-client.test.tsx` to cover hydration, save serialization, add/remove actions, duplicate-question blocking, partial-row blocking, ignored blank rows, and the suggested-prompts empty state.
+  - Updated the Profile page to manage `defaultAnswers` as local row state while still saving the existing `Record<string, string>` payload shape.
+  - Tightened `LongAnswerService` so unmatched high-risk prompts return explicit `manual_review_required` decisions with a risk category and manual-review reason.
+  - Updated the worker-side long-answer handler so `manual_review_required` results become `status: "unhandled"` review evidence instead of triggering a DOM fill.
+  - Aligned the internal-controller test and worker tests with the new `decision` protocol.
+  - Re-ran targeted tests for web, API, and worker packages, then re-ran full `@openclaw/api` and `@openclaw/web` test suites plus `api`, `web`, and `worker-playwright` builds.
+- Files created/modified:
+  - `apps/web/src/app/profile/page-client.tsx` (modified)
+  - `apps/web/src/app/profile/page-client.test.tsx` (created)
+  - `apps/api/src/internal/long-answer.service.ts` (modified)
+  - `apps/api/src/internal/long-answer.service.test.ts` (modified)
+  - `apps/api/src/internal/internal.controller.test.ts` (modified)
+  - `apps/worker-playwright/src/prefill.ts` (modified)
+  - `apps/worker-playwright/src/prefill.test.ts` (modified)
+  - `task_plan.md` (modified)
+  - `findings.md` (modified)
+  - `progress.md` (modified)

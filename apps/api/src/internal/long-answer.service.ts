@@ -10,6 +10,60 @@ type LongAnswerQuestionInput = {
   hints?: string[];
 };
 
+const highRiskQuestionPatterns = [
+  {
+    category: "sponsorship",
+    patterns: ["sponsor", "sponsorship", "visa", "work authorization", "work permit", "authorized to work"]
+  },
+  {
+    category: "salary_expectation",
+    patterns: ["salary", "compensation", "pay expectation", "salary expectation", "pay range"]
+  },
+  {
+    category: "availability",
+    patterns: ["start date", "when can you start", "availability", "notice period"]
+  },
+  {
+    category: "relocation",
+    patterns: ["relocate", "relocation", "willing to relocate"]
+  },
+  {
+    category: "legal_declaration",
+    patterns: ["certify", "attest", "declaration", "agreement", "consent"]
+  }
+] as const;
+
+function normalizeQuestionSignal(value: string) {
+  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, " ");
+}
+
+function identifyHighRiskCategory(question: LongAnswerQuestionInput) {
+  const signals = [
+    question.questionText,
+    question.fieldLabel,
+    question.fieldName,
+    ...(question.hints ?? [])
+  ]
+    .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+    .map(normalizeQuestionSignal);
+
+  for (const riskPattern of highRiskQuestionPatterns) {
+    if (signals.some((signal) => riskPattern.patterns.some((pattern) => signal.includes(pattern)))) {
+      return riskPattern.category;
+    }
+  }
+
+  return null;
+}
+
+function buildQuestionIdentity(question: LongAnswerQuestionInput) {
+  return {
+    fieldName: question.fieldName,
+    ...(question.fieldLabel ? { fieldLabel: question.fieldLabel } : {}),
+    ...(question.questionText ? { questionText: question.questionText } : {})
+  };
+}
+
 @Injectable()
 export class LongAnswerService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
@@ -52,18 +106,28 @@ export class LongAnswerService {
 
       if (defaultAnswerMatch) {
         return {
-          fieldName: question.fieldName,
-          fieldLabel: question.fieldLabel,
-          questionText: question.questionText,
+          ...buildQuestionIdentity(question),
+          decision: "fill" as const,
           answer: defaultAnswerMatch.answer,
           source: "default_answer_match" as const
         };
       }
 
+      const matchedRiskCategory = identifyHighRiskCategory(question);
+
+      if (matchedRiskCategory) {
+        return {
+          ...buildQuestionIdentity(question),
+          decision: "manual_review_required" as const,
+          source: "manual_review_required" as const,
+          manualReason: "high_risk_question_missing_default_answer" as const,
+          matchedRiskCategory
+        };
+      }
+
       return {
-        fieldName: question.fieldName,
-        fieldLabel: question.fieldLabel,
-        questionText: question.questionText,
+        ...buildQuestionIdentity(question),
+        decision: "fill" as const,
         answer: this.generateFallbackAnswer({
           question,
           job: application.job,

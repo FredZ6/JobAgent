@@ -528,9 +528,9 @@ Phase 51
 - **Status:** complete
 
 ### Phase 51: Default Answers Editor & High-Risk Manual Review Implementation
-- [ ] Add a `Question / Answer` editor to the Profile page
-- [ ] Validate partial rows and duplicate questions before save
-- [ ] Return explicit `fill` vs `manual_review_required` decisions from long-answer generation
-- [ ] Block auto-fill for unmatched high-risk prompts and surface review evidence instead
-- [ ] Run targeted verification for web, API, and worker behavior
-- **Status:** in progress
+- [x] Add a `Question / Answer` editor to the Profile page
+- [x] Validate partial rows and duplicate questions before save
+- [x] Return explicit `fill` vs `manual_review_required` decisions from long-answer generation
+- [x] Block auto-fill for unmatched high-risk prompts and surface review evidence instead
+- [x] Run targeted verification for web, API, and worker behavior
+- **Status:** complete
