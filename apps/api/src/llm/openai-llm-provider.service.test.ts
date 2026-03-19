@@ -72,4 +72,25 @@ describe("OpenAiLlmProviderService", () => {
       })
     ).rejects.toThrowError("OpenAI request failed");
   });
+
+  it("throws when output_text is missing from a successful response", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockResolvedValue({})
+      })
+    );
+
+    const service = new OpenAiLlmProviderService();
+
+    await expect(
+      service.generateText({
+        model: "gpt-5.4",
+        apiKey: "sk-test",
+        instructions: "Return text only.",
+        promptPayload: { prompt: "say hello" }
+      })
+    ).rejects.toThrowError("OpenAI response missing output_text");
+  });
 });

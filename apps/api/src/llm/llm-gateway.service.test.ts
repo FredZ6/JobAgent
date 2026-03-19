@@ -1,4 +1,4 @@
-import { BadRequestException } from "@nestjs/common";
+import { InternalServerErrorException } from "@nestjs/common";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { LlmGatewayService } from "./llm-gateway.service.js";
@@ -81,6 +81,6 @@ describe("LlmGatewayService", () => {
         instructions: "Return text only.",
         promptPayload: { prompt: "say hello" }
       })
-    ).rejects.toBeInstanceOf(BadRequestException);
+    ).rejects.toBeInstanceOf(InternalServerErrorException);
   });
 });

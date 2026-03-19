@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Inject } from "@nestjs/common";
+import { Inject, Injectable, InternalServerErrorException } from "@nestjs/common";
 
 import { GeminiLlmProviderService } from "./gemini-llm-provider.service.js";
 import { type LlmGenerationInput, type LlmProviderName, type LlmStructuredJsonInput } from "./llm-provider.types.js";
@@ -30,7 +30,7 @@ export class LlmGatewayService {
       case "gemini":
         return this.geminiProvider;
       default:
-        throw new BadRequestException(`Unsupported LLM provider: ${provider}`);
+        throw new InternalServerErrorException(`Unsupported LLM provider configuration: ${provider}`);
     }
   }
 }

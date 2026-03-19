@@ -25,9 +25,6 @@ import { DashboardController } from "./dashboard/dashboard.controller.js";
 import { DashboardService } from "./dashboard/dashboard.service.js";
 import { InternalController } from "./internal/internal.controller.js";
 import { LongAnswerService } from "./internal/long-answer.service.js";
-import { GeminiLlmProviderService } from "./llm/gemini-llm-provider.service.js";
-import { LlmGatewayService } from "./llm/llm-gateway.service.js";
-import { OpenAiLlmProviderService } from "./llm/openai-llm-provider.service.js";
 import { TemporalService } from "./temporal/temporal.service.js";
 import { WorkflowRunBulkActionsService } from "./workflow-runs/workflow-run-bulk-actions.service.js";
 import { WorkflowRunCancelService } from "./workflow-runs/workflow-run-cancel.service.js";
@@ -66,9 +63,6 @@ import { WorkflowRunsService } from "./workflow-runs/workflow-runs.service.js";
     ApplicationsService,
     DashboardService,
     LongAnswerService,
-    OpenAiLlmProviderService,
-    GeminiLlmProviderService,
-    LlmGatewayService,
     TemporalService,
     WorkflowRunsService,
     DirectRunCancellationRegistryService,

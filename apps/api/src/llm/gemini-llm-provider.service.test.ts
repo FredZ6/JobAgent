@@ -84,4 +84,19 @@ describe("GeminiLlmProviderService", () => {
       })
     ).rejects.toThrowError("Gemini response missing text");
   });
+
+  it("throws on non-ok responses", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, json: vi.fn() }));
+
+    const service = new GeminiLlmProviderService();
+
+    await expect(
+      service.generateText({
+        model: "gemini-2.5-flash",
+        apiKey: "AIza-test",
+        instructions: "Return text only.",
+        promptPayload: { prompt: "say hello" }
+      })
+    ).rejects.toThrowError("Gemini request failed");
+  });
 });
