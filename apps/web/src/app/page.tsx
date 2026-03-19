@@ -1,6 +1,6 @@
-import Link from "next/link";
-
 import { Panel } from "../components/panel";
+
+export const dynamic = "force-dynamic";
 
 export default function HomePage() {
   return (
@@ -12,12 +12,12 @@ export default function HomePage() {
           copy="This build is intentionally narrow: capture candidate context, import a job, and return a structured analysis that helps decide whether the role is worth deeper effort."
         >
           <div className="button-row">
-            <Link className="button button-primary" href="/settings">
+            <a className="button button-primary" href="/settings">
               Configure LLM
-            </Link>
-            <Link className="button button-secondary" href="/jobs">
+            </a>
+            <a className="button button-secondary" href="/jobs">
               Import a job
-            </Link>
+            </a>
           </div>
         </Panel>
         <Panel eyebrow="Acceptance" title="Round-one outcome">

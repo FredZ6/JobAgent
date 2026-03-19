@@ -48,6 +48,10 @@ describe("workflow-runs-query-state", () => {
     expect(state).toEqual(defaultWorkflowRunsQueryState);
   });
 
+  it("falls back to defaults when search params are unavailable", () => {
+    expect(parseWorkflowRunsQueryState(null)).toEqual(defaultWorkflowRunsQueryState);
+  });
+
   it("omits default values when serializing", () => {
     const params = serializeWorkflowRunsQueryState(defaultWorkflowRunsQueryState);
 

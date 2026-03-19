@@ -158,6 +158,7 @@ export const submissionReviewSchema = z.object({
   application: applicationSchema,
   job: applicationJobSummarySchema.nullable(),
   resumeVersion: applicationResumeSummarySchema.nullable(),
+  latestAutomationSession: automationSessionSchema.nullable().default(null),
   unresolvedFieldCount: z.number().int().nonnegative(),
   failedFieldCount: z.number().int().nonnegative()
 });

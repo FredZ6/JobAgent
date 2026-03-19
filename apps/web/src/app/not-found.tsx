@@ -1,4 +1,4 @@
-import Link from "next/link";
+export const dynamic = "force-dynamic";
 
 export default function NotFoundPage() {
   return (
@@ -11,12 +11,12 @@ export default function NotFoundPage() {
             The link may be outdated, or the resource may have been removed from this local run.
           </p>
           <div className="button-row">
-            <Link className="button button-primary" href="/">
+            <a className="button button-primary" href="/">
               Back to overview
-            </Link>
-            <Link className="button button-secondary" href="/dashboard">
+            </a>
+            <a className="button button-secondary" href="/dashboard">
               Open dashboard
-            </Link>
+            </a>
           </div>
         </div>
       </div>

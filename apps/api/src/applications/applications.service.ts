@@ -389,7 +389,7 @@ export class ApplicationsService {
         });
       }
 
-      return this.formatApplication(updated);
+      return this.formatApplicationWithLatestAutomationSession(updated);
     } catch (error) {
       if (automationSessionId) {
         await this.prisma.automationSession
@@ -505,7 +505,9 @@ export class ApplicationsService {
       throw new NotFoundException("Application not found");
     }
 
-    return this.formatApplication(application);
+    const latestAutomationSession = await this.getLatestAutomationSession(id);
+
+    return this.formatApplication(application, latestAutomationSession);
   }
 
   async listAutomationSessions(applicationId: string) {
@@ -552,7 +554,7 @@ export class ApplicationsService {
       }
     );
 
-    return this.formatApplication(updated);
+    return this.formatApplicationWithLatestAutomationSession(updated);
   }
 
   async getSubmissionReview(id: string) {
@@ -568,7 +570,9 @@ export class ApplicationsService {
       throw new NotFoundException("Application not found");
     }
 
-    return this.buildSubmissionReview(application);
+    const latestAutomationSession = await this.getLatestAutomationSession(id);
+
+    return this.buildSubmissionReview(application, latestAutomationSession);
   }
 
   async markSubmitted(id: string, payload: MarkSubmittedRequest) {
@@ -585,6 +589,11 @@ export class ApplicationsService {
     }
 
     this.assertReadyForSubmission(application.approvalStatus, application.submissionStatus);
+    const latestAutomationSession = await this.getLatestAutomationSession(id);
+    const applicationForSnapshot = this.applyAutomationSessionExecutionState(
+      application,
+      latestAutomationSession
+    );
 
     const updated = await this.runApplicationMutationWithEvent(
       id,
@@ -593,7 +602,7 @@ export class ApplicationsService {
         submittedAt: new Date(),
         submissionNote: payload.submissionNote ?? application.submissionNote,
         submittedByUser: true,
-        finalSubmissionSnapshot: this.buildSubmissionSnapshot(application) as Prisma.InputJsonValue
+        finalSubmissionSnapshot: this.buildSubmissionSnapshot(applicationForSnapshot) as Prisma.InputJsonValue
       },
       "submission_marked",
       {
@@ -602,7 +611,7 @@ export class ApplicationsService {
       }
     );
 
-    return this.formatApplication(updated);
+    return this.formatApplicationWithLatestAutomationSession(updated);
   }
 
   async markSubmitFailed(id: string, payload: MarkSubmitFailedRequest) {
@@ -619,6 +628,11 @@ export class ApplicationsService {
     }
 
     this.assertReadyForSubmission(application.approvalStatus, application.submissionStatus);
+    const latestAutomationSession = await this.getLatestAutomationSession(id);
+    const applicationForSnapshot = this.applyAutomationSessionExecutionState(
+      application,
+      latestAutomationSession
+    );
 
     const updated = await this.runApplicationMutationWithEvent(
       id,
@@ -626,7 +640,7 @@ export class ApplicationsService {
         submissionStatus: "submit_failed",
         submissionNote: payload.submissionNote ?? application.submissionNote,
         submittedByUser: true,
-        finalSubmissionSnapshot: this.buildSubmissionSnapshot(application) as Prisma.InputJsonValue
+        finalSubmissionSnapshot: this.buildSubmissionSnapshot(applicationForSnapshot) as Prisma.InputJsonValue
       },
       "submission_failed",
       {
@@ -635,7 +649,7 @@ export class ApplicationsService {
       }
     );
 
-    return this.formatApplication(updated);
+    return this.formatApplicationWithLatestAutomationSession(updated);
   }
 
   async reopenSubmission(id: string, payload: ReopenSubmissionRequest) {
@@ -674,7 +688,7 @@ export class ApplicationsService {
       }
     );
 
-    return this.formatApplication(updated);
+    return this.formatApplicationWithLatestAutomationSession(updated);
   }
 
   async markRetryReady(id: string, payload: MarkRetryReadyRequest) {
@@ -713,7 +727,7 @@ export class ApplicationsService {
       }
     );
 
-    return this.formatApplication(updated);
+    return this.formatApplicationWithLatestAutomationSession(updated);
   }
 
   async getApplicationEvents(id: string, filters?: ApplicationEventFilters) {
@@ -758,9 +772,11 @@ export class ApplicationsService {
       throw new NotFoundException("Application not found");
     }
 
-    const screenshotPaths = Array.isArray(application.screenshotPaths)
-      ? application.screenshotPaths.filter((path): path is string => typeof path === "string")
-      : [];
+    const latestAutomationSession = await this.getLatestAutomationSession(id);
+    const screenshotPaths = [
+      ...this.toScreenshotPaths(application.screenshotPaths),
+      ...this.toScreenshotPaths(latestAutomationSession?.screenshotPaths)
+    ];
     const filename = basename(name);
     const matchedPath = screenshotPaths.find((path) => basename(path) === filename);
 
@@ -779,25 +795,41 @@ export class ApplicationsService {
     };
   }
 
-  private formatApplication(application: Application & { job?: Job; resumeVersion?: ResumeVersion | null }) {
+  private formatApplication(
+    application: Application & { job?: Job; resumeVersion?: ResumeVersion | null },
+    latestAutomationSession?: AutomationSession | null
+  ) {
+    const effectiveApplication = this.applyAutomationSessionExecutionState(application, latestAutomationSession);
     const dto = applicationSchema.parse({
-      ...application,
-      submittedAt: application.submittedAt?.toISOString() ?? null,
-      createdAt: application.createdAt.toISOString(),
-      updatedAt: application.updatedAt.toISOString()
+      ...effectiveApplication,
+      submittedAt: effectiveApplication.submittedAt?.toISOString() ?? null,
+      createdAt: effectiveApplication.createdAt.toISOString(),
+      updatedAt: effectiveApplication.updatedAt.toISOString()
     });
 
     return {
       application: dto,
       job: this.includeJobSummary(application.job),
-      resumeVersion: this.includeResumeSummary(application.resumeVersion)
+      resumeVersion: this.includeResumeSummary(application.resumeVersion),
+      latestAutomationSession: latestAutomationSession
+        ? this.formatAutomationSession(latestAutomationSession)
+        : null
     };
+  }
+
+  private async formatApplicationWithLatestAutomationSession(
+    application: Application & { job?: Job; resumeVersion?: ResumeVersion | null }
+  ) {
+    const latestAutomationSession = await this.getLatestAutomationSession(application.id);
+
+    return this.formatApplication(application, latestAutomationSession);
   }
 
   private formatAutomationSession(session: AutomationSession) {
     return automationSessionSchema.parse({
       ...session,
       workflowRunId: session.workflowRunId ?? null,
+      resumeVersionId: session.resumeVersionId ?? null,
       errorMessage: session.errorMessage ?? null,
       startedAt: session.startedAt?.toISOString() ?? null,
       completedAt: session.completedAt?.toISOString() ?? null,
@@ -911,17 +943,97 @@ export class ApplicationsService {
     return (await response.json()) as WorkerResponse;
   }
 
-  private buildSubmissionReview(application: Application & { job?: Job; resumeVersion?: ResumeVersion | null }) {
-    const formatted = this.formatApplication(application);
-    const unresolvedFieldCount = formatted.application.fieldResults.filter((result) => !result.filled).length;
-    const failedFieldCount = formatted.application.fieldResults.filter((result) => Boolean(result.failureReason))
-      .length;
+  private buildSubmissionReview(
+    application: Application & { job?: Job; resumeVersion?: ResumeVersion | null },
+    latestAutomationSession?: AutomationSession | null
+  ) {
+    const formatted = this.formatApplication(application, latestAutomationSession);
+    const fieldSummary = this.summarizeFieldStates(formatted.application.fieldResults);
 
-    return submissionReviewSchema.parse({
+    const review = submissionReviewSchema.parse({
       ...formatted,
-      unresolvedFieldCount,
-      failedFieldCount
+      unresolvedFieldCount: fieldSummary.unresolved,
+      failedFieldCount: fieldSummary.failed
     });
+
+    return {
+      ...review,
+      latestAutomationSession: formatted.latestAutomationSession
+    };
+  }
+
+  private async getLatestAutomationSession(applicationId: string) {
+    return (
+      (await this.prisma.automationSession.findFirst({
+        where: { applicationId },
+        orderBy: { createdAt: "desc" }
+      })) ?? null
+    );
+  }
+
+  private applyAutomationSessionExecutionState(
+    application: Application & { job?: Job; resumeVersion?: ResumeVersion | null },
+    latestAutomationSession?: AutomationSession | null
+  ) {
+    if (!latestAutomationSession) {
+      return application;
+    }
+
+    return {
+      ...application,
+      formSnapshot: latestAutomationSession.formSnapshot,
+      fieldResults: latestAutomationSession.fieldResults,
+      screenshotPaths: latestAutomationSession.screenshotPaths,
+      workerLog: latestAutomationSession.workerLog,
+      errorMessage: latestAutomationSession.errorMessage,
+      updatedAt:
+        latestAutomationSession.updatedAt > application.updatedAt
+          ? latestAutomationSession.updatedAt
+          : application.updatedAt
+    };
+  }
+
+  private getFieldResultState(result: {
+    filled: boolean;
+    status?: string | null;
+    failureReason?: string | null;
+  }) {
+    if (result.status === "filled" || result.filled) {
+      return "filled" as const;
+    }
+
+    if (result.status === "failed" || result.failureReason) {
+      return "failed" as const;
+    }
+
+    return "unresolved" as const;
+  }
+
+  private summarizeFieldStates(
+    results: Array<{
+      filled?: boolean;
+      status?: string | null;
+      failureReason?: string | null;
+    }>
+  ) {
+    return results.reduce(
+      (summary, result) => {
+        const state = this.getFieldResultState({
+          filled: result.filled === true,
+          status: result.status ?? null,
+          failureReason: result.failureReason ?? null
+        });
+
+        if (state === "failed") {
+          summary.failed += 1;
+        } else if (state === "unresolved") {
+          summary.unresolved += 1;
+        }
+
+        return summary;
+      },
+      { unresolved: 0, failed: 0 }
+    );
   }
 
   private buildSubmissionSnapshot(
@@ -929,18 +1041,23 @@ export class ApplicationsService {
   ) {
     const fieldResults = Array.isArray(application.fieldResults)
       ? application.fieldResults.filter(
-          (value): value is { filled?: boolean; failureReason?: string } =>
+          (value): value is { filled?: boolean; status?: string | null; failureReason?: string | null } =>
             typeof value === "object" && value !== null
         )
       : [];
+    const fieldSummary = this.summarizeFieldStates(fieldResults);
 
     return {
       approvalStatus: application.approvalStatus,
       resumeVersionId: application.resumeVersionId,
       applyUrl: application.applyUrl,
-      unresolvedFieldCount: fieldResults.filter((result) => result.filled !== true).length,
-      failedFieldCount: fieldResults.filter((result) => typeof result.failureReason === "string").length
+      unresolvedFieldCount: fieldSummary.unresolved,
+      failedFieldCount: fieldSummary.failed
     };
+  }
+
+  private toScreenshotPaths(value: unknown) {
+    return Array.isArray(value) ? value.filter((path): path is string => typeof path === "string") : [];
   }
 
   private getSubmissionStatusForApproval(currentStatus: string, approvalStatus: string) {

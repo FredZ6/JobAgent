@@ -39,30 +39,32 @@ export const defaultWorkflowRunsQueryState: WorkflowRunsQueryState = {
 };
 
 export function parseWorkflowRunsQueryState(
-  searchParams: Pick<URLSearchParams, "get">
+  searchParams: Pick<URLSearchParams, "get"> | null
 ): WorkflowRunsQueryState {
+  const getValue = (key: string) => searchParams?.get(key) ?? null;
+
   return {
-    kindFilter: parseEnumValue(searchParams.get("kind"), kindValues, defaultWorkflowRunsQueryState.kindFilter),
+    kindFilter: parseEnumValue(getValue("kind"), kindValues, defaultWorkflowRunsQueryState.kindFilter),
     statusFilter: parseEnumValue(
-      searchParams.get("status"),
+      getValue("status"),
       statusValues,
       defaultWorkflowRunsQueryState.statusFilter
     ),
     executionModeFilter: parseEnumValue(
-      searchParams.get("executionMode"),
+      getValue("executionMode"),
       executionModeValues,
       defaultWorkflowRunsQueryState.executionModeFilter
     ),
-    query: searchParams.get("q")?.trim() ?? "",
-    fromDate: searchParams.get("from") ?? "",
-    toDate: searchParams.get("to") ?? "",
+    query: getValue("q")?.trim() ?? "",
+    fromDate: getValue("from") ?? "",
+    toDate: getValue("to") ?? "",
     sortBy: parseEnumValue(
-      searchParams.get("sortBy"),
+      getValue("sortBy"),
       sortByValues,
       defaultWorkflowRunsQueryState.sortBy
     ),
     sortOrder: parseEnumValue(
-      searchParams.get("sortOrder"),
+      getValue("sortOrder"),
       sortOrderValues,
       defaultWorkflowRunsQueryState.sortOrder
     )
