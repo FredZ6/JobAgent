@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { LongAnswerService } from "./long-answer.service.js";
 
@@ -11,39 +11,97 @@ const mockPrisma = () => ({
   }
 });
 
+const createApplication = (overrides?: Partial<any>) => ({
+  id: "app_1",
+  job: {
+    id: "job_1",
+    title: "Platform Engineer",
+    company: "Orbital",
+    description: "Build platform systems."
+  },
+  resumeVersion: {
+    id: "resume_1",
+    headline: "Platform Engineer",
+    professionalSummary: "Builder of stable internal tools.",
+    sourceProfile: {
+      fullName: "Ada Lovelace",
+      summary: "Platform engineer.",
+      defaultAnswers: {}
+    }
+  },
+  ...overrides
+});
+
+const createCompletedAnalysis = () => ({
+  matchScore: 88,
+  summary: "Strong platform fit.",
+  requiredSkills: ["TypeScript"],
+  missingSkills: [],
+  redFlags: []
+});
+
+const createSettingsService = (overrides?: Partial<any>) => ({
+  getSettings: vi.fn().mockResolvedValue({
+    provider: "openai",
+    model: "gpt-5.4",
+    apiKey: "",
+    isConfigured: false,
+    ...overrides
+  })
+});
+
+const createLlmLongAnswerService = (overrides?: Partial<any>) => ({
+  generate: vi.fn().mockResolvedValue("I enjoy building reliable internal tools."),
+  ...overrides
+});
+
+const originalAnalysisMode = process.env.JOB_ANALYSIS_MODE;
+const originalResumeMode = process.env.JOB_RESUME_MODE;
+
+afterEach(() => {
+  vi.restoreAllMocks();
+
+  if (originalAnalysisMode === undefined) {
+    delete process.env.JOB_ANALYSIS_MODE;
+  } else {
+    process.env.JOB_ANALYSIS_MODE = originalAnalysisMode;
+  }
+
+  if (originalResumeMode === undefined) {
+    delete process.env.JOB_RESUME_MODE;
+  } else {
+    process.env.JOB_RESUME_MODE = originalResumeMode;
+  }
+});
+
 describe("LongAnswerService", () => {
   it("returns fill decisions for matched defaults and fallback only for non-high-risk misses", async () => {
     const prisma = mockPrisma();
-    prisma.application.findUnique.mockResolvedValue({
-      id: "app_1",
-      job: {
-        id: "job_1",
-        title: "Platform Engineer",
-        company: "Orbital",
-        description: "Build platform systems."
-      },
-      resumeVersion: {
-        id: "resume_1",
-        headline: "Platform Engineer",
-        professionalSummary: "Builder of stable internal tools.",
-        sourceProfile: {
-          fullName: "Ada Lovelace",
-          summary: "Platform engineer.",
-          defaultAnswers: {
-            "Why do you want to work here?": "I enjoy building reliable developer platforms."
+    prisma.application.findUnique.mockResolvedValue(
+      createApplication({
+        resumeVersion: {
+          id: "resume_1",
+          headline: "Platform Engineer",
+          professionalSummary: "Builder of stable internal tools.",
+          sourceProfile: {
+            fullName: "Ada Lovelace",
+            summary: "Platform engineer.",
+            defaultAnswers: {
+              "Why do you want to work here?": "I enjoy building reliable developer platforms."
+            }
           }
         }
-      }
-    });
-    prisma.jobAnalysis.findFirst.mockResolvedValue({
-      matchScore: 88,
-      summary: "Strong platform fit.",
-      requiredSkills: ["TypeScript"],
-      missingSkills: [],
-      redFlags: []
-    });
+      })
+    );
+    prisma.jobAnalysis.findFirst.mockResolvedValue(createCompletedAnalysis());
 
-    const service = new LongAnswerService(prisma as any);
+    const settingsService = createSettingsService();
+    const llmLongAnswerService = createLlmLongAnswerService();
+    const service = new LongAnswerService(
+      prisma as any,
+      settingsService as any,
+      llmLongAnswerService as any
+    );
     const fallbackSpy = vi.spyOn(service as any, "generateFallbackAnswer");
 
     const result = await service.generateForApplication("app_1", [
@@ -57,6 +115,8 @@ describe("LongAnswerService", () => {
       }
     ]);
 
+    expect(settingsService.getSettings).toHaveBeenCalledTimes(1);
+    expect(llmLongAnswerService.generate).not.toHaveBeenCalled();
     expect(result.answers).toEqual([
       {
         fieldName: "why_company",
@@ -78,34 +138,21 @@ describe("LongAnswerService", () => {
 
   it("requires manual review for unmatched high-risk prompts", async () => {
     const prisma = mockPrisma();
-    prisma.application.findUnique.mockResolvedValue({
-      id: "app_2",
-      job: {
-        id: "job_2",
-        title: "Platform Engineer",
-        company: "Orbital",
-        description: "Build platform systems."
-      },
-      resumeVersion: {
-        id: "resume_2",
-        headline: "Platform Engineer",
-        professionalSummary: "Builder of stable internal tools.",
-        sourceProfile: {
-          fullName: "Ada Lovelace",
-          summary: "Platform engineer.",
-          defaultAnswers: {}
-        }
-      }
-    });
-    prisma.jobAnalysis.findFirst.mockResolvedValue({
-      matchScore: 88,
-      summary: "Strong platform fit.",
-      requiredSkills: ["TypeScript"],
-      missingSkills: [],
-      redFlags: []
-    });
+    prisma.application.findUnique.mockResolvedValue(createApplication({ id: "app_2" }));
+    prisma.jobAnalysis.findFirst.mockResolvedValue(createCompletedAnalysis());
 
-    const service = new LongAnswerService(prisma as any);
+    const settingsService = createSettingsService({
+      provider: "gemini",
+      model: "gemini-2.5-flash",
+      apiKey: "AIza-test",
+      isConfigured: true
+    });
+    const llmLongAnswerService = createLlmLongAnswerService();
+    const service = new LongAnswerService(
+      prisma as any,
+      settingsService as any,
+      llmLongAnswerService as any
+    );
     const fallbackSpy = vi.spyOn(service as any, "generateFallbackAnswer");
 
     const result = await service.generateForApplication("app_2", [
@@ -119,6 +166,8 @@ describe("LongAnswerService", () => {
       }
     ]);
 
+    expect(settingsService.getSettings).toHaveBeenCalledTimes(1);
+    expect(llmLongAnswerService.generate).not.toHaveBeenCalled();
     expect(result.answers).toEqual([
       {
         fieldName: "salary_expectation",
@@ -138,5 +187,179 @@ describe("LongAnswerService", () => {
       }
     ]);
     expect(fallbackSpy).not.toHaveBeenCalled();
+  });
+
+  it("uses the llm long-answer service for unmatched non-high-risk prompts when settings are usable", async () => {
+    process.env.JOB_ANALYSIS_MODE = "live";
+    process.env.JOB_RESUME_MODE = "live";
+
+    const prisma = mockPrisma();
+    prisma.application.findUnique.mockResolvedValue(createApplication({ id: "app_3" }));
+    prisma.jobAnalysis.findFirst.mockResolvedValue(createCompletedAnalysis());
+
+    const settingsService = createSettingsService({
+      provider: "gemini",
+      model: "gemini-2.5-flash",
+      apiKey: "AIza-test",
+      isConfigured: true
+    });
+    const llmLongAnswerService = createLlmLongAnswerService();
+    const service = new LongAnswerService(
+      prisma as any,
+      settingsService as any,
+      llmLongAnswerService as any
+    );
+    const fallbackSpy = vi.spyOn(service as any, "generateFallbackAnswer");
+
+    const result = await service.generateForApplication("app_3", [
+      {
+        fieldName: "why_fit",
+        questionText: "Why are you a fit for this role?"
+      }
+    ]);
+
+    expect(settingsService.getSettings).toHaveBeenCalledTimes(1);
+    expect(llmLongAnswerService.generate).toHaveBeenCalledTimes(1);
+    expect(fallbackSpy).not.toHaveBeenCalled();
+    expect(result.answers).toEqual([
+      {
+        fieldName: "why_fit",
+        questionText: "Why are you a fit for this role?",
+        decision: "fill",
+        answer: "I enjoy building reliable internal tools.",
+        source: "llm_generated"
+      }
+    ]);
+  });
+
+  it("falls back deterministically when demo mode is enabled", async () => {
+    process.env.JOB_ANALYSIS_MODE = "mock";
+    process.env.JOB_RESUME_MODE = "mock";
+
+    const prisma = mockPrisma();
+    prisma.application.findUnique.mockResolvedValue(createApplication({ id: "app_4" }));
+    prisma.jobAnalysis.findFirst.mockResolvedValue(createCompletedAnalysis());
+
+    const settingsService = createSettingsService({
+      provider: "gemini",
+      model: "gemini-2.5-flash",
+      apiKey: "AIza-test",
+      isConfigured: true
+    });
+    const llmLongAnswerService = createLlmLongAnswerService();
+    const service = new LongAnswerService(
+      prisma as any,
+      settingsService as any,
+      llmLongAnswerService as any
+    );
+    const fallbackSpy = vi.spyOn(service as any, "generateFallbackAnswer");
+
+    const result = await service.generateForApplication("app_4", [
+      {
+        fieldName: "why_fit",
+        questionText: "Why are you a fit for this role?"
+      }
+    ]);
+
+    expect(settingsService.getSettings).toHaveBeenCalledTimes(1);
+    expect(llmLongAnswerService.generate).not.toHaveBeenCalled();
+    expect(fallbackSpy).toHaveBeenCalledTimes(1);
+    expect(result.answers).toEqual([
+      {
+        fieldName: "why_fit",
+        questionText: "Why are you a fit for this role?",
+        decision: "fill",
+        answer: expect.any(String),
+        source: "deterministic_fallback"
+      }
+    ]);
+  });
+
+  it("falls back deterministically when provider settings are unusable", async () => {
+    process.env.JOB_ANALYSIS_MODE = "live";
+    process.env.JOB_RESUME_MODE = "live";
+
+    const prisma = mockPrisma();
+    prisma.application.findUnique.mockResolvedValue(createApplication({ id: "app_5" }));
+    prisma.jobAnalysis.findFirst.mockResolvedValue(createCompletedAnalysis());
+
+    const settingsService = createSettingsService({
+      provider: "gemini",
+      model: "gemini-2.5-flash",
+      apiKey: "",
+      isConfigured: false
+    });
+    const llmLongAnswerService = createLlmLongAnswerService();
+    const service = new LongAnswerService(
+      prisma as any,
+      settingsService as any,
+      llmLongAnswerService as any
+    );
+    const fallbackSpy = vi.spyOn(service as any, "generateFallbackAnswer");
+
+    const result = await service.generateForApplication("app_5", [
+      {
+        fieldName: "why_fit",
+        questionText: "Why are you a fit for this role?"
+      }
+    ]);
+
+    expect(settingsService.getSettings).toHaveBeenCalledTimes(1);
+    expect(llmLongAnswerService.generate).not.toHaveBeenCalled();
+    expect(fallbackSpy).toHaveBeenCalledTimes(1);
+    expect(result.answers).toEqual([
+      {
+        fieldName: "why_fit",
+        questionText: "Why are you a fit for this role?",
+        decision: "fill",
+        answer: expect.any(String),
+        source: "deterministic_fallback"
+      }
+    ]);
+  });
+
+  it("falls back deterministically when provider-backed generation fails", async () => {
+    process.env.JOB_ANALYSIS_MODE = "live";
+    process.env.JOB_RESUME_MODE = "live";
+
+    const prisma = mockPrisma();
+    prisma.application.findUnique.mockResolvedValue(createApplication({ id: "app_6" }));
+    prisma.jobAnalysis.findFirst.mockResolvedValue(createCompletedAnalysis());
+
+    const settingsService = createSettingsService({
+      provider: "openai",
+      model: "gpt-5.4",
+      apiKey: "sk-test",
+      isConfigured: true
+    });
+    const llmLongAnswerService = createLlmLongAnswerService({
+      generate: vi.fn().mockRejectedValue(new Error("provider failure"))
+    });
+    const service = new LongAnswerService(
+      prisma as any,
+      settingsService as any,
+      llmLongAnswerService as any
+    );
+    const fallbackSpy = vi.spyOn(service as any, "generateFallbackAnswer");
+
+    const result = await service.generateForApplication("app_6", [
+      {
+        fieldName: "why_fit",
+        questionText: "Why are you a fit for this role?"
+      }
+    ]);
+
+    expect(settingsService.getSettings).toHaveBeenCalledTimes(1);
+    expect(llmLongAnswerService.generate).toHaveBeenCalledTimes(1);
+    expect(fallbackSpy).toHaveBeenCalledTimes(1);
+    expect(result.answers).toEqual([
+      {
+        fieldName: "why_fit",
+        questionText: "Why are you a fit for this role?",
+        decision: "fill",
+        answer: expect.any(String),
+        source: "deterministic_fallback"
+      }
+    ]);
   });
 });

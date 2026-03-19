@@ -70,4 +70,41 @@ describe("InternalController long-answer generation", () => {
       ]
     });
   });
+
+  it("preserves llm-generated answers from the long-answer service", async () => {
+    process.env.JWT_SECRET = "secret";
+
+    const generateForApplication = vi.fn().mockResolvedValue({
+      applicationId: "app_2",
+      answers: [
+        {
+          fieldName: "why_fit",
+          questionText: "Why are you a fit for this role?",
+          decision: "fill",
+          answer: "I enjoy building reliable internal tools.",
+          source: "llm_generated"
+        }
+      ]
+    });
+    const controller = new InternalController({} as any, {} as any, {} as any, {
+      generateForApplication
+    } as any);
+
+    const result = await controller.generateLongAnswers("app_2", "secret", {
+      questions: [{ fieldName: "why_fit", questionText: "Why are you a fit for this role?" }]
+    });
+
+    expect(result).toEqual({
+      applicationId: "app_2",
+      answers: [
+        {
+          fieldName: "why_fit",
+          questionText: "Why are you a fit for this role?",
+          decision: "fill",
+          answer: "I enjoy building reliable internal tools.",
+          source: "llm_generated"
+        }
+      ]
+    });
+  });
 });

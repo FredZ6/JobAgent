@@ -1,7 +1,10 @@
 import { Inject, Injectable, NotFoundException } from "@nestjs/common";
 
 import { PrismaService } from "../lib/prisma.service.js";
+import { type LlmProviderName } from "../llm/llm-provider.types.js";
+import { LlmLongAnswerService } from "./llm-long-answer.service.js";
 import { findDefaultAnswerMatch } from "../profile/profile.service.js";
+import { SettingsService } from "../settings/settings.service.js";
 
 type LongAnswerQuestionInput = {
   fieldName: string;
@@ -66,7 +69,11 @@ function buildQuestionIdentity(question: LongAnswerQuestionInput) {
 
 @Injectable()
 export class LongAnswerService {
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(SettingsService) private readonly settingsService: SettingsService,
+    @Inject(LlmLongAnswerService) private readonly llmLongAnswerService: LlmLongAnswerService
+  ) {}
 
   async generateForApplication(applicationId: string, questions: LongAnswerQuestionInput[]) {
     const application = await this.prisma.application.findUnique({
@@ -85,15 +92,18 @@ export class LongAnswerService {
       throw new NotFoundException("Application not found");
     }
 
-    const latestAnalysis = await this.prisma.jobAnalysis.findFirst({
-      where: {
-        jobId: application.jobId,
-        status: "completed"
-      },
-      orderBy: {
-        createdAt: "desc"
-      }
-    });
+    const [latestAnalysis, settings] = await Promise.all([
+      this.prisma.jobAnalysis.findFirst({
+        where: {
+          jobId: application.jobId,
+          status: "completed"
+        },
+        orderBy: {
+          createdAt: "desc"
+        }
+      }),
+      this.settingsService.getSettings()
+    ]);
 
     const defaultAnswers =
       application.resumeVersion.sourceProfile.defaultAnswers &&
@@ -101,7 +111,8 @@ export class LongAnswerService {
         ? (application.resumeVersion.sourceProfile.defaultAnswers as Record<string, string>)
         : {};
 
-    const answers = questions.map((question) => {
+    const answers = await Promise.all(
+      questions.map(async (question) => {
       const defaultAnswerMatch = findDefaultAnswerMatch(defaultAnswers, question);
 
       if (defaultAnswerMatch) {
@@ -125,6 +136,36 @@ export class LongAnswerService {
         };
       }
 
+      const shouldUseLlm =
+        this.isUsableProviderSettings(settings) && !this.isDemoFallbackMode();
+
+      if (shouldUseLlm) {
+        try {
+          const answer = await this.llmLongAnswerService.generate({
+            provider: settings.provider as LlmProviderName,
+            model: settings.model,
+            apiKey: settings.apiKey,
+            question,
+            job: application.job,
+            resumeHeadline: application.resumeVersion.headline,
+            profileSummary: application.resumeVersion.sourceProfile.summary,
+            analysisSummary:
+              typeof latestAnalysis?.summary === "string" && latestAnalysis.summary.length > 0
+                ? latestAnalysis.summary
+                : undefined
+          });
+
+          return {
+            ...buildQuestionIdentity(question),
+            decision: "fill" as const,
+            answer,
+            source: "llm_generated" as const
+          };
+        } catch {
+          // Fall through to the deterministic fallback for best-effort coverage.
+        }
+      }
+
       return {
         ...buildQuestionIdentity(question),
         decision: "fill" as const,
@@ -140,12 +181,29 @@ export class LongAnswerService {
         }),
         source: "deterministic_fallback" as const
       };
-    });
+    })
+    );
 
     return {
       applicationId,
       answers
     };
+  }
+
+  private isDemoFallbackMode() {
+    return process.env.JOB_ANALYSIS_MODE === "mock" && process.env.JOB_RESUME_MODE === "mock";
+  }
+
+  private isUsableProviderSettings(settings: {
+    provider: string;
+    model: string;
+    apiKey: string;
+  }) {
+    return (
+      (settings.provider === "openai" || settings.provider === "gemini") &&
+      settings.model.trim().length > 0 &&
+      settings.apiKey.trim().length > 0
+    );
   }
 
   private generateFallbackAnswer(input: {
