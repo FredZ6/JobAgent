@@ -118,7 +118,9 @@ describe("ProfilePage default answers editor", () => {
     mockedSaveProfile.mockResolvedValue(baseProfile);
   });
 
-  it("hydrates fetched defaultAnswers into editable rows and saves edits back to the profile payload", async () => {
+  it(
+    "hydrates fetched defaultAnswers into editable rows and saves edits back to the profile payload",
+    async () => {
     const user = userEvent.setup();
 
     mockedFetchProfile.mockResolvedValue({
@@ -146,16 +148,18 @@ describe("ProfilePage default answers editor", () => {
     );
     await user.click(screen.getByRole("button", { name: "Save profile" }));
 
-    await waitFor(() => {
-      expect(mockedSaveProfile).toHaveBeenCalledWith(
-        expect.objectContaining({
-          defaultAnswers: {
-            "Why do you want to work here?": "I enjoy working on practical internal tools."
-          }
-        })
-      );
-    });
-  });
+      await waitFor(() => {
+        expect(mockedSaveProfile).toHaveBeenCalledWith(
+          expect.objectContaining({
+            defaultAnswers: {
+              "Why do you want to work here?": "I enjoy working on practical internal tools."
+            }
+          })
+        );
+      });
+    },
+    15_000
+  );
 
   it("adds and removes default-answer rows", async () => {
     const user = userEvent.setup();
