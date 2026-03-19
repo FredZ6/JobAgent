@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { buildSuggestions, uploadResume } from "./prefill.js";
+import { buildSuggestions, fillLongAnswerFields, uploadResume } from "./prefill.js";
 
 type MockFileInput = {
   setInputFiles: ReturnType<typeof vi.fn>;
@@ -15,6 +15,7 @@ type MockDropzone = {
 };
 
 const originalFetch = global.fetch;
+const originalJwtSecret = process.env.JWT_SECRET;
 
 function makeUploadPage(input: {
   resolveSelector: (selector: string) => unknown | null;
@@ -25,6 +26,32 @@ function makeUploadPage(input: {
     $: vi.fn(async (selector: string) => input.resolveSelector(selector)),
     $$: vi.fn(async (selector: string) => (selector === 'input[type="file"]' ? input.genericFileInputs ?? [] : [])),
     evaluateHandle: input.evaluateHandle ?? vi.fn()
+  } as any;
+}
+
+type MockLongAnswerElement = {
+  getAttribute: ReturnType<typeof vi.fn>;
+  fill?: ReturnType<typeof vi.fn>;
+  evaluate?: ReturnType<typeof vi.fn>;
+  textContent?: ReturnType<typeof vi.fn>;
+};
+
+function makeLongAnswerPage(input: {
+  labels?: Record<string, MockLongAnswerElement | null>;
+  textareas?: MockLongAnswerElement[];
+  contenteditables?: MockLongAnswerElement[];
+}) {
+  return {
+    $: vi.fn(async (selector: string) => input.labels?.[selector] ?? null),
+    $$: vi.fn(async (selector: string) => {
+      if (selector === "textarea") {
+        return input.textareas ?? [];
+      }
+      if (selector.includes("[contenteditable")) {
+        return input.contenteditables ?? [];
+      }
+      return [];
+    })
   } as any;
 }
 
@@ -42,6 +69,12 @@ describe("prefill helpers", () => {
       vi.stubGlobal("fetch", originalFetch);
     } else {
       vi.unstubAllGlobals();
+    }
+
+    if (originalJwtSecret === undefined) {
+      delete process.env.JWT_SECRET;
+    } else {
+      process.env.JWT_SECRET = originalJwtSecret;
     }
 
     rmSync(tempDir, { recursive: true, force: true });
@@ -312,5 +345,181 @@ describe("prefill helpers", () => {
       source: "resume_pdf",
       failureReason: "dropzone upload failed"
     });
+  });
+
+  it("detects long-answer fields, requests answers, and fills textarea plus contenteditable targets", async () => {
+    process.env.JWT_SECRET = "secret";
+
+    const editableNode = {
+      textContent: "",
+      dispatchEvent: vi.fn()
+    };
+    const textarea = {
+      getAttribute: vi.fn(async (name: string) => {
+        if (name === "id") {
+          return "why-company";
+        }
+        if (name === "name") {
+          return "why_company";
+        }
+        if (name === "placeholder") {
+          return "Why do you want to work here?";
+        }
+        return null;
+      }),
+      fill: vi.fn().mockResolvedValue(undefined)
+    };
+    const contenteditable = {
+      getAttribute: vi.fn(async (name: string) => {
+        if (name === "aria-label") {
+          return "Describe a project you are proud of";
+        }
+        if (name === "data-testid") {
+          return "project-story";
+        }
+        return null;
+      }),
+      evaluate: vi.fn(async (callback: (element: typeof editableNode, value: string) => unknown, value: string) =>
+        callback(editableNode, value)
+      )
+    };
+    const label = {
+      getAttribute: vi.fn(),
+      textContent: vi.fn().mockResolvedValue("Why do you want to work here?")
+    };
+    const fetchSpy = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        applicationId: "app_6",
+        answers: [
+          {
+            fieldName: "why_company",
+            questionText: "Why do you want to work here?",
+            answer: "I enjoy building reliable developer platforms.",
+            source: "default_answer_match"
+          },
+          {
+            fieldName: "describe_a_project_you_are_proud_of",
+            questionText: "Describe a project you are proud of",
+            answer: "I led a platform migration that cut deploy time.",
+            source: "llm_generated"
+          }
+        ]
+      })
+    });
+    vi.stubGlobal("fetch", fetchSpy);
+
+    const page = makeLongAnswerPage({
+      labels: {
+        'label[for="why-company"]': label
+      },
+      textareas: [textarea],
+      contenteditables: [contenteditable]
+    });
+
+    const results = await fillLongAnswerFields(page, {
+      applicationId: "app_6",
+      resume: {
+        id: "resume_6",
+        headline: "Platform Engineer",
+        status: "completed",
+        pdfDownloadUrl: "http://api:3001/api/resume-versions/resume_6/pdf",
+        pdfFileName: "ada-lovelace-resume.pdf"
+      }
+    });
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://api:3001/api/internal/applications/app_6/generate-long-answers",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          "content-type": "application/json",
+          "x-internal-token": "secret"
+        })
+      })
+    );
+    expect(textarea.fill).toHaveBeenCalledWith("I enjoy building reliable developer platforms.");
+    expect(contenteditable.evaluate).toHaveBeenCalledTimes(1);
+    expect(editableNode.textContent).toBe("I led a platform migration that cut deploy time.");
+    expect(editableNode.dispatchEvent).toHaveBeenCalledTimes(2);
+    expect(results).toEqual([
+      {
+        fieldName: "why_company",
+        fieldLabel: "Why do you want to work here?",
+        fieldType: "long_text",
+        questionText: "Why do you want to work here?",
+        suggestedValue: "I enjoy building reliable developer platforms.",
+        filled: true,
+        status: "filled",
+        strategy: "textarea",
+        source: "default_answer_match"
+      },
+      {
+        fieldName: "describe_a_project_you_are_proud_of",
+        fieldLabel: "Describe a project you are proud of",
+        fieldType: "long_text",
+        questionText: "Describe a project you are proud of",
+        suggestedValue: "I led a platform migration that cut deploy time.",
+        filled: true,
+        status: "filled",
+        strategy: "contenteditable",
+        source: "llm_generated"
+      }
+    ]);
+  });
+
+  it("returns failed long-answer results with empty suggested values when generation fails", async () => {
+    process.env.JWT_SECRET = "secret";
+
+    const textarea = {
+      getAttribute: vi.fn(async (name: string) => {
+        if (name === "name") {
+          return "why_company";
+        }
+        if (name === "placeholder") {
+          return "Why do you want to work here?";
+        }
+        return null;
+      }),
+      fill: vi.fn().mockResolvedValue(undefined)
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        text: async () => "generation exploded"
+      })
+    );
+
+    const page = makeLongAnswerPage({
+      textareas: [textarea]
+    });
+
+    const results = await fillLongAnswerFields(page, {
+      applicationId: "app_7",
+      resume: {
+        id: "resume_7",
+        headline: "Platform Engineer",
+        status: "completed",
+        pdfDownloadUrl: "http://api:3001/resume-versions/resume_7/pdf",
+        pdfFileName: "ada-lovelace-resume.pdf"
+      }
+    });
+
+    expect(results).toEqual([
+      {
+        fieldName: "why_company",
+        fieldLabel: "Why do you want to work here?",
+        fieldType: "long_text",
+        questionText: "Why do you want to work here?",
+        suggestedValue: "",
+        filled: false,
+        status: "failed",
+        strategy: "textarea",
+        source: "api_generation_failed",
+        failureReason: "long-answer generation failed (500): generation exploded"
+      }
+    ]);
   });
 });

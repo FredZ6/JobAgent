@@ -8,6 +8,13 @@ type UploadTarget = {
   $(selector: string): Promise<UploadTarget | null>;
   setInputFiles?: (path: string) => Promise<void>;
   dispatchEvent?: (event: string, eventInit?: { dataTransfer?: unknown }) => Promise<void>;
+  getAttribute?: (name: string) => Promise<string | null>;
+  fill?: (value: string) => Promise<void>;
+  evaluate?: (
+    pageFunction: (element: unknown, value: string) => unknown,
+    value: string
+  ) => Promise<unknown>;
+  textContent?: () => Promise<string | null>;
 };
 
 type DisposableHandle = {
@@ -99,6 +106,14 @@ const dropzoneSelectors = [
   '[aria-label*="upload" i]'
 ];
 
+type LongAnswerTarget = {
+  element: UploadTarget;
+  fieldName: string;
+  fieldLabel?: string;
+  questionText: string;
+  strategy: "textarea" | "contenteditable";
+};
+
 export const buildSuggestions = (profile: PrefillRequest["profile"]) => ({
   name: profile.fullName,
   email: profile.email,
@@ -164,6 +179,21 @@ function sanitizeUploadFileName(fileName: string) {
   return sanitized.length > 0 ? sanitized : "resume.pdf";
 }
 
+function trimToUndefined(value: string | null | undefined) {
+  const trimmed = value?.trim();
+  return trimmed && trimmed.length > 0 ? trimmed : undefined;
+}
+
+function normalizeLongAnswerFieldName(value: string) {
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+  return normalized.length > 0 ? normalized : "long_answer";
+}
+
 function buildResumeUploadResult(input: {
   resumeId: string;
   fileName: string;
@@ -204,6 +234,152 @@ async function findFirstMatchingTarget(page: Pick<SelectablePage, "$">, selector
 async function findSingleGenericFileInput(page: Pick<SelectablePage, "$$">) {
   const inputs = await page.$$('input[type="file"]');
   return inputs.length === 1 ? inputs[0] : null;
+}
+
+async function describeLongAnswerTarget(
+  page: Pick<SelectablePage, "$">,
+  element: UploadTarget,
+  strategy: LongAnswerTarget["strategy"]
+): Promise<LongAnswerTarget | null> {
+  const id = trimToUndefined(await element.getAttribute?.("id"));
+  const name = trimToUndefined(await element.getAttribute?.("name"));
+  const placeholder = trimToUndefined(await element.getAttribute?.("placeholder"));
+  const ariaLabel = trimToUndefined(await element.getAttribute?.("aria-label"));
+  const dataTestId = trimToUndefined(await element.getAttribute?.("data-testid"));
+  const labelText =
+    id && page.$
+      ? trimToUndefined(await (await page.$(`label[for="${id}"]`))?.textContent?.())
+      : undefined;
+  const fieldLabel = labelText ?? ariaLabel ?? placeholder;
+  const questionText = fieldLabel ?? placeholder ?? ariaLabel ?? name ?? dataTestId ?? id;
+
+  if (!questionText) {
+    return null;
+  }
+
+  return {
+    element,
+    fieldName: normalizeLongAnswerFieldName(name ?? id ?? questionText),
+    fieldLabel,
+    questionText,
+    strategy
+  };
+}
+
+async function collectLongAnswerTargets(page: SelectablePage) {
+  const targets: LongAnswerTarget[] = [];
+
+  for (const textarea of await page.$$("textarea")) {
+    const target = await describeLongAnswerTarget(page, textarea, "textarea");
+    if (target) {
+      targets.push(target);
+    }
+  }
+
+  for (const editable of await page.$$('[contenteditable="true"], [contenteditable="plaintext-only"]')) {
+    const target = await describeLongAnswerTarget(page, editable, "contenteditable");
+    if (target) {
+      targets.push(target);
+    }
+  }
+
+  return targets;
+}
+
+function buildLongAnswerApiUrl(applicationId: string, resume: PrefillRequest["resume"]) {
+  if (resume.pdfDownloadUrl) {
+    const resumeUrl = new URL(resume.pdfDownloadUrl);
+    const basePath = resumeUrl.pathname
+      .replace(/\/resume-versions\/[^/]+\/pdf(?:\/inline)?$/, "")
+      .replace(/\/$/, "");
+    return `${resumeUrl.origin}${basePath}/internal/applications/${applicationId}/generate-long-answers`;
+  }
+
+  const baseUrl = (process.env.API_URL ?? "http://localhost:3001").replace(/\/$/, "");
+  return `${baseUrl}/internal/applications/${applicationId}/generate-long-answers`;
+}
+
+async function requestLongAnswers(
+  input: {
+    applicationId: string;
+    resume: PrefillRequest["resume"];
+  },
+  targets: LongAnswerTarget[]
+) {
+  const response = await fetch(buildLongAnswerApiUrl(input.applicationId, input.resume), {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-internal-token": process.env.JWT_SECRET ?? ""
+    },
+    body: JSON.stringify({
+      questions: targets.map((target) => ({
+        fieldName: target.fieldName,
+        fieldLabel: target.fieldLabel,
+        questionText: target.questionText,
+        hints: [target.fieldLabel, target.questionText].filter(
+          (value): value is string => typeof value === "string" && value.trim().length > 0
+        )
+      }))
+    })
+  });
+
+  if (!response.ok) {
+    const responseText =
+      typeof response.text === "function" ? trimToUndefined(await response.text()) : undefined;
+    throw new Error(
+      responseText
+        ? `long-answer generation failed (${response.status}): ${responseText}`
+        : `long-answer generation failed (${response.status})`
+    );
+  }
+
+  const payload = (await response.json()) as {
+    answers?: Array<{
+      fieldName: string;
+      fieldLabel?: string;
+      questionText?: string;
+      answer: string;
+      source: string;
+    }>;
+  };
+
+  if (!Array.isArray(payload.answers)) {
+    throw new Error("invalid long-answer response");
+  }
+
+  return payload.answers;
+}
+
+async function fillDetectedLongAnswer(target: LongAnswerTarget, answer: string) {
+  if (target.strategy === "textarea") {
+    if (typeof target.element.fill !== "function") {
+      throw new Error("textarea fill is unavailable");
+    }
+
+    await target.element.fill(answer);
+    return;
+  }
+
+  if (typeof target.element.evaluate === "function") {
+    await target.element.evaluate((element, value) => {
+      const node = element as {
+        textContent: string | null;
+        dispatchEvent?: (event: Event) => boolean;
+      };
+      node.textContent = value;
+      node.dispatchEvent?.(new Event("input", { bubbles: true }));
+      node.dispatchEvent?.(new Event("change", { bubbles: true }));
+    }, answer);
+    return;
+  }
+
+  if (typeof target.element.fill === "function") {
+    await target.element.fill(answer);
+    return;
+  }
+
+  throw new Error("contenteditable fill is unavailable");
 }
 
 async function dispatchDropzoneUpload(
@@ -407,6 +583,89 @@ export async function uploadResume(
     strategy: "file_input_then_dropzone",
     failureReason: "resume upload control not found"
   });
+}
+
+export async function fillLongAnswerFields(
+  page: SelectablePage,
+  input: {
+    applicationId: string;
+    resume: PrefillRequest["resume"];
+  }
+): Promise<FieldResult[]> {
+  const targets = await collectLongAnswerTargets(page);
+
+  if (targets.length === 0) {
+    return [];
+  }
+
+  try {
+    const answers = await requestLongAnswers(input, targets);
+    const answersByField = new Map(answers.map((answer) => [answer.fieldName, answer]));
+    const results: FieldResult[] = [];
+
+    for (const target of targets) {
+      const answer = answersByField.get(target.fieldName);
+
+      if (!answer) {
+        results.push({
+          fieldName: target.fieldName,
+          fieldLabel: target.fieldLabel,
+          fieldType: "long_text",
+          questionText: target.questionText,
+          suggestedValue: "",
+          filled: false,
+          status: "failed",
+          strategy: target.strategy,
+          source: "answer_missing",
+          failureReason: "answer not returned"
+        });
+        continue;
+      }
+
+      try {
+        await fillDetectedLongAnswer(target, answer.answer);
+        results.push({
+          fieldName: target.fieldName,
+          fieldLabel: target.fieldLabel ?? answer.fieldLabel,
+          fieldType: "long_text",
+          questionText: target.questionText,
+          suggestedValue: answer.answer,
+          filled: true,
+          status: "filled",
+          strategy: target.strategy,
+          source: answer.source
+        });
+      } catch (error) {
+        results.push({
+          fieldName: target.fieldName,
+          fieldLabel: target.fieldLabel ?? answer.fieldLabel,
+          fieldType: "long_text",
+          questionText: target.questionText,
+          suggestedValue: answer.answer,
+          filled: false,
+          status: "failed",
+          strategy: target.strategy,
+          source: answer.source,
+          failureReason: (error as Error).message
+        });
+      }
+    }
+
+    return results;
+  } catch (error) {
+    return targets.map((target) => ({
+      fieldName: target.fieldName,
+      fieldLabel: target.fieldLabel,
+      fieldType: "long_text",
+      questionText: target.questionText,
+      suggestedValue: "",
+      filled: false,
+      status: "failed",
+      strategy: target.strategy,
+      source: "api_generation_failed",
+      failureReason: (error as Error).message
+    }));
+  }
 }
 
 export function ensureStorage(applicationId: string, baseDir: string) {

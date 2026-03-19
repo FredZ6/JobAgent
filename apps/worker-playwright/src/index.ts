@@ -4,6 +4,7 @@ import {
   buildSuggestions,
   captureScreenshot,
   fillCommonFields,
+  fillLongAnswerFields,
   PrefillResponse,
   type PrefillRequest,
   uploadResume
@@ -42,12 +43,24 @@ app.post("/prefill", async (req: any, res: any) => {
       timestamp: new Date().toISOString()
     });
     const basicFieldResults = await fillCommonFields(page, buildSuggestions(payload.profile));
+    const longAnswerResults = await fillLongAnswerFields(page, {
+      applicationId: payload.applicationId,
+      resume: payload.resume
+    });
+    if (longAnswerResults.length > 0) {
+      const successfulLongAnswers = longAnswerResults.filter((result) => result.filled).length;
+      log.push({
+        level: successfulLongAnswers === longAnswerResults.length ? "info" : "warn",
+        message: `long-answer autofill processed ${successfulLongAnswers}/${longAnswerResults.length} fields`,
+        timestamp: new Date().toISOString()
+      });
+    }
     const screenshotPath = await captureScreenshot(page, payload.applicationId, storageDir);
 
     res.json({
       status: "completed",
       formSnapshot: { url: payload.applyUrl },
-      fieldResults: [resumeUploadResult, ...basicFieldResults],
+      fieldResults: [resumeUploadResult, ...basicFieldResults, ...longAnswerResults],
       screenshotPaths: [screenshotPath],
       workerLog: [...log, { level: "info", message: "prefill completed", timestamp: new Date().toISOString() }],
       errorMessage: null
