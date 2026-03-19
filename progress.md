@@ -233,6 +233,23 @@
   - `findings.md` (modified)
   - `progress.md` (modified)
 
+### Phase 53: Provider-Select Settings UI Implementation
+- **Status:** complete
+- Actions taken:
+  - Added `apps/web/src/app/settings/page-client.test.tsx` first so the new provider-select behavior started as a red test.
+  - Extended the shared `Field` component with a lightweight `select` mode to keep the UI consistent instead of special-casing the settings page.
+  - Updated the Settings page to render `Provider` as a select with `OpenAI` and `Gemini` options, update the recommended model only when the current model matches the previous provider default, and swap the API key placeholder by provider.
+  - Kept the existing save/load flow intact while tightening the payload type to the shared provider union.
+  - Added the minimum React imports needed for the web test environment to render shared components cleanly.
+  - Ran the targeted Settings test file, the full `@openclaw/web` test suite, and the `@openclaw/web` production build successfully.
+- Files created/modified:
+  - `apps/web/src/app/settings/page-client.test.tsx` (created)
+  - `apps/web/src/app/settings/page-client.tsx` (modified)
+  - `apps/web/src/components/field.tsx` (modified)
+  - `apps/web/src/components/panel.tsx` (modified)
+  - `task_plan.md` (modified)
+  - `progress.md` (modified)
+
 ### Phase 27: Workflow Run Cancel Controls
 - **Status:** complete
 - Actions taken:

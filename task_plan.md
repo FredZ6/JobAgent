@@ -4,7 +4,7 @@
 Define and approve a practical build plan for the OpenClaw Job Agent MVP, then implement the approved starter scope as a runnable local monorepo.
 
 ## Current Phase
-Phase 52
+Phase 53
 
 ## Phases
 ### Phase 1: Requirements & Discovery
@@ -542,4 +542,12 @@ Phase 52
 - [x] Present and validate the provider-adapter design in sections
 - [x] Write the approved design doc
 - [x] Write the implementation plan
+- **Status:** complete
+
+### Phase 53: Provider-Select Settings UI Implementation
+- [x] Write failing tests for provider select, default model switching, placeholder updates, and save behavior
+- [x] Add provider select support to the shared Field component
+- [x] Update the Settings page to switch provider-specific defaults safely
+- [x] Verify the targeted Settings test and full web package test suite
+- [x] Verify the web build
 - **Status:** complete

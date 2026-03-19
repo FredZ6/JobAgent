@@ -1,11 +1,24 @@
 "use client";
 
-import { useMemo } from "react";
+import React, { useMemo } from "react";
 import { startTransition, useEffect, useState } from "react";
 
 import { Field } from "../../components/field";
 import { Panel } from "../../components/panel";
 import { fetchSettings, saveSettings } from "../../lib/api";
+
+const providerDefaults = {
+  openai: {
+    model: "gpt-5.4",
+    apiKeyPlaceholder: "sk-..."
+  },
+  gemini: {
+    model: "gemini-2.5-flash",
+    apiKeyPlaceholder: "AIza..."
+  }
+} as const;
+
+type Provider = keyof typeof providerDefaults;
 
 const initialState = {
   provider: "openai",
@@ -35,6 +48,22 @@ export default function SettingsPage() {
 
   const isDirty = JSON.stringify(form) !== JSON.stringify(savedForm);
   const isValid = Object.keys(validationErrors).length === 0;
+  const apiKeyPlaceholder = providerDefaults[form.provider as Provider]?.apiKeyPlaceholder ?? "sk-...";
+
+  function handleProviderChange(nextProviderValue: string) {
+    const nextProvider = nextProviderValue as Provider;
+
+    setForm((current) => {
+      const previousProvider = current.provider as Provider;
+      const shouldSwapModel = current.model === providerDefaults[previousProvider].model;
+
+      return {
+        ...current,
+        provider: nextProvider,
+        model: shouldSwapModel ? providerDefaults[nextProvider].model : current.model
+      };
+    });
+  }
 
   useEffect(() => {
     startTransition(async () => {
@@ -62,7 +91,7 @@ export default function SettingsPage() {
 
     try {
       const payload = {
-        provider: String(formData.get("provider") ?? ""),
+        provider: String(formData.get("provider") ?? "") as Provider,
         model: String(formData.get("model") ?? ""),
         apiKey: String(formData.get("apiKey") ?? ""),
         isConfigured: true
@@ -94,8 +123,12 @@ export default function SettingsPage() {
               label="Provider"
               name="provider"
               value={form.provider}
-              onChange={(value) => setForm((current) => ({ ...current, provider: value }))}
-              placeholder="openai"
+              onChange={handleProviderChange}
+              select
+              options={[
+                { value: "openai", label: "OpenAI" },
+                { value: "gemini", label: "Gemini" }
+              ]}
               error={validationErrors.provider}
             />
             <Field
@@ -111,7 +144,7 @@ export default function SettingsPage() {
               name="apiKey"
               value={form.apiKey}
               onChange={(value) => setForm((current) => ({ ...current, apiKey: value }))}
-              placeholder="sk-..."
+              placeholder={apiKeyPlaceholder}
             />
             <div className="button-row">
               <button className="button button-primary" type="submit" disabled={saving || !isDirty || !isValid}>
