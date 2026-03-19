@@ -362,4 +362,40 @@ describe("LongAnswerService", () => {
       }
     ]);
   });
+
+  it("rejects unsupported provider settings instead of silently falling back", async () => {
+    process.env.JOB_ANALYSIS_MODE = "live";
+    process.env.JOB_RESUME_MODE = "live";
+
+    const prisma = mockPrisma();
+    prisma.application.findUnique.mockResolvedValue(createApplication({ id: "app_7" }));
+    prisma.jobAnalysis.findFirst.mockResolvedValue(createCompletedAnalysis());
+
+    const settingsService = createSettingsService({
+      provider: "anthropic",
+      model: "claude-test",
+      apiKey: "test-key",
+      isConfigured: true
+    });
+    const llmLongAnswerService = createLlmLongAnswerService();
+    const service = new LongAnswerService(
+      prisma as any,
+      settingsService as any,
+      llmLongAnswerService as any
+    );
+    const fallbackSpy = vi.spyOn(service as any, "generateFallbackAnswer");
+
+    await expect(
+      service.generateForApplication("app_7", [
+        {
+          fieldName: "why_fit",
+          questionText: "Why are you a fit for this role?"
+        }
+      ])
+    ).rejects.toThrow("Unsupported LLM provider configuration");
+
+    expect(settingsService.getSettings).toHaveBeenCalledTimes(1);
+    expect(llmLongAnswerService.generate).not.toHaveBeenCalled();
+    expect(fallbackSpy).not.toHaveBeenCalled();
+  });
 });

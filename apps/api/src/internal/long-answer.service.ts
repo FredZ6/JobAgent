@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { Inject, Injectable, InternalServerErrorException, NotFoundException } from "@nestjs/common";
 
 import { PrismaService } from "../lib/prisma.service.js";
 import { type LlmProviderName } from "../llm/llm-provider.types.js";
@@ -35,6 +35,8 @@ const highRiskQuestionPatterns = [
     patterns: ["certify", "attest", "declaration", "agreement", "consent"]
   }
 ] as const;
+
+const supportedProviders = ["openai", "gemini"] as const;
 
 function normalizeQuestionSignal(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, " ");
@@ -136,6 +138,8 @@ export class LongAnswerService {
         };
       }
 
+      this.assertSupportedProvider(settings.provider);
+
       const shouldUseLlm =
         this.isUsableProviderSettings(settings) && !this.isDemoFallbackMode();
 
@@ -200,10 +204,18 @@ export class LongAnswerService {
     apiKey: string;
   }) {
     return (
-      (settings.provider === "openai" || settings.provider === "gemini") &&
+      supportedProviders.includes(settings.provider as (typeof supportedProviders)[number]) &&
       settings.model.trim().length > 0 &&
       settings.apiKey.trim().length > 0
     );
+  }
+
+  private assertSupportedProvider(provider: string) {
+    if (!supportedProviders.includes(provider as (typeof supportedProviders)[number])) {
+      throw new InternalServerErrorException(
+        `Unsupported LLM provider configuration: ${provider}`
+      );
+    }
   }
 
   private generateFallbackAnswer(input: {
