@@ -4,6 +4,7 @@ import { startTransition, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 
+import { ApplicationFieldResults } from "../../../components/application-field-results";
 import { Panel } from "../../../components/panel";
 import {
   buildApplicationScreenshotUrl,
@@ -212,28 +213,13 @@ export default function ApplicationReviewPage() {
         className="span-12"
         eyebrow="Field results"
         title="What the worker tried to fill"
-        copy="Entries show the suggested value and whether Playwright actually touched that field."
+        copy="Results are grouped by field type so you can quickly review uploads, long answers, and basic form fields."
       >
-        {application.fieldResults.length === 0 ? (
-          <div className="inline-note">No field data captured yet.</div>
-        ) : (
-          <div className="stack">
-            {application.fieldResults.map((result, index) => (
-              <div key={`${result.fieldName}-${index}`} className="application-field">
-                <div className="field-result-row">
-                  <strong>{result.fieldName}</strong>
-                  <div className="pill-row">
-                    <span className="mini-pill">{result.filled ? "filled" : "not filled"}</span>
-                  </div>
-                </div>
-                <p className="muted">
-                  Suggested value: {result.suggestedValue ?? "not provided"}
-                  {result.failureReason ? ` · reason: ${result.failureReason}` : ""}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
+        <ApplicationFieldResults
+          results={application.fieldResults}
+          emptyCopy="No field data captured yet."
+          summaryTitle="Prefill summary"
+        />
       </Panel>
 
       <div className="span-12 analysis-grid">

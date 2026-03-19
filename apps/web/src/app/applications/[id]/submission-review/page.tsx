@@ -4,6 +4,7 @@ import Link from "next/link";
 import { startTransition, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 
+import { ApplicationFieldResults } from "../../../../components/application-field-results";
 import { Panel } from "../../../../components/panel";
 import {
   type ApplicationHistoryActorFilter,
@@ -342,28 +343,13 @@ export default function SubmissionReviewPage() {
         className="span-7"
         eyebrow="Field summary"
         title="Fields that likely need attention"
-        copy="A field is unresolved if the worker did not fill it. A failed field includes an explicit failure reason."
+        copy="Uploads, long answers, and basic fields are grouped so you can focus on what still needs manual attention."
       >
-        {application.fieldResults.length === 0 ? (
-          <div className="inline-note">No field details were captured.</div>
-        ) : (
-          <div className="stack">
-            {application.fieldResults.map((result, index) => (
-              <div key={`${result.fieldName}-${index}`} className="application-field">
-                <div className="field-result-row">
-                  <strong>{result.fieldName}</strong>
-                  <div className="pill-row">
-                    <span className="mini-pill">{result.filled ? "filled" : "unresolved"}</span>
-                  </div>
-                </div>
-                <p className="muted">
-                  Suggested value: {result.suggestedValue ?? "not provided"}
-                  {result.failureReason ? ` · reason: ${result.failureReason}` : ""}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
+        <ApplicationFieldResults
+          results={application.fieldResults}
+          emptyCopy="No field details were captured."
+          summaryTitle="Submission review summary"
+        />
       </Panel>
 
       <Panel

@@ -1,4 +1,5 @@
 import type { ApplicationWithContext } from "./api";
+import { getFieldResultState } from "./field-results";
 
 type FieldState = "filled" | "failed" | "unresolved" | "missing";
 
@@ -112,13 +113,5 @@ function getFieldState(field?: FieldResultLike): FieldState {
     return "missing";
   }
 
-  if (field.filled) {
-    return "filled";
-  }
-
-  if (field.failureReason) {
-    return "failed";
-  }
-
-  return "unresolved";
+  return getFieldResultState(field);
 }
