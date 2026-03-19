@@ -494,3 +494,16 @@ Phase 46
 ## Notes
 - Re-read this file before major planning or implementation decisions.
 - Update phase status when the design is approved and work moves into implementation.
+
+### Phase 47: Original-Docs Drift Assessment
+- [x] Re-read `roadmap.md`, `spec.md`, and `system-design.md`
+- [x] Compare original intended MVP/architecture against the current repo state
+- [x] Capture the high-level drift judgment for handoff discussion
+- **Status:** complete
+
+### Phase 48: Prefill Upgrade Design & Plan
+- [x] Confirm the next-three-step direction: resume upload -> open-answer autofill -> `automation_sessions`
+- [x] Present and validate the design in sections
+- [x] Write the approved design doc
+- [x] Write the implementation plan
+- **Status:** complete

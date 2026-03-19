@@ -2,6 +2,7 @@ node_modules
 .next
 dist
 coverage
+.worktrees/
 .env
 .DS_Store
 apps/api/generated

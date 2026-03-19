@@ -211,3 +211,17 @@
 - Browser-level re-verification now also shows clean cancellation UX: Job Detail surfaces `Workflow run was cancelled` without raw JSON noise, and Run Detail no longer labels already-started cancelled runs as `before execution`.
 - Running direct workflow runs can now also be cancelled honestly within the current API process: a real direct prefill run was cancelled mid-execution, the run settled as `cancelled`, and the original public request returned `409 Workflow run was cancelled`.
 - Completed direct workflow runs still reject cancel with `400 Only running direct workflow runs can be cancelled`, which keeps the new direct cancel control honest about its safe-point boundary.
+
+## Documentation Drift Assessment
+- The current repo still matches the original product direction closely: it is local-first, human-in-the-loop, single-provider, Docker-first, and centered on the import -> analyze -> resume -> prefill -> review loop.
+- The biggest difference is not omission but expansion: the implementation now includes much stronger workflow-run operations, retry/cancel controls, audit history, bulk controls, and closeout/handoff documentation than the original pre-project docs required.
+- The main under-delivered items versus the early docs are user authentication, a dedicated `automation_sessions` model, open-question drafting via LLM during prefill, and a true pause/resume workflow engine beyond the current starter Temporal slices.
+- Several early design ideas were intentionally simplified rather than ignored: profile/settings are split across separate pages, final submission remains manual, and the stored LLM configuration is persisted in the database rather than being driven purely by environment variables.
+- Overall drift judgment: low on product direction, moderate on surface area, and favorable in the sense that the repo over-delivers on operator tooling while still staying inside the original safety boundaries.
+
+## New Design Decisions
+- The next prefill investments should prioritize user-visible value in this order: resume upload, long-answer autofill, then additive `automation_sessions`.
+- The public prefill entry point should remain `POST /jobs/:id/prefill`; the new work should enrich internals rather than change the product flow.
+- Resume upload should reuse the existing API-generated resume PDF path instead of introducing a new stored upload artifact for the first slice.
+- Long-answer generation should stay API-owned so worker code does not need direct LLM access or business-truth logic.
+- `automation_sessions` should be introduced as an additive execution-layer record after upload and long-answer autofill are working, while `Application` remains the business object.
