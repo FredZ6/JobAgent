@@ -20,6 +20,34 @@ describe("application schemas", () => {
     suggestedValue: "test@example.com",
     filled: true
   };
+  const richResumeUploadFieldResult = {
+    fieldName: "resume",
+    fieldLabel: "Resume",
+    fieldType: "resume_upload",
+    suggestedValue: "resume.pdf",
+    filled: true,
+    status: "filled",
+    strategy: "dropzone",
+    source: "resume_pdf",
+    metadata: {
+      resumeVersionId: "resume_123",
+      template: "classic"
+    }
+  };
+  const richLongAnswerFieldResult = {
+    fieldName: "cover_letter",
+    fieldLabel: "Cover letter",
+    fieldType: "long_text",
+    questionText: "Why do you want to work here?",
+    suggestedValue: "I care about the mission and the team.",
+    filled: true,
+    status: "filled",
+    strategy: "textarea",
+    source: "llm_generated",
+    metadata: {
+      questionId: "q_1"
+    }
+  };
   const emptySuggestionFieldResult = {
     fieldName: "phone",
     filled: false
@@ -96,6 +124,47 @@ describe("application schemas", () => {
 
   it("accepts field results without a suggested value", () => {
     const result = fieldResultSchema.safeParse(emptySuggestionFieldResult);
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts richer field results for resume upload and long answers", () => {
+    const uploadResult = fieldResultSchema.safeParse(richResumeUploadFieldResult);
+    const longAnswerResult = fieldResultSchema.safeParse(richLongAnswerFieldResult);
+
+    expect(uploadResult.success).toBe(true);
+    expect(longAnswerResult.success).toBe(true);
+
+    expect(uploadResult.success ? uploadResult.data.fieldType : null).toBe("resume_upload");
+    expect(uploadResult.success ? uploadResult.data.status : null).toBe("filled");
+    expect(longAnswerResult.success ? longAnswerResult.data.fieldType : null).toBe("long_text");
+    expect(longAnswerResult.success ? longAnswerResult.data.questionText : null).toBe(
+      "Why do you want to work here?"
+    );
+  });
+
+  it("accepts legacy field results alongside richer ones", () => {
+    const result = applicationSchema.safeParse({
+      id: "app_123",
+      jobId: "job_123",
+      resumeVersionId: "resume_123",
+      status: "completed",
+      approvalStatus: "pending_review",
+      applyUrl: "https://example.com/apply",
+      formSnapshot: {},
+      fieldResults: [validFieldResult, richResumeUploadFieldResult, richLongAnswerFieldResult],
+      screenshotPaths: [],
+      workerLog: [],
+      submissionStatus: "not_ready",
+      submittedAt: null,
+      submissionNote: "",
+      submittedByUser: false,
+      finalSubmissionSnapshot: null,
+      reviewNote: "",
+      errorMessage: null,
+      createdAt: "2026-03-16T00:00:00.000Z",
+      updatedAt: "2026-03-16T00:00:00.000Z"
+    });
+
     expect(result.success).toBe(true);
   });
 

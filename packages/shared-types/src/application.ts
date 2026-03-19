@@ -31,8 +31,15 @@ const applicationEventOrchestrationSchema = z.object({
 
 export const fieldResultSchema = z.object({
   fieldName: z.string().min(1),
+  fieldLabel: z.string().min(1).optional(),
+  fieldType: z.enum(["basic_text", "resume_upload", "long_text"]).optional(),
+  questionText: z.string().min(1).optional(),
   suggestedValue: z.string().optional(),
   filled: z.boolean(),
+  status: z.enum(["filled", "unhandled", "failed", "skipped"]).optional(),
+  strategy: z.string().min(1).optional(),
+  source: z.string().min(1).optional(),
+  metadata: z.record(z.unknown()).optional(),
   failureReason: z.string().optional()
 });
 
