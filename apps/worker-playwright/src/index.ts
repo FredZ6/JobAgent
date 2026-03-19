@@ -30,11 +30,18 @@ app.post("/prefill", async (req: any, res: any) => {
   ];
   try {
     await page.goto(payload.applyUrl, { waitUntil: "domcontentloaded" });
-    const basicFieldResults = await fillCommonFields(page, buildSuggestions(payload.profile));
     const resumeUploadResult = await uploadResume(page, {
       applicationId: payload.applicationId,
       resume: payload.resume
     });
+    log.push({
+      level: resumeUploadResult.filled ? "info" : resumeUploadResult.status === "failed" ? "warn" : "info",
+      message: resumeUploadResult.filled
+        ? `resume upload completed via ${resumeUploadResult.strategy ?? "unknown"}`
+        : `resume upload ${resumeUploadResult.status ?? "unknown"}${resumeUploadResult.failureReason ? `: ${resumeUploadResult.failureReason}` : ""}`,
+      timestamp: new Date().toISOString()
+    });
+    const basicFieldResults = await fillCommonFields(page, buildSuggestions(payload.profile));
     const screenshotPath = await captureScreenshot(page, payload.applicationId, storageDir);
 
     res.json({
