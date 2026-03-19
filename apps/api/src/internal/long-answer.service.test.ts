@@ -193,6 +193,7 @@ describe("LongAnswerService", () => {
       isConfigured: true
     });
     const llmLongAnswerService = createLlmLongAnswerService();
+    const signal = new AbortController().signal;
     const service = new LongAnswerService(
       prisma as any,
       settingsService as any,
@@ -200,15 +201,24 @@ describe("LongAnswerService", () => {
     );
     const fallbackSpy = vi.spyOn(service as any, "generateFallbackAnswer");
 
-    const result = await service.generateForApplication("app_3", [
-      {
-        fieldName: "why_fit",
-        questionText: "Why are you a fit for this role?"
-      }
-    ]);
+    const result = await service.generateForApplication(
+      "app_3",
+      [
+        {
+          fieldName: "why_fit",
+          questionText: "Why are you a fit for this role?"
+        }
+      ],
+      signal
+    );
 
     expect(settingsService.getSettings).toHaveBeenCalledTimes(1);
     expect(llmLongAnswerService.generate).toHaveBeenCalledTimes(1);
+    expect(llmLongAnswerService.generate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        signal
+      })
+    );
     expect(fallbackSpy).not.toHaveBeenCalled();
     expect(result.answers).toEqual([
       {

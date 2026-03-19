@@ -646,7 +646,9 @@ export async function fillLongAnswerFields(
         continue;
       }
 
-      if (typeof answer.answer !== "string") {
+      const normalizedAnswer = typeof answer.answer === "string" ? trimToUndefined(answer.answer) : undefined;
+
+      if (!normalizedAnswer) {
         results.push({
           fieldName: target.fieldName,
           fieldLabel: target.fieldLabel ?? answer.fieldLabel,
@@ -663,13 +665,13 @@ export async function fillLongAnswerFields(
       }
 
       try {
-        await fillDetectedLongAnswer(target, answer.answer);
+        await fillDetectedLongAnswer(target, normalizedAnswer);
         results.push({
           fieldName: target.fieldName,
           fieldLabel: target.fieldLabel ?? answer.fieldLabel,
           fieldType: "long_text",
           questionText: target.questionText,
-          suggestedValue: answer.answer,
+          suggestedValue: normalizedAnswer,
           filled: true,
           status: "filled",
           strategy: target.strategy,
@@ -681,7 +683,7 @@ export async function fillLongAnswerFields(
           fieldLabel: target.fieldLabel ?? answer.fieldLabel,
           fieldType: "long_text",
           questionText: target.questionText,
-          suggestedValue: answer.answer,
+          suggestedValue: normalizedAnswer,
           filled: false,
           status: "failed",
           strategy: target.strategy,

@@ -77,7 +77,11 @@ export class LongAnswerService {
     @Inject(LlmLongAnswerService) private readonly llmLongAnswerService: LlmLongAnswerService
   ) {}
 
-  async generateForApplication(applicationId: string, questions: LongAnswerQuestionInput[]) {
+  async generateForApplication(
+    applicationId: string,
+    questions: LongAnswerQuestionInput[],
+    signal?: AbortSignal
+  ) {
     const application = await this.prisma.application.findUnique({
       where: { id: applicationId },
       include: {
@@ -156,7 +160,8 @@ export class LongAnswerService {
             analysisSummary:
               typeof latestAnalysis?.summary === "string" && latestAnalysis.summary.length > 0
                 ? latestAnalysis.summary
-                : undefined
+                : undefined,
+            signal
           });
 
           return {

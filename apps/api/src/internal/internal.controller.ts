@@ -107,11 +107,16 @@ export class InternalController {
   @Post("applications/:id/generate-long-answers")
   async generateLongAnswers(
     @Param("id") id: string,
+    @Req() request: { aborted?: boolean; destroyed?: boolean; once(event: "aborted" | "close", listener: () => void): unknown },
     @Headers("x-internal-token") internalToken?: string,
     @Body() body?: unknown
   ) {
     this.assertInternalToken(internalToken);
     const input = parseOrThrow(generateLongAnswersRequestSchema, body);
-    return this.longAnswerService.generateForApplication(id, input.questions);
+    return this.longAnswerService.generateForApplication(
+      id,
+      input.questions,
+      buildRequestAbortSignal(request)
+    );
   }
 }

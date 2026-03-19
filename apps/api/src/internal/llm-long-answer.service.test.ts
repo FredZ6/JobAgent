@@ -84,4 +84,31 @@ describe("LlmLongAnswerService", () => {
       })
     ).rejects.toThrow("provider failed");
   });
+
+  it("rejects blank provider output so callers can fall back safely", async () => {
+    const gateway = {
+      generateText: vi.fn().mockResolvedValue("   ")
+    };
+
+    const service = new LlmLongAnswerService(gateway as any);
+
+    await expect(
+      service.generate({
+        provider: "gemini",
+        model: "gemini-2.5-flash",
+        apiKey: "AIza-test",
+        question: {
+          fieldName: "why_fit",
+          questionText: "Why are you a fit for this role?"
+        },
+        job: {
+          title: "Platform Engineer",
+          company: "Orbital",
+          description: "Build platform systems."
+        },
+        resumeHeadline: "Platform Engineer",
+        profileSummary: "Builder of stable internal tools."
+      })
+    ).rejects.toThrow("provider returned an empty answer");
+  });
 });

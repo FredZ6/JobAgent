@@ -45,6 +45,11 @@ export class LlmLongAnswerService {
       signal: input.signal
     });
 
-    return responseText.trim();
+    const trimmedResponse = responseText.trim();
+    if (trimmedResponse.length === 0) {
+      throw new Error("provider returned an empty answer");
+    }
+
+    return trimmedResponse;
   }
 }
