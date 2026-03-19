@@ -5,17 +5,26 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { buildSuggestions, uploadResume } from "./prefill.js";
 
-type MockUploadElement = {
+type MockFileInput = {
   setInputFiles: ReturnType<typeof vi.fn>;
+};
+
+type MockDropzone = {
+  $: ReturnType<typeof vi.fn>;
+  dispatchEvent: ReturnType<typeof vi.fn>;
 };
 
 const originalFetch = global.fetch;
 
-function makeUploadPage(
-  resolver: (selector: string) => MockUploadElement | null
-) {
+function makeUploadPage(input: {
+  resolveSelector: (selector: string) => unknown | null;
+  genericFileInputs?: MockFileInput[];
+  evaluateHandle?: ReturnType<typeof vi.fn>;
+}) {
   return {
-    $: vi.fn(async (selector: string) => resolver(selector))
+    $: vi.fn(async (selector: string) => input.resolveSelector(selector)),
+    $$: vi.fn(async (selector: string) => (selector === 'input[type="file"]' ? input.genericFileInputs ?? [] : [])),
+    evaluateHandle: input.evaluateHandle ?? vi.fn()
   } as any;
 }
 
@@ -54,13 +63,14 @@ describe("prefill helpers", () => {
     expect(suggestions.linkedin).toContain("linkedin.com");
   });
 
-  it("prefers a standard file input when one is available", async () => {
+  it("prefers a matching standard file input when one is available", async () => {
     const standardInput = {
       setInputFiles: vi.fn().mockResolvedValue(undefined)
     };
     const dropzoneInput = {
       setInputFiles: vi.fn().mockResolvedValue(undefined)
     };
+
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({
@@ -69,14 +79,19 @@ describe("prefill helpers", () => {
       })
     );
 
-    const page = makeUploadPage((selector) => {
-      if (selector.includes("dropzone")) {
-        return dropzoneInput;
+    const page = makeUploadPage({
+      resolveSelector: (selector) => {
+        if (selector.includes('input[type="file"][name*="resume" i]')) {
+          return standardInput;
+        }
+        if (selector.includes("dropzone")) {
+          return {
+            $: vi.fn().mockResolvedValue(dropzoneInput),
+            dispatchEvent: vi.fn().mockResolvedValue(undefined)
+          } satisfies MockDropzone;
+        }
+        return null;
       }
-      if (selector.includes('input[type="file"]')) {
-        return standardInput;
-      }
-      return null;
     });
 
     const result = await uploadResume(page, {
@@ -107,17 +122,21 @@ describe("prefill helpers", () => {
     });
 
     expect(standardInput.setInputFiles).toHaveBeenCalledTimes(1);
-    expect(dropzoneInput.setInputFiles).not.toHaveBeenCalled();
 
     const uploadedPath = standardInput.setInputFiles.mock.calls[0][0] as string;
     expect(uploadedPath).toContain("ada-lovelace-resume.pdf");
     expect(existsSync(uploadedPath)).toBe(true);
   });
 
-  it("falls back to a dropzone-style upload target when no standard input is present", async () => {
+  it("falls back to a dropzone's nested file input when no direct input matches", async () => {
     const dropzoneInput = {
       setInputFiles: vi.fn().mockResolvedValue(undefined)
     };
+    const dropzone = {
+      $: vi.fn(async (selector: string) => (selector === 'input[type="file"]' ? dropzoneInput : null)),
+      dispatchEvent: vi.fn().mockResolvedValue(undefined)
+    } satisfies MockDropzone;
+
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({
@@ -126,11 +145,8 @@ describe("prefill helpers", () => {
       })
     );
 
-    const page = makeUploadPage((selector) => {
-      if (selector.includes("dropzone") && selector.includes('input[type="file"]')) {
-        return dropzoneInput;
-      }
-      return null;
+    const page = makeUploadPage({
+      resolveSelector: (selector) => (selector.includes("dropzone") ? dropzone : null)
     });
 
     const result = await uploadResume(page, {
@@ -158,15 +174,31 @@ describe("prefill helpers", () => {
         attemptedStrategies: ["file_input", "dropzone"]
       }
     });
-
     expect(dropzoneInput.setInputFiles).toHaveBeenCalledTimes(1);
+    expect(dropzone.dispatchEvent).not.toHaveBeenCalled();
   });
 
-  it("reports unsupported upload widgets as unhandled", async () => {
-    const fetchSpy = vi.fn();
-    vi.stubGlobal("fetch", fetchSpy);
+  it("falls back to dispatching a drop event for common dropzones without nested inputs", async () => {
+    const dropzone = {
+      $: vi.fn().mockResolvedValue(null),
+      dispatchEvent: vi.fn().mockResolvedValue(undefined)
+    } satisfies MockDropzone;
+    const dataTransferHandle = {
+      dispose: vi.fn().mockResolvedValue(undefined)
+    };
 
-    const page = makeUploadPage(() => null);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        arrayBuffer: async () => new TextEncoder().encode("pdf-data").buffer
+      })
+    );
+
+    const page = makeUploadPage({
+      resolveSelector: (selector) => (selector.includes("dropzone") ? dropzone : null),
+      evaluateHandle: vi.fn().mockResolvedValue(dataTransferHandle)
+    });
 
     const result = await uploadResume(page, {
       applicationId: "app_3",
@@ -180,6 +212,47 @@ describe("prefill helpers", () => {
       tempBaseDir: tempDir
     });
 
+    expect(result).toMatchObject({
+      fieldName: "resume",
+      fieldType: "resume_upload",
+      filled: true,
+      status: "filled",
+      strategy: "dropzone",
+      source: "resume_pdf"
+    });
+    expect(page.evaluateHandle).toHaveBeenCalledTimes(1);
+    expect(dropzone.dispatchEvent).toHaveBeenNthCalledWith(1, "dragenter", {
+      dataTransfer: dataTransferHandle
+    });
+    expect(dropzone.dispatchEvent).toHaveBeenNthCalledWith(2, "dragover", {
+      dataTransfer: dataTransferHandle
+    });
+    expect(dropzone.dispatchEvent).toHaveBeenNthCalledWith(3, "drop", {
+      dataTransfer: dataTransferHandle
+    });
+    expect(dataTransferHandle.dispose).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports unsupported upload widgets as unhandled without downloading the file", async () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+
+    const page = makeUploadPage({
+      resolveSelector: () => null
+    });
+
+    const result = await uploadResume(page, {
+      applicationId: "app_4",
+      resume: {
+        id: "resume_4",
+        headline: "Platform Engineer",
+        status: "completed",
+        pdfDownloadUrl: "http://api:3001/resume-versions/resume_4/pdf",
+        pdfFileName: "ada-lovelace-resume.pdf"
+      },
+      tempBaseDir: tempDir
+    });
+
     expect(result).toEqual({
       fieldName: "resume",
       fieldType: "resume_upload",
@@ -188,9 +261,9 @@ describe("prefill helpers", () => {
       status: "unhandled",
       strategy: "file_input_then_dropzone",
       source: "resume_pdf",
-      failureReason: "no supported upload control found",
+      failureReason: "resume upload control not found",
       metadata: {
-        resumeVersionId: "resume_3",
+        resumeVersionId: "resume_4",
         fileName: "ada-lovelace-resume.pdf",
         attemptedStrategies: ["file_input", "dropzone"]
       }
