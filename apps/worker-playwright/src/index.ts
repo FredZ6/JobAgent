@@ -32,8 +32,7 @@ app.post("/prefill", async (req: any, res: any) => {
     await page.goto(payload.applyUrl, { waitUntil: "domcontentloaded" });
     const resumeUploadResult = await uploadResume(page, {
       applicationId: payload.applicationId,
-      resume: payload.resume,
-      tempBaseDir: storageDir
+      resume: payload.resume
     });
     log.push({
       level: resumeUploadResult.filled ? "info" : resumeUploadResult.status === "failed" ? "warn" : "info",
