@@ -92,6 +92,7 @@ model ResumeVersion {
   sourceProfile       CandidateProfile @relation(fields: [sourceProfileId], references: [id], onDelete: Cascade)
   applications        Application[]
   workflowRuns        WorkflowRun[]
+  automationSessions   AutomationSession[]
 
   @@index([jobId])
   @@index([sourceProfileId])
@@ -121,9 +122,37 @@ model Application {
   resumeVersion   ResumeVersion @relation(fields: [resumeVersionId], references: [id], onDelete: Cascade)
   events          ApplicationEvent[]
   workflowRuns    WorkflowRun[]
+  automationSessions AutomationSession[]
 
   @@index([jobId])
   @@index([resumeVersionId])
+}
+
+model AutomationSession {
+  id              String         @id @default(cuid())
+  applicationId   String
+  workflowRunId   String?
+  resumeVersionId String?
+  kind            String
+  status          String
+  applyUrl        String
+  formSnapshot    Json
+  fieldResults    Json
+  screenshotPaths Json
+  workerLog       Json
+  errorMessage    String?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  application     Application    @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  workflowRun     WorkflowRun?    @relation(fields: [workflowRunId], references: [id], onDelete: SetNull)
+  resumeVersion   ResumeVersion?  @relation(fields: [resumeVersionId], references: [id], onDelete: SetNull)
+
+  @@index([applicationId, createdAt])
+  @@index([workflowRunId, createdAt])
+  @@index([resumeVersionId, createdAt])
+  @@index([status, createdAt])
 }
 
 model ApplicationEvent {
@@ -179,6 +208,7 @@ model WorkflowRun {
   application     Application?  @relation(fields: [applicationId], references: [id], onDelete: SetNull)
   resumeVersion   ResumeVersion? @relation(fields: [resumeVersionId], references: [id], onDelete: SetNull)
   events          WorkflowRunEvent[]
+  automationSessions AutomationSession[]
 
   @@index([jobId, createdAt])
   @@index([retryOfRunId, createdAt])

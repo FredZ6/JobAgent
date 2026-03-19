@@ -31,8 +31,15 @@ const applicationEventOrchestrationSchema = z.object({
 
 export const fieldResultSchema = z.object({
   fieldName: z.string().min(1),
+  fieldLabel: z.string().min(1).optional(),
+  fieldType: z.enum(["basic_text", "resume_upload", "long_text"]).optional(),
+  questionText: z.string().min(1).optional(),
   suggestedValue: z.string().optional(),
   filled: z.boolean(),
+  status: z.enum(["filled", "unhandled", "failed", "skipped"]).optional(),
+  strategy: z.string().min(1).optional(),
+  source: z.string().min(1).optional(),
+  metadata: z.record(z.unknown()).optional(),
   failureReason: z.string().optional()
 });
 
@@ -48,6 +55,33 @@ export const finalSubmissionSnapshotSchema = z.object({
   applyUrl: z.string().url(),
   unresolvedFieldCount: z.number().int().nonnegative(),
   failedFieldCount: z.number().int().nonnegative()
+});
+
+export const automationSessionStatusSchema = z.enum([
+  "queued",
+  "running",
+  "completed",
+  "failed",
+  "cancelled"
+]);
+
+export const automationSessionSchema = z.object({
+  id: z.string().min(1),
+  applicationId: z.string().min(1),
+  workflowRunId: z.string().min(1).nullable().default(null),
+  resumeVersionId: z.string().min(1).nullable().default(null),
+  kind: z.string().min(1),
+  status: automationSessionStatusSchema,
+  applyUrl: z.string().url(),
+  formSnapshot: z.record(z.unknown()).default({}),
+  fieldResults: z.array(fieldResultSchema).default([]),
+  screenshotPaths: z.array(z.string().min(1)).default([]),
+  workerLog: z.array(workerLogEntrySchema).default([]),
+  errorMessage: z.string().nullable().default(null),
+  startedAt: z.string().nullable().default(null),
+  completedAt: z.string().nullable().default(null),
+  createdAt: z.string(),
+  updatedAt: z.string()
 });
 
 export const applicationEventSchema = z.object({
@@ -124,6 +158,7 @@ export const submissionReviewSchema = z.object({
   application: applicationSchema,
   job: applicationJobSummarySchema.nullable(),
   resumeVersion: applicationResumeSummarySchema.nullable(),
+  latestAutomationSession: automationSessionSchema.nullable().default(null),
   unresolvedFieldCount: z.number().int().nonnegative(),
   failedFieldCount: z.number().int().nonnegative()
 });
@@ -136,6 +171,8 @@ export type AuditActorType = z.infer<typeof auditActorTypeSchema>;
 export type FieldResult = z.infer<typeof fieldResultSchema>;
 export type WorkerLogEntry = z.infer<typeof workerLogEntrySchema>;
 export type FinalSubmissionSnapshot = z.infer<typeof finalSubmissionSnapshotSchema>;
+export type AutomationSessionStatus = z.infer<typeof automationSessionStatusSchema>;
+export type AutomationSession = z.infer<typeof automationSessionSchema>;
 export type ApplicationEvent = z.infer<typeof applicationEventSchema>;
 export type ApplicationDto = z.infer<typeof applicationSchema>;
 export type ApprovalRequest = z.infer<typeof approvalRequestSchema>;

@@ -215,6 +215,24 @@
   - `findings.md` (modified)
   - `progress.md` (modified)
 
+### Phase 52: Dual-Provider LLM Design & Plan
+- **Status:** complete
+- Actions taken:
+  - Re-read the current OpenAI-only analysis, resume, and long-answer services plus the existing settings flow.
+  - Confirmed with the user that the first provider slice should cover job analysis, tailored resume generation, and long-answer generation together.
+  - Confirmed that the product should remain globally single-provider, with one shared `provider + model + apiKey` setting for all LLM-backed flows.
+  - Confirmed the Settings UI should use a provider select and keep model editable with provider-specific recommended defaults.
+  - Designed a unified provider-adapter architecture with a shared gateway, `OpenAI` and `Gemini` implementations, and business services that keep prompts/schemas while delegating vendor communication.
+  - Folded long-answer `item 6` into the same design so eligible non-high-risk prompts use the new provider layer while unmatched high-risk prompts still require manual review.
+  - Wrote the approved design doc to `docs/plans/2026-03-19-openai-gemini-provider-adapter-design.md`.
+  - Wrote the implementation plan to `docs/plans/2026-03-19-openai-gemini-provider-adapter.md`.
+- Files created/modified:
+  - `docs/plans/2026-03-19-openai-gemini-provider-adapter-design.md` (created)
+  - `docs/plans/2026-03-19-openai-gemini-provider-adapter.md` (created)
+  - `task_plan.md` (modified)
+  - `findings.md` (modified)
+  - `progress.md` (modified)
+
 ### Phase 27: Workflow Run Cancel Controls
 - **Status:** complete
 - Actions taken:
@@ -1392,4 +1410,95 @@
   - `docs/closeout/2026-03-18-delivery-package.md` (created)
   - `README.md` (modified)
   - `task_plan.md` (modified)
+  - `progress.md` (modified)
+
+### Phase 47: Original-Docs Drift Assessment
+- **Status:** complete
+- Actions taken:
+  - Re-read the original planning documents: `roadmap.md`, `spec.md`, and `system-design.md`.
+  - Compared their intended scope, architecture, API surface, and MVP boundaries against the current repository state.
+  - Logged the conclusion that the implementation stayed aligned on core product direction while expanding significantly in workflow operations and audit tooling.
+- Files created/modified:
+  - `task_plan.md` (modified)
+  - `findings.md` (modified)
+  - `progress.md` (modified)
+
+### Phase 48: Prefill Upgrade Design & Plan
+- **Status:** complete
+- Actions taken:
+  - Used the approved priority order `resume upload -> open-answer autofill -> automation_sessions`.
+  - Reviewed the current prefill worker, application persistence, resume PDF endpoints, and Application Review page to ground the design in the existing codebase.
+  - Collected user decisions on upload scope, open-answer behavior, and additive session modeling.
+  - Wrote the approved design doc to `docs/plans/2026-03-19-prefill-upload-open-answers-automation-sessions-design.md`.
+  - Wrote the implementation plan to `docs/plans/2026-03-19-prefill-upload-open-answers-automation-sessions.md`.
+- Files created/modified:
+  - `docs/plans/2026-03-19-prefill-upload-open-answers-automation-sessions-design.md` (created)
+  - `docs/plans/2026-03-19-prefill-upload-open-answers-automation-sessions.md` (created)
+  - `task_plan.md` (modified)
+  - `findings.md` (modified)
+  - `progress.md` (modified)
+
+### Phase 49: Prefill Upgrade Implementation
+- **Status:** in progress
+- Actions taken:
+  - Created an isolated implementation worktree at `.worktrees/prefill-upgrades` on branch `codex-prefill-upgrades-impl`.
+  - Extended the shared `fieldResults` schema so prefill evidence can describe `basic_text`, `resume_upload`, and `long_text` results while remaining backward-compatible with older application rows.
+  - Added API groundwork for the richer prefill flow without changing the public `POST /jobs/:id/prefill` entrypoint.
+  - Extended the API -> worker payload with `resume.pdfDownloadUrl`, `resume.pdfFileName`, `job`, `analysis`, and `defaultAnswers`.
+  - Added `POST /internal/applications/:id/generate-long-answers` with internal-token auth plus request validation.
+  - Added a small `LongAnswerService` that prefers `defaultAnswers` and falls back to deterministic API-side answer generation until real LLM-backed drafting is wired in.
+  - Re-ran shared-types tests, targeted API tests, the full API package tests, and the API TypeScript build after the groundwork changes.
+- Files created/modified:
+  - `packages/shared-types/src/application.ts` (modified)
+  - `packages/shared-types/src/application.test.ts` (modified)
+  - `apps/api/src/app.module.ts` (modified)
+  - `apps/api/src/applications/applications.service.ts` (modified)
+  - `apps/api/src/applications/applications.service.test.ts` (modified)
+  - `apps/api/src/internal/internal.controller.ts` (modified)
+  - `apps/api/src/internal/internal.controller.test.ts` (created)
+  - `apps/api/src/internal/long-answer.service.ts` (created)
+  - `apps/api/src/internal/long-answer.service.test.ts` (created)
+  - `apps/api/src/profile/profile.service.ts` (modified)
+  - `apps/api/src/resume/resume.service.ts` (modified)
+  - `task_plan.md` (modified)
+  - `findings.md` (modified)
+  - `progress.md` (modified)
+
+### Phase 50: Default Answers Editor & Open-Source Checklist Planning
+- **Status:** complete
+- Actions taken:
+  - Re-read the current Profile page, profile persistence path, long-answer service, and worker-side long-answer fill flow.
+  - Confirmed that `defaultAnswers` already persists on `CandidateProfile` but currently has no editable UI on the Profile page.
+  - Collected user decisions for the row-based editor UX, empty-state examples, and the high-risk manual-review rule.
+  - Wrote the approved design doc to `docs/plans/2026-03-19-default-answers-editor-high-risk-manual-review-design.md`.
+  - Wrote the implementation plan to `docs/plans/2026-03-19-default-answers-editor-high-risk-manual-review.md`.
+  - Wrote the 10-item open-source release checklist to `docs/plans/2026-03-19-open-source-release-checklist.md`.
+- Files created/modified:
+  - `docs/plans/2026-03-19-default-answers-editor-high-risk-manual-review-design.md` (created)
+  - `docs/plans/2026-03-19-default-answers-editor-high-risk-manual-review.md` (created)
+  - `docs/plans/2026-03-19-open-source-release-checklist.md` (created)
+  - `task_plan.md` (modified)
+  - `findings.md` (modified)
+  - `progress.md` (modified)
+
+### Phase 51: Default Answers Editor & High-Risk Manual Review Implementation
+- **Status:** complete
+- Actions taken:
+  - Took over the Profile-page work after an interrupted subagent attempt and used TDD to add/verify the new `defaultAnswers` editor behavior.
+  - Added `apps/web/src/app/profile/page-client.test.tsx` to cover hydration, save serialization, add/remove actions, duplicate-question blocking, partial-row blocking, ignored blank rows, and the suggested-prompts empty state.
+  - Updated the Profile page to manage `defaultAnswers` as local row state while still saving the existing `Record<string, string>` payload shape.
+  - Tightened `LongAnswerService` so unmatched high-risk prompts return explicit `manual_review_required` decisions with a risk category and manual-review reason.
+  - Updated the worker-side long-answer handler so `manual_review_required` results become `status: "unhandled"` review evidence instead of triggering a DOM fill.
+  - Aligned the internal-controller test and worker tests with the new `decision` protocol.
+  - Re-ran targeted tests for web, API, and worker packages, then re-ran full `@openclaw/api` and `@openclaw/web` test suites plus `api`, `web`, and `worker-playwright` builds.
+- Files created/modified:
+  - `apps/web/src/app/profile/page-client.tsx` (modified)
+  - `apps/web/src/app/profile/page-client.test.tsx` (created)
+  - `apps/api/src/internal/long-answer.service.ts` (modified)
+  - `apps/api/src/internal/long-answer.service.test.ts` (modified)
+  - `apps/api/src/internal/internal.controller.test.ts` (modified)
+  - `apps/worker-playwright/src/prefill.ts` (modified)
+  - `apps/worker-playwright/src/prefill.test.ts` (modified)
+  - `task_plan.md` (modified)
+  - `findings.md` (modified)
   - `progress.md` (modified)

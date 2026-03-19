@@ -211,3 +211,36 @@
 - Browser-level re-verification now also shows clean cancellation UX: Job Detail surfaces `Workflow run was cancelled` without raw JSON noise, and Run Detail no longer labels already-started cancelled runs as `before execution`.
 - Running direct workflow runs can now also be cancelled honestly within the current API process: a real direct prefill run was cancelled mid-execution, the run settled as `cancelled`, and the original public request returned `409 Workflow run was cancelled`.
 - Completed direct workflow runs still reject cancel with `400 Only running direct workflow runs can be cancelled`, which keeps the new direct cancel control honest about its safe-point boundary.
+
+## Documentation Drift Assessment
+- The current repo still matches the original product direction closely: it is local-first, human-in-the-loop, single-provider, Docker-first, and centered on the import -> analyze -> resume -> prefill -> review loop.
+- The biggest difference is not omission but expansion: the implementation now includes much stronger workflow-run operations, retry/cancel controls, audit history, bulk controls, and closeout/handoff documentation than the original pre-project docs required.
+- The main under-delivered items versus the early docs are user authentication, a dedicated `automation_sessions` model, open-question drafting via LLM during prefill, and a true pause/resume workflow engine beyond the current starter Temporal slices.
+- Several early design ideas were intentionally simplified rather than ignored: profile/settings are split across separate pages, final submission remains manual, and the stored LLM configuration is persisted in the database rather than being driven purely by environment variables.
+- Overall drift judgment: low on product direction, moderate on surface area, and favorable in the sense that the repo over-delivers on operator tooling while still staying inside the original safety boundaries.
+
+## New Design Decisions
+- The next prefill investments should prioritize user-visible value in this order: resume upload, long-answer autofill, then additive `automation_sessions`.
+- The public prefill entry point should remain `POST /jobs/:id/prefill`; the new work should enrich internals rather than change the product flow.
+- Resume upload should reuse the existing API-generated resume PDF path instead of introducing a new stored upload artifact for the first slice.
+- Long-answer generation should stay API-owned so worker code does not need direct LLM access or business-truth logic.
+- `automation_sessions` should be introduced as an additive execution-layer record after upload and long-answer autofill are working, while `Application` remains the business object.
+- The first implementation slice can land in two low-risk steps before worker/browser changes: extend shared field-result schemas, then add API groundwork for richer worker payloads and internal long-answer generation.
+- The richer prefill upgrade can preserve the public product flow while extending only API -> worker payload fields and worker-facing internal APIs.
+- The first long-answer implementation is acceptable as `defaultAnswers`-first plus deterministic fallback so the protocol, auditability, and review surfaces can be built before real model integration.
+- `defaultAnswers` are not auto-generated; they are user-maintained candidate-profile data that should be editable on the Profile page.
+- The current repo already persists `defaultAnswers`, but the Profile page does not yet render an editor for them, so the feature is effectively backend-only.
+- The approved first UI for `defaultAnswers` is a `Question / Answer` row editor with add/remove controls, empty-state example prompts, and no automatic seeding of real values.
+- High-risk long-answer prompts should be gated by saved defaults: if no saved default answer matches, the system should not auto-fill and should instead return `manual_review_required`.
+- The first high-risk categories should be keyword-based and conservative: sponsorship/work authorization, salary expectations, notice/start-date availability, relocation, and legal declarations.
+- The ten most important open-source release tasks are now tracked in `docs/plans/2026-03-19-open-source-release-checklist.md`, with the current slice starting at item 6.
+- The Profile page now exposes `defaultAnswers` as a true `Question / Answer` editor with add/remove controls, duplicate-question validation, partial-row validation, and example prompts in the empty state.
+- High-risk long-answer prompts are now handled conservatively: unmatched salary, sponsorship, availability, relocation, and legal-declaration questions return `manual_review_required` instead of falling back to auto-generated copy.
+- The worker now treats `manual_review_required` as a distinct outcome and records an `unhandled` `FieldResult` instead of trying to fill a missing answer into the page.
+- The current repo still stores `provider` in `LlmSetting`, but analysis and resume generation remain effectively OpenAI-only because both services hard-code OpenAI `Responses API` calls.
+- Gemini is a strong addition for open-source ergonomics because the official Gemini Developer API currently publishes a free tier, while OpenAI's public API docs currently emphasize prepaid billing rather than a broad developer free tier.
+- The approved provider scope is all-or-nothing for the first slice: analysis, resume generation, and eligible long-answer generation should all honor the same global provider setting.
+- The approved configuration model remains intentionally narrow: one global provider, one model string, one API key, with `provider` restricted to `openai | gemini`.
+- The right abstraction boundary is a shared provider adapter plus gateway in the API, not repeated provider branches inside each business service.
+- Structured outputs should remain locally validated with Zod even after adding provider-level JSON schema support, so vendor-side schema adherence is never the only correctness guard.
+- Long-answer `item 6` should be implemented on top of the new provider adapter instead of as an OpenAI-only layer, so we do not immediately refactor the same feature twice.

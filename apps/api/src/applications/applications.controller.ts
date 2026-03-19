@@ -38,6 +38,11 @@ export class ApplicationsController {
     return this.applicationsService.getApplication(id);
   }
 
+  @Get(":id/automation-sessions")
+  listAutomationSessions(@Param("id") id: string) {
+    return this.applicationsService.listAutomationSessions(id);
+  }
+
   @Get(":id/submission-review")
   getSubmissionReview(@Param("id") id: string) {
     return this.applicationsService.getSubmissionReview(id);

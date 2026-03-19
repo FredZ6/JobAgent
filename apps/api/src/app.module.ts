@@ -14,6 +14,9 @@ import { ResumePdfService } from "./resume/resume-pdf.service.js";
 import { DirectResumeService } from "./resume/direct-resume.service.js";
 import { LlmResumeService } from "./resume/llm-resume.service.js";
 import { ResumeService } from "./resume/resume.service.js";
+import { GeminiLlmProviderService } from "./llm/gemini-llm-provider.service.js";
+import { LlmGatewayService } from "./llm/llm-gateway.service.js";
+import { OpenAiLlmProviderService } from "./llm/openai-llm-provider.service.js";
 import { SettingsController } from "./settings/settings.controller.js";
 import { SettingsService } from "./settings/settings.service.js";
 import { ApplicationsController } from "./applications/applications.controller.js";
@@ -21,6 +24,8 @@ import { ApplicationsService } from "./applications/applications.service.js";
 import { DashboardController } from "./dashboard/dashboard.controller.js";
 import { DashboardService } from "./dashboard/dashboard.service.js";
 import { InternalController } from "./internal/internal.controller.js";
+import { LlmLongAnswerService } from "./internal/llm-long-answer.service.js";
+import { LongAnswerService } from "./internal/long-answer.service.js";
 import { TemporalService } from "./temporal/temporal.service.js";
 import { WorkflowRunBulkActionsService } from "./workflow-runs/workflow-run-bulk-actions.service.js";
 import { WorkflowRunCancelService } from "./workflow-runs/workflow-run-cancel.service.js";
@@ -53,8 +58,13 @@ import { WorkflowRunsService } from "./workflow-runs/workflow-runs.service.js";
     ResumeService,
     ResumePdfService,
     LlmResumeService,
+    OpenAiLlmProviderService,
+    GeminiLlmProviderService,
+    LlmGatewayService,
+    LlmLongAnswerService,
     ApplicationsService,
     DashboardService,
+    LongAnswerService,
     TemporalService,
     WorkflowRunsService,
     DirectRunCancellationRegistryService,

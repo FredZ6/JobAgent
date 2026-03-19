@@ -12,6 +12,7 @@ import { ProfileService } from "../profile/profile.service.js";
 import { SettingsService } from "../settings/settings.service.js";
 import { DirectRunCancellationRegistryService } from "../workflow-runs/direct-run-cancellation-registry.service.js";
 import { WorkflowRunsService } from "../workflow-runs/workflow-runs.service.js";
+import { type LlmProviderName } from "../llm/llm-provider.types.js";
 import { LlmAnalysisService } from "./llm-analysis.service.js";
 
 @Injectable()
@@ -78,6 +79,7 @@ export class DirectAnalysisService {
         await this.llmAnalysisService.analyze({
           profile: parsedProfile,
           jobDescription: job.description,
+          provider: settings.provider as LlmProviderName,
           model: settings.model,
           apiKey: settings.apiKey,
           signal: mergedSignal

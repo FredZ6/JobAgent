@@ -4,7 +4,7 @@
 Define and approve a practical build plan for the OpenClaw Job Agent MVP, then implement the approved starter scope as a runnable local monorepo.
 
 ## Current Phase
-Phase 46
+Phase 52
 
 ## Phases
 ### Phase 1: Requirements & Discovery
@@ -494,3 +494,52 @@ Phase 46
 ## Notes
 - Re-read this file before major planning or implementation decisions.
 - Update phase status when the design is approved and work moves into implementation.
+
+### Phase 47: Original-Docs Drift Assessment
+- [x] Re-read `roadmap.md`, `spec.md`, and `system-design.md`
+- [x] Compare original intended MVP/architecture against the current repo state
+- [x] Capture the high-level drift judgment for handoff discussion
+- **Status:** complete
+
+### Phase 48: Prefill Upgrade Design & Plan
+- [x] Confirm the next-three-step direction: resume upload -> open-answer autofill -> `automation_sessions`
+- [x] Present and validate the design in sections
+- [x] Write the approved design doc
+- [x] Write the implementation plan
+- **Status:** complete
+
+### Phase 49: Prefill Upgrade Implementation
+- [x] Extend shared field-result schema for resume uploads and long-answer autofill
+- [x] Add API groundwork for richer worker payloads and internal long-answer generation
+- [x] Implement worker-side resume upload support for standard inputs and common dropzones
+- [x] Implement worker-side long-answer detection and autofill
+- [x] Update review UI for grouped basic-field, resume-upload, and long-answer results
+- [x] Add additive `automation_sessions` persistence and read-path support
+- [x] Run targeted and end-to-end verification for the upgraded prefill flow
+- **Status:** complete
+
+### Phase 50: Default Answers Editor & Open-Source Checklist Planning
+- [x] Confirm the UI shape for `defaultAnswers` editing
+- [x] Confirm the high-risk manual-review rule for unmatched prompts
+- [x] Present and validate the design in sections
+- [x] Write the approved design doc
+- [x] Write the implementation plan
+- [x] Write the 10-item open-source release checklist into a repo file
+- **Status:** complete
+
+### Phase 51: Default Answers Editor & High-Risk Manual Review Implementation
+- [x] Add a `Question / Answer` editor to the Profile page
+- [x] Validate partial rows and duplicate questions before save
+- [x] Return explicit `fill` vs `manual_review_required` decisions from long-answer generation
+- [x] Block auto-fill for unmatched high-risk prompts and surface review evidence instead
+- [x] Run targeted verification for web, API, and worker behavior
+- **Status:** complete
+
+### Phase 52: Dual-Provider LLM Design & Plan
+- [x] Confirm the provider scope covers analysis, resume generation, and long-answer generation
+- [x] Confirm the product remains globally single-provider
+- [x] Confirm the Settings UI uses a provider select plus provider-specific recommended defaults
+- [x] Present and validate the provider-adapter design in sections
+- [x] Write the approved design doc
+- [x] Write the implementation plan
+- **Status:** complete

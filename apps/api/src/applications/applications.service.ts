@@ -3,18 +3,20 @@ import { access } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
 import { basename, resolve } from "node:path";
 import { Prisma } from "@prisma/client";
-import type { Application, Job, ResumeVersion } from "@prisma/client";
+import type { Application, AutomationSession, Job, ResumeVersion } from "@prisma/client";
 import {
   isWorkflowRunCancelledError,
   mergeWorkflowRunCancellationSignals,
   throwIfWorkflowRunCancelled
 } from "../lib/workflow-run-cancellation.js";
 import { PrismaService } from "../lib/prisma.service.js";
+import { buildResumePdfDownloadUrl, buildWorkerResumePdfFileName } from "../resume/resume.service.js";
 import { TemporalService } from "../temporal/temporal.service.js";
 import { DirectRunCancellationRegistryService } from "../workflow-runs/direct-run-cancellation-registry.service.js";
 import { WorkflowRunsService } from "../workflow-runs/workflow-runs.service.js";
 import {
   applicationEventSchema,
+  automationSessionSchema,
   ApprovalRequest,
   ApplicationEventType,
   MarkRetryReadyRequest,
@@ -162,6 +164,7 @@ export class ApplicationsService {
         : undefined;
     const mergedSignal = mergeWorkflowRunCancellationSignals(signal, directCancellationSignal);
     let applicationId: string | undefined;
+    let automationSessionId: string | undefined;
 
     try {
       throwIfWorkflowRunCancelled(mergedSignal);
@@ -182,6 +185,19 @@ export class ApplicationsService {
         },
         orderBy: {
           createdAt: "desc"
+        },
+        include: {
+          job: {
+            select: {
+              title: true,
+              company: true
+            }
+          },
+          sourceProfile: {
+            select: {
+              fullName: true
+            }
+          }
         }
       });
 
@@ -216,6 +232,24 @@ export class ApplicationsService {
         }
       });
       applicationId = application.id;
+      const automationSession = await this.prisma.automationSession.create({
+        data: {
+          applicationId: application.id,
+          workflowRunId: run.id,
+          kind: "prefill",
+          status: "running",
+          applyUrl: job.applyUrl,
+          resumeVersionId: resumeVersion.id,
+          formSnapshot: {} as Prisma.InputJsonValue,
+          fieldResults: [] as Prisma.InputJsonValue,
+          screenshotPaths: [] as Prisma.InputJsonValue,
+          workerLog: [] as Prisma.InputJsonValue,
+          errorMessage: null,
+          startedAt: new Date(),
+          completedAt: null
+        }
+      });
+      automationSessionId = automationSession.id;
 
       const storedProfile = await this.prisma.candidateProfile.findFirst({
         orderBy: {
@@ -225,6 +259,15 @@ export class ApplicationsService {
       const candidateProfile =
         storedProfile != null ? candidateProfileSchema.parse(storedProfile) : defaultCandidateProfile;
       const workerProfile = this.toWorkerProfile(candidateProfile);
+      const latestAnalysis = await this.prisma.jobAnalysis.findFirst({
+        where: {
+          jobId,
+          status: "completed"
+        },
+        orderBy: {
+          createdAt: "desc"
+        }
+      });
 
       await this.prisma.application.update({
         where: { id: application.id },
@@ -242,8 +285,39 @@ export class ApplicationsService {
         resume: {
           id: resumeVersion.id,
           headline: resumeVersion.headline,
-          status: resumeVersion.status
+          status: resumeVersion.status,
+          pdfDownloadUrl: buildResumePdfDownloadUrl(resumeVersion.id),
+          pdfFileName: buildWorkerResumePdfFileName({
+            fullName: candidateProfile.fullName || resumeVersion.sourceProfile?.fullName || "candidate",
+            company: job.company,
+            title: job.title
+          })
         },
+        job: {
+          id: job.id,
+          title: job.title,
+          company: job.company,
+          location: job.location,
+          description: job.description,
+          applyUrl: job.applyUrl
+        },
+        analysis: latestAnalysis
+          ? {
+              matchScore: latestAnalysis.matchScore,
+              summary: latestAnalysis.summary,
+              requiredSkills: Array.isArray(latestAnalysis.requiredSkills)
+                ? latestAnalysis.requiredSkills
+                : [],
+              missingSkills: Array.isArray(latestAnalysis.missingSkills)
+                ? latestAnalysis.missingSkills
+                : [],
+              redFlags: Array.isArray(latestAnalysis.redFlags) ? latestAnalysis.redFlags : []
+            }
+          : null,
+        defaultAnswers:
+          candidateProfile.defaultAnswers && typeof candidateProfile.defaultAnswers === "object"
+            ? candidateProfile.defaultAnswers
+            : {},
         signal: mergedSignal
       });
 
@@ -286,6 +360,21 @@ export class ApplicationsService {
           workerPrefillActor
         );
 
+        if (automationSessionId) {
+          await tx.automationSession.update({
+            where: { id: automationSessionId },
+            data: {
+              status: workerResult.status === "completed" ? "completed" : "failed",
+              formSnapshot: workerResult.formSnapshot as Prisma.InputJsonValue,
+              fieldResults: workerResult.fieldResults as Prisma.InputJsonValue,
+              screenshotPaths: workerResult.screenshotPaths as Prisma.InputJsonValue,
+              workerLog: workerResult.workerLog as Prisma.InputJsonValue,
+              errorMessage: workerResult.errorMessage,
+              completedAt: new Date()
+            }
+          });
+        }
+
         return savedApplication;
       });
 
@@ -300,8 +389,21 @@ export class ApplicationsService {
         });
       }
 
-      return this.formatApplication(updated);
+      return this.formatApplicationWithLatestAutomationSession(updated);
     } catch (error) {
+      if (automationSessionId) {
+        await this.prisma.automationSession
+          .update({
+            where: { id: automationSessionId },
+            data: {
+              status: isWorkflowRunCancelledError(error, mergedSignal) ? "cancelled" : "failed",
+              errorMessage: error instanceof Error ? error.message : "Prefill failed",
+              completedAt: new Date()
+            }
+          })
+          .catch(() => undefined);
+      }
+
       if (isWorkflowRunCancelledError(error, mergedSignal)) {
         if (applicationId) {
           await this.prisma.application.update({
@@ -403,7 +505,27 @@ export class ApplicationsService {
       throw new NotFoundException("Application not found");
     }
 
-    return this.formatApplication(application);
+    const latestAutomationSession = await this.getLatestAutomationSession(id);
+
+    return this.formatApplication(application, latestAutomationSession);
+  }
+
+  async listAutomationSessions(applicationId: string) {
+    const application = await this.prisma.application.findUnique({
+      where: { id: applicationId },
+      select: { id: true }
+    });
+
+    if (!application) {
+      throw new NotFoundException("Application not found");
+    }
+
+    const sessions = await this.prisma.automationSession.findMany({
+      where: { applicationId },
+      orderBy: { createdAt: "desc" }
+    });
+
+    return sessions.map((session) => this.formatAutomationSession(session));
   }
 
   async updateApproval(id: string, payload: ApprovalRequest) {
@@ -432,7 +554,7 @@ export class ApplicationsService {
       }
     );
 
-    return this.formatApplication(updated);
+    return this.formatApplicationWithLatestAutomationSession(updated);
   }
 
   async getSubmissionReview(id: string) {
@@ -448,7 +570,9 @@ export class ApplicationsService {
       throw new NotFoundException("Application not found");
     }
 
-    return this.buildSubmissionReview(application);
+    const latestAutomationSession = await this.getLatestAutomationSession(id);
+
+    return this.buildSubmissionReview(application, latestAutomationSession);
   }
 
   async markSubmitted(id: string, payload: MarkSubmittedRequest) {
@@ -465,6 +589,11 @@ export class ApplicationsService {
     }
 
     this.assertReadyForSubmission(application.approvalStatus, application.submissionStatus);
+    const latestAutomationSession = await this.getLatestAutomationSession(id);
+    const applicationForSnapshot = this.applyAutomationSessionExecutionState(
+      application,
+      latestAutomationSession
+    );
 
     const updated = await this.runApplicationMutationWithEvent(
       id,
@@ -473,7 +602,7 @@ export class ApplicationsService {
         submittedAt: new Date(),
         submissionNote: payload.submissionNote ?? application.submissionNote,
         submittedByUser: true,
-        finalSubmissionSnapshot: this.buildSubmissionSnapshot(application) as Prisma.InputJsonValue
+        finalSubmissionSnapshot: this.buildSubmissionSnapshot(applicationForSnapshot) as Prisma.InputJsonValue
       },
       "submission_marked",
       {
@@ -482,7 +611,7 @@ export class ApplicationsService {
       }
     );
 
-    return this.formatApplication(updated);
+    return this.formatApplicationWithLatestAutomationSession(updated);
   }
 
   async markSubmitFailed(id: string, payload: MarkSubmitFailedRequest) {
@@ -499,6 +628,11 @@ export class ApplicationsService {
     }
 
     this.assertReadyForSubmission(application.approvalStatus, application.submissionStatus);
+    const latestAutomationSession = await this.getLatestAutomationSession(id);
+    const applicationForSnapshot = this.applyAutomationSessionExecutionState(
+      application,
+      latestAutomationSession
+    );
 
     const updated = await this.runApplicationMutationWithEvent(
       id,
@@ -506,7 +640,7 @@ export class ApplicationsService {
         submissionStatus: "submit_failed",
         submissionNote: payload.submissionNote ?? application.submissionNote,
         submittedByUser: true,
-        finalSubmissionSnapshot: this.buildSubmissionSnapshot(application) as Prisma.InputJsonValue
+        finalSubmissionSnapshot: this.buildSubmissionSnapshot(applicationForSnapshot) as Prisma.InputJsonValue
       },
       "submission_failed",
       {
@@ -515,7 +649,7 @@ export class ApplicationsService {
       }
     );
 
-    return this.formatApplication(updated);
+    return this.formatApplicationWithLatestAutomationSession(updated);
   }
 
   async reopenSubmission(id: string, payload: ReopenSubmissionRequest) {
@@ -554,7 +688,7 @@ export class ApplicationsService {
       }
     );
 
-    return this.formatApplication(updated);
+    return this.formatApplicationWithLatestAutomationSession(updated);
   }
 
   async markRetryReady(id: string, payload: MarkRetryReadyRequest) {
@@ -593,7 +727,7 @@ export class ApplicationsService {
       }
     );
 
-    return this.formatApplication(updated);
+    return this.formatApplicationWithLatestAutomationSession(updated);
   }
 
   async getApplicationEvents(id: string, filters?: ApplicationEventFilters) {
@@ -638,9 +772,11 @@ export class ApplicationsService {
       throw new NotFoundException("Application not found");
     }
 
-    const screenshotPaths = Array.isArray(application.screenshotPaths)
-      ? application.screenshotPaths.filter((path): path is string => typeof path === "string")
-      : [];
+    const latestAutomationSession = await this.getLatestAutomationSession(id);
+    const screenshotPaths = [
+      ...this.toScreenshotPaths(application.screenshotPaths),
+      ...this.toScreenshotPaths(latestAutomationSession?.screenshotPaths)
+    ];
     const filename = basename(name);
     const matchedPath = screenshotPaths.find((path) => basename(path) === filename);
 
@@ -659,19 +795,47 @@ export class ApplicationsService {
     };
   }
 
-  private formatApplication(application: Application & { job?: Job; resumeVersion?: ResumeVersion | null }) {
+  private formatApplication(
+    application: Application & { job?: Job; resumeVersion?: ResumeVersion | null },
+    latestAutomationSession?: AutomationSession | null
+  ) {
+    const effectiveApplication = this.applyAutomationSessionExecutionState(application, latestAutomationSession);
     const dto = applicationSchema.parse({
-      ...application,
-      submittedAt: application.submittedAt?.toISOString() ?? null,
-      createdAt: application.createdAt.toISOString(),
-      updatedAt: application.updatedAt.toISOString()
+      ...effectiveApplication,
+      submittedAt: effectiveApplication.submittedAt?.toISOString() ?? null,
+      createdAt: effectiveApplication.createdAt.toISOString(),
+      updatedAt: effectiveApplication.updatedAt.toISOString()
     });
 
     return {
       application: dto,
       job: this.includeJobSummary(application.job),
-      resumeVersion: this.includeResumeSummary(application.resumeVersion)
+      resumeVersion: this.includeResumeSummary(application.resumeVersion),
+      latestAutomationSession: latestAutomationSession
+        ? this.formatAutomationSession(latestAutomationSession)
+        : null
     };
+  }
+
+  private async formatApplicationWithLatestAutomationSession(
+    application: Application & { job?: Job; resumeVersion?: ResumeVersion | null }
+  ) {
+    const latestAutomationSession = await this.getLatestAutomationSession(application.id);
+
+    return this.formatApplication(application, latestAutomationSession);
+  }
+
+  private formatAutomationSession(session: AutomationSession) {
+    return automationSessionSchema.parse({
+      ...session,
+      workflowRunId: session.workflowRunId ?? null,
+      resumeVersionId: session.resumeVersionId ?? null,
+      errorMessage: session.errorMessage ?? null,
+      startedAt: session.startedAt?.toISOString() ?? null,
+      completedAt: session.completedAt?.toISOString() ?? null,
+      createdAt: session.createdAt.toISOString(),
+      updatedAt: session.updatedAt.toISOString()
+    });
   }
 
   private formatApplicationEvent(event: ApplicationEventRecord) {
@@ -728,7 +892,29 @@ export class ApplicationsService {
     applicationId: string;
     applyUrl: string;
     profile: { fullName: string; email: string; phone: string; linkedinUrl: string; githubUrl: string; location: string };
-    resume: { id: string; headline: string; status: string };
+    resume: {
+      id: string;
+      headline: string;
+      status: string;
+      pdfDownloadUrl: string;
+      pdfFileName: string;
+    };
+    job: {
+      id: string;
+      title: string;
+      company: string;
+      location: string;
+      description: string;
+      applyUrl: string;
+    };
+    analysis: {
+      matchScore: number;
+      summary: string;
+      requiredSkills: unknown[];
+      missingSkills: unknown[];
+      redFlags: unknown[];
+    } | null;
+    defaultAnswers: Record<string, string>;
     signal?: AbortSignal;
   }) {
     const workerUrl = process.env.WORKER_URL ?? "http://worker-playwright:4000";
@@ -742,7 +928,10 @@ export class ApplicationsService {
         applicationId: payload.applicationId,
         applyUrl: payload.applyUrl,
         profile: payload.profile,
-        resume: payload.resume
+        resume: payload.resume,
+        job: payload.job,
+        analysis: payload.analysis,
+        defaultAnswers: payload.defaultAnswers
       })
     });
 
@@ -754,17 +943,97 @@ export class ApplicationsService {
     return (await response.json()) as WorkerResponse;
   }
 
-  private buildSubmissionReview(application: Application & { job?: Job; resumeVersion?: ResumeVersion | null }) {
-    const formatted = this.formatApplication(application);
-    const unresolvedFieldCount = formatted.application.fieldResults.filter((result) => !result.filled).length;
-    const failedFieldCount = formatted.application.fieldResults.filter((result) => Boolean(result.failureReason))
-      .length;
+  private buildSubmissionReview(
+    application: Application & { job?: Job; resumeVersion?: ResumeVersion | null },
+    latestAutomationSession?: AutomationSession | null
+  ) {
+    const formatted = this.formatApplication(application, latestAutomationSession);
+    const fieldSummary = this.summarizeFieldStates(formatted.application.fieldResults);
 
-    return submissionReviewSchema.parse({
+    const review = submissionReviewSchema.parse({
       ...formatted,
-      unresolvedFieldCount,
-      failedFieldCount
+      unresolvedFieldCount: fieldSummary.unresolved,
+      failedFieldCount: fieldSummary.failed
     });
+
+    return {
+      ...review,
+      latestAutomationSession: formatted.latestAutomationSession
+    };
+  }
+
+  private async getLatestAutomationSession(applicationId: string) {
+    return (
+      (await this.prisma.automationSession.findFirst({
+        where: { applicationId },
+        orderBy: { createdAt: "desc" }
+      })) ?? null
+    );
+  }
+
+  private applyAutomationSessionExecutionState(
+    application: Application & { job?: Job; resumeVersion?: ResumeVersion | null },
+    latestAutomationSession?: AutomationSession | null
+  ) {
+    if (!latestAutomationSession) {
+      return application;
+    }
+
+    return {
+      ...application,
+      formSnapshot: latestAutomationSession.formSnapshot,
+      fieldResults: latestAutomationSession.fieldResults,
+      screenshotPaths: latestAutomationSession.screenshotPaths,
+      workerLog: latestAutomationSession.workerLog,
+      errorMessage: latestAutomationSession.errorMessage,
+      updatedAt:
+        latestAutomationSession.updatedAt > application.updatedAt
+          ? latestAutomationSession.updatedAt
+          : application.updatedAt
+    };
+  }
+
+  private getFieldResultState(result: {
+    filled: boolean;
+    status?: string | null;
+    failureReason?: string | null;
+  }) {
+    if (result.status === "filled" || result.filled) {
+      return "filled" as const;
+    }
+
+    if (result.status === "failed" || result.failureReason) {
+      return "failed" as const;
+    }
+
+    return "unresolved" as const;
+  }
+
+  private summarizeFieldStates(
+    results: Array<{
+      filled?: boolean;
+      status?: string | null;
+      failureReason?: string | null;
+    }>
+  ) {
+    return results.reduce(
+      (summary, result) => {
+        const state = this.getFieldResultState({
+          filled: result.filled === true,
+          status: result.status ?? null,
+          failureReason: result.failureReason ?? null
+        });
+
+        if (state === "failed") {
+          summary.failed += 1;
+        } else if (state === "unresolved") {
+          summary.unresolved += 1;
+        }
+
+        return summary;
+      },
+      { unresolved: 0, failed: 0 }
+    );
   }
 
   private buildSubmissionSnapshot(
@@ -772,18 +1041,23 @@ export class ApplicationsService {
   ) {
     const fieldResults = Array.isArray(application.fieldResults)
       ? application.fieldResults.filter(
-          (value): value is { filled?: boolean; failureReason?: string } =>
+          (value): value is { filled?: boolean; status?: string | null; failureReason?: string | null } =>
             typeof value === "object" && value !== null
         )
       : [];
+    const fieldSummary = this.summarizeFieldStates(fieldResults);
 
     return {
       approvalStatus: application.approvalStatus,
       resumeVersionId: application.resumeVersionId,
       applyUrl: application.applyUrl,
-      unresolvedFieldCount: fieldResults.filter((result) => result.filled !== true).length,
-      failedFieldCount: fieldResults.filter((result) => typeof result.failureReason === "string").length
+      unresolvedFieldCount: fieldSummary.unresolved,
+      failedFieldCount: fieldSummary.failed
     };
+  }
+
+  private toScreenshotPaths(value: unknown) {
+    return Array.isArray(value) ? value.filter((path): path is string => typeof path === "string") : [];
   }
 
   private getSubmissionStatusForApproval(currentStatus: string, approvalStatus: string) {
@@ -1114,6 +1388,20 @@ export class ApplicationsService {
             actorId?: string | null;
             source?: string;
             payload: Prisma.InputJsonValue;
+          };
+        }): Promise<unknown>;
+      };
+      automationSession: {
+        update(args: {
+          where: { id: string };
+          data: {
+            status?: string;
+            formSnapshot?: Prisma.InputJsonValue;
+            fieldResults?: Prisma.InputJsonValue;
+            screenshotPaths?: Prisma.InputJsonValue;
+            workerLog?: Prisma.InputJsonValue;
+            errorMessage?: string | null;
+            completedAt?: Date;
           };
         }): Promise<unknown>;
       };

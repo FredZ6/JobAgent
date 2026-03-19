@@ -67,6 +67,7 @@ describe("DirectResumeService", () => {
     };
     const settingsService = {
       getSettings: vi.fn().mockResolvedValue({
+        provider: "gemini",
         model: "gpt-5.4",
         apiKey: "test-key"
       })
@@ -102,6 +103,11 @@ describe("DirectResumeService", () => {
     await service.generateResume("job_1", { executionMode: "direct" });
 
     expect(workflowRunsService.createDirectRun).toHaveBeenCalled();
+    expect(llmResumeService.generate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provider: "gemini"
+      })
+    );
     expect(workflowRunsService.markCompleted).toHaveBeenCalledWith(
       "run_1",
       expect.objectContaining({
@@ -129,6 +135,7 @@ describe("DirectResumeService", () => {
     };
     const settingsService = {
       getSettings: vi.fn().mockResolvedValue({
+        provider: "openai",
         model: "gpt-5.4",
         apiKey: "test-key"
       })

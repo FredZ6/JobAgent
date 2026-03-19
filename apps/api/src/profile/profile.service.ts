@@ -3,6 +3,51 @@ import { candidateProfileSchema, type CandidateProfileInput } from "@openclaw/sh
 
 import { PrismaService } from "../lib/prisma.service.js";
 
+type DefaultAnswerQuestion = {
+  fieldName: string;
+  fieldLabel?: string;
+  questionText?: string;
+  hints?: string[];
+};
+
+function normalizeDefaultAnswerKey(value: string) {
+  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, " ");
+}
+
+export function findDefaultAnswerMatch(
+  defaultAnswers: Record<string, string>,
+  question: DefaultAnswerQuestion
+) {
+  const candidates = [
+    question.questionText,
+    question.fieldLabel,
+    question.fieldName,
+    ...(question.hints ?? [])
+  ]
+    .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+    .map(normalizeDefaultAnswerKey);
+
+  for (const [key, answer] of Object.entries(defaultAnswers)) {
+    const normalizedKey = normalizeDefaultAnswerKey(key);
+
+    if (
+      candidates.some(
+        (candidate) =>
+          candidate === normalizedKey ||
+          candidate.includes(normalizedKey) ||
+          normalizedKey.includes(candidate)
+      )
+    ) {
+      return {
+        key,
+        answer
+      };
+    }
+  }
+
+  return null;
+}
+
 @Injectable()
 export class ProfileService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}

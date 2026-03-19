@@ -49,6 +49,7 @@ describe("DirectAnalysisService", () => {
     };
     const settingsService = {
       getSettings: vi.fn().mockResolvedValue({
+        provider: "gemini",
         model: "gpt-5.4",
         apiKey: "test-key"
       })
@@ -79,6 +80,11 @@ describe("DirectAnalysisService", () => {
     await service.analyzeJob("job_1", { executionMode: "direct" });
 
     expect(workflowRunsService.createDirectRun).toHaveBeenCalled();
+    expect(llmAnalysisService.analyze).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provider: "gemini"
+      })
+    );
     expect(workflowRunsService.markCompleted).toHaveBeenCalledWith(
       "run_1",
       expect.objectContaining({})
@@ -110,6 +116,7 @@ describe("DirectAnalysisService", () => {
     };
     const settingsService = {
       getSettings: vi.fn().mockResolvedValue({
+        provider: "openai",
         model: "gpt-5.4",
         apiKey: "test-key"
       })

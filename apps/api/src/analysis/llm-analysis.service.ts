@@ -1,10 +1,13 @@
-import { Injectable, InternalServerErrorException } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import { type CandidateProfile, type JobAnalysisResult, jobAnalysisResultSchema } from "@openclaw/shared-types";
 import { isWorkflowRunCancelledError } from "../lib/workflow-run-cancellation.js";
+import { LlmGatewayService } from "../llm/llm-gateway.service.js";
+import { type LlmProviderName } from "../llm/llm-provider.types.js";
 
 type AnalyzeInput = {
   profile: CandidateProfile;
   jobDescription: string;
+  provider: LlmProviderName;
   model: string;
   apiKey: string;
   signal?: AbortSignal;
@@ -12,67 +15,56 @@ type AnalyzeInput = {
 
 @Injectable()
 export class LlmAnalysisService {
-  async analyze({ profile, jobDescription, model, apiKey, signal }: AnalyzeInput): Promise<JobAnalysisResult> {
+  constructor(@Inject(LlmGatewayService) private readonly llmGatewayService: LlmGatewayService) {}
+
+  async analyze({
+    profile,
+    jobDescription,
+    provider,
+    model,
+    apiKey,
+    signal
+  }: AnalyzeInput): Promise<JobAnalysisResult> {
     if (!apiKey || process.env.JOB_ANALYSIS_MODE === "mock") {
       return this.mockAnalysis(profile, jobDescription);
     }
 
-    let response: Response;
+    let responseText: string;
 
     try {
-      response = await fetch("https://api.openai.com/v1/responses", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`
+      responseText = await this.llmGatewayService.generateStructuredJson({
+        provider,
+        model,
+        apiKey,
+        instructions:
+          "You analyze job descriptions against a candidate profile. Return concise, truthful structured JSON only. Do not invent experience.",
+        promptPayload: {
+          candidateProfile: profile,
+          jobDescription
         },
-        signal,
-        body: JSON.stringify({
-          model,
-          instructions:
-            "You analyze job descriptions against a candidate profile. Return concise, truthful structured JSON only. Do not invent experience.",
-          input: [
-            {
-              role: "user",
-              content: [
-                {
-                  type: "input_text",
-                  text: JSON.stringify({
-                    candidateProfile: profile,
-                    jobDescription
-                  })
-                }
-              ]
+        schemaName: "job_analysis",
+        jsonSchema: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            matchScore: { type: "integer", minimum: 0, maximum: 100 },
+            summary: { type: "string" },
+            requiredSkills: {
+              type: "array",
+              items: { type: "string" }
+            },
+            missingSkills: {
+              type: "array",
+              items: { type: "string" }
+            },
+            redFlags: {
+              type: "array",
+              items: { type: "string" }
             }
-          ],
-          text: {
-            format: {
-              type: "json_schema",
-              name: "job_analysis",
-              schema: {
-                type: "object",
-                additionalProperties: false,
-                properties: {
-                  matchScore: { type: "integer", minimum: 0, maximum: 100 },
-                  summary: { type: "string" },
-                  requiredSkills: {
-                    type: "array",
-                    items: { type: "string" }
-                  },
-                  missingSkills: {
-                    type: "array",
-                    items: { type: "string" }
-                  },
-                  redFlags: {
-                    type: "array",
-                    items: { type: "string" }
-                  }
-                },
-                required: ["matchScore", "summary", "requiredSkills", "missingSkills", "redFlags"]
-              }
-            }
-          }
-        })
+          },
+          required: ["matchScore", "summary", "requiredSkills", "missingSkills", "redFlags"]
+        },
+        signal
       });
     } catch (error) {
       if (isWorkflowRunCancelledError(error, signal)) {
@@ -82,13 +74,7 @@ export class LlmAnalysisService {
       throw error;
     }
 
-    if (!response.ok) {
-      throw new InternalServerErrorException("OpenAI analysis request failed");
-    }
-
-    const payload = await response.json() as { output_text?: string };
-    const rawText = payload.output_text ?? "";
-    const parsed = JSON.parse(rawText);
+    const parsed = JSON.parse(responseText);
     return jobAnalysisResultSchema.parse(parsed);
   }
 

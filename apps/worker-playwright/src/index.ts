@@ -4,8 +4,10 @@ import {
   buildSuggestions,
   captureScreenshot,
   fillCommonFields,
+  fillLongAnswerFields,
   PrefillResponse,
-  type PrefillRequest
+  type PrefillRequest,
+  uploadResume
 } from "./prefill.js";
 
 const app = express();
@@ -29,13 +31,36 @@ app.post("/prefill", async (req: any, res: any) => {
   ];
   try {
     await page.goto(payload.applyUrl, { waitUntil: "domcontentloaded" });
-    const fieldResults = await fillCommonFields(page, buildSuggestions(payload.profile));
+    const resumeUploadResult = await uploadResume(page, {
+      applicationId: payload.applicationId,
+      resume: payload.resume
+    });
+    log.push({
+      level: resumeUploadResult.filled ? "info" : resumeUploadResult.status === "failed" ? "warn" : "info",
+      message: resumeUploadResult.filled
+        ? `resume upload completed via ${resumeUploadResult.strategy ?? "unknown"}`
+        : `resume upload ${resumeUploadResult.status ?? "unknown"}${resumeUploadResult.failureReason ? `: ${resumeUploadResult.failureReason}` : ""}`,
+      timestamp: new Date().toISOString()
+    });
+    const basicFieldResults = await fillCommonFields(page, buildSuggestions(payload.profile));
+    const longAnswerResults = await fillLongAnswerFields(page, {
+      applicationId: payload.applicationId,
+      resume: payload.resume
+    });
+    if (longAnswerResults.length > 0) {
+      const successfulLongAnswers = longAnswerResults.filter((result) => result.filled).length;
+      log.push({
+        level: successfulLongAnswers === longAnswerResults.length ? "info" : "warn",
+        message: `long-answer autofill processed ${successfulLongAnswers}/${longAnswerResults.length} fields`,
+        timestamp: new Date().toISOString()
+      });
+    }
     const screenshotPath = await captureScreenshot(page, payload.applicationId, storageDir);
 
     res.json({
       status: "completed",
       formSnapshot: { url: payload.applyUrl },
-      fieldResults,
+      fieldResults: [resumeUploadResult, ...basicFieldResults, ...longAnswerResults],
       screenshotPaths: [screenshotPath],
       workerLog: [...log, { level: "info", message: "prefill completed", timestamp: new Date().toISOString() }],
       errorMessage: null

@@ -14,7 +14,7 @@ const navigation = [
 ];
 
 export function AppShell({ children }: PropsWithChildren) {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
 
   return (
     <div className="app-shell">

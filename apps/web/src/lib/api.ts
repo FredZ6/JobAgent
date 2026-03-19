@@ -1,4 +1,5 @@
 import {
+  type AutomationSession,
   type ApplicationEventType,
   type ApplicationEvent,
   type ApplicationDto,
@@ -64,6 +65,11 @@ export type ApplicationWithContext = {
     headline: string;
     status: string;
   } | null;
+  latestAutomationSession: AutomationSession | null;
+};
+
+export type SubmissionReviewWithContext = SubmissionReview & {
+  latestAutomationSession: AutomationSession | null;
 };
 
 export type JobListItem = JobDto & {
@@ -289,7 +295,7 @@ export function updateApplicationApproval(id: string, approval: ApprovalRequest)
 }
 
 export function fetchSubmissionReview(id: string) {
-  return request<SubmissionReview>(`/applications/${id}/submission-review`);
+  return request<SubmissionReviewWithContext>(`/applications/${id}/submission-review`);
 }
 
 export function fetchApplicationEvents(

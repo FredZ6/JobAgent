@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import {
   type CandidateProfile,
   type JobAnalysisResult,
@@ -6,6 +6,8 @@ import {
   resumeContentSchema
 } from "@openclaw/shared-types";
 import { isWorkflowRunCancelledError } from "../lib/workflow-run-cancellation.js";
+import { LlmGatewayService } from "../llm/llm-gateway.service.js";
+import { type LlmProviderName } from "../llm/llm-provider.types.js";
 
 type GenerateInput = {
   profile: CandidateProfile;
@@ -13,6 +15,7 @@ type GenerateInput = {
   jobCompany: string;
   jobDescription: string;
   analysis: JobAnalysisResult | null;
+  provider: LlmProviderName;
   model: string;
   apiKey: string;
   signal?: AbortSignal;
@@ -20,105 +23,87 @@ type GenerateInput = {
 
 @Injectable()
 export class LlmResumeService {
+  constructor(@Inject(LlmGatewayService) private readonly llmGatewayService: LlmGatewayService) {}
+
   async generate(input: GenerateInput): Promise<ResumeContent> {
     if (!input.apiKey || process.env.JOB_RESUME_MODE === "mock") {
       return this.mockResume(input);
     }
 
-    let response: Response;
+    let responseText: string;
 
     try {
-      response = await fetch("https://api.openai.com/v1/responses", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${input.apiKey}`
-        },
-        signal: input.signal,
-        body: JSON.stringify({
-          model: input.model,
-          instructions:
-            "You generate a tailored resume from saved candidate facts. Never invent experience. Re-rank, rephrase, and emphasize only what exists in the provided profile.",
-          input: [
-            {
-              role: "user",
-              content: [
-                {
-                  type: "input_text",
-                  text: JSON.stringify(input)
-                }
-              ]
-            }
-          ],
-          text: {
-            format: {
-              type: "json_schema",
-              name: "resume_content",
-              schema: {
+      responseText = await this.llmGatewayService.generateStructuredJson({
+        provider: input.provider,
+        model: input.model,
+        apiKey: input.apiKey,
+        instructions:
+          "You generate a tailored resume from saved candidate facts. Never invent experience. Re-rank, rephrase, and emphasize only what exists in the provided profile.",
+        promptPayload: input,
+        schemaName: "resume_content",
+        jsonSchema: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            headline: { type: "string" },
+            professionalSummary: { type: "string" },
+            keySkills: {
+              type: "array",
+              items: { type: "string" }
+            },
+            experience: {
+              type: "array",
+              items: {
                 type: "object",
                 additionalProperties: false,
                 properties: {
-                  headline: { type: "string" },
-                  professionalSummary: { type: "string" },
-                  keySkills: {
+                  title: { type: "string" },
+                  company: { type: "string" },
+                  bullets: {
                     type: "array",
                     items: { type: "string" }
-                  },
-                  experience: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      additionalProperties: false,
-                      properties: {
-                        title: { type: "string" },
-                        company: { type: "string" },
-                        bullets: {
-                          type: "array",
-                          items: { type: "string" }
-                        }
-                      },
-                      required: ["title", "company", "bullets"]
-                    }
-                  },
-                  projects: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      additionalProperties: false,
-                      properties: {
-                        name: { type: "string" },
-                        tagline: { type: "string" },
-                        bullets: {
-                          type: "array",
-                          items: { type: "string" }
-                        }
-                      },
-                      required: ["name", "tagline", "bullets"]
-                    }
-                  },
-                  changeSummary: {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      highlightedStrengths: { type: "array", items: { type: "string" } },
-                      deemphasizedItems: { type: "array", items: { type: "string" } },
-                      notes: { type: "array", items: { type: "string" } }
-                    },
-                    required: ["highlightedStrengths", "deemphasizedItems", "notes"]
                   }
                 },
-                required: [
-                  "headline",
-                  "professionalSummary",
-                  "keySkills",
-                  "experience",
-                  "projects",
-                  "changeSummary"
-                ]
+                required: ["title", "company", "bullets"]
               }
+            },
+            projects: {
+              type: "array",
+              items: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  name: { type: "string" },
+                  tagline: { type: "string" },
+                  bullets: {
+                    type: "array",
+                    items: { type: "string" }
+                  }
+                },
+                required: ["name", "tagline", "bullets"]
+              }
+            },
+            changeSummary: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                highlightedStrengths: { type: "array", items: { type: "string" } },
+                deemphasizedItems: { type: "array", items: { type: "string" } },
+                notes: { type: "array", items: { type: "string" } }
+              },
+              required: ["highlightedStrengths", "deemphasizedItems", "notes"]
             }
-          }
-        })
+          },
+          required: [
+            "headline",
+            "professionalSummary",
+            "keySkills",
+            "experience",
+            "projects",
+            "changeSummary"
+          ]
+        },
+        signal: input.signal
       });
     } catch (error) {
       if (isWorkflowRunCancelledError(error, input.signal)) {
@@ -128,12 +113,7 @@ export class LlmResumeService {
       throw error;
     }
 
-    if (!response.ok) {
-      throw new InternalServerErrorException("OpenAI resume generation request failed");
-    }
-
-    const payload = (await response.json()) as { output_text?: string };
-    return resumeContentSchema.parse(JSON.parse(payload.output_text ?? ""));
+    return resumeContentSchema.parse(JSON.parse(responseText));
   }
 
   private mockResume({
