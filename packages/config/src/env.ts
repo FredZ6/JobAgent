@@ -10,6 +10,7 @@ export const appEnvSchema = z.object({
   LLM_MODEL: z.string().default("gpt-5.4"),
   LLM_API_KEY: z.string().default(""),
   JWT_SECRET: z.string().default("dev-secret"),
+  INTERNAL_API_TOKEN: z.string().default(""),
   FILE_STORAGE_PATH: z.string().default("/app/storage")
 });
 
@@ -17,4 +18,20 @@ export type AppEnv = z.infer<typeof appEnvSchema>;
 
 export function parseAppEnv(source: Record<string, string | undefined>): AppEnv {
   return appEnvSchema.parse(source);
+}
+
+export function resolveInternalApiToken(
+  env: Partial<Record<"NODE_ENV" | "INTERNAL_API_TOKEN" | "JWT_SECRET", string | undefined>>
+) {
+  const explicitToken = env.INTERNAL_API_TOKEN?.trim() ?? "";
+  if (explicitToken.length > 0) {
+    return explicitToken;
+  }
+
+  if ((env.NODE_ENV ?? "development") !== "production") {
+    const fallbackToken = env.JWT_SECRET?.trim() ?? "";
+    return fallbackToken.length > 0 ? fallbackToken : undefined;
+  }
+
+  return undefined;
 }

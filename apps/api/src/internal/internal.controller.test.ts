@@ -1,7 +1,11 @@
 import { BadRequestException, UnauthorizedException } from "@nestjs/common";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { InternalController } from "./internal.controller.js";
+
+const originalNodeEnv = process.env.NODE_ENV;
+const originalJwtSecret = process.env.JWT_SECRET;
+const originalInternalApiToken = process.env.INTERNAL_API_TOKEN;
 
 function createRequest() {
   return {
@@ -12,8 +16,30 @@ function createRequest() {
 }
 
 describe("InternalController long-answer generation", () => {
+  afterEach(() => {
+    if (originalNodeEnv === undefined) {
+      delete process.env.NODE_ENV;
+    } else {
+      process.env.NODE_ENV = originalNodeEnv;
+    }
+
+    if (originalJwtSecret === undefined) {
+      delete process.env.JWT_SECRET;
+    } else {
+      process.env.JWT_SECRET = originalJwtSecret;
+    }
+
+    if (originalInternalApiToken === undefined) {
+      delete process.env.INTERNAL_API_TOKEN;
+    } else {
+      process.env.INTERNAL_API_TOKEN = originalInternalApiToken;
+    }
+  });
+
   it("rejects invalid long-answer generation calls", async () => {
     process.env.JWT_SECRET = "secret";
+    delete process.env.INTERNAL_API_TOKEN;
+    process.env.NODE_ENV = "test";
     const request = createRequest();
 
     const controller = new InternalController({} as any, {} as any, {} as any, {
@@ -33,6 +59,8 @@ describe("InternalController long-answer generation", () => {
 
   it("returns structured answers for valid long-answer generation calls", async () => {
     process.env.JWT_SECRET = "secret";
+    delete process.env.INTERNAL_API_TOKEN;
+    process.env.NODE_ENV = "test";
     const request = createRequest();
 
     const generateForApplication = vi.fn().mockResolvedValue({
@@ -87,6 +115,8 @@ describe("InternalController long-answer generation", () => {
 
   it("preserves llm-generated answers from the long-answer service", async () => {
     process.env.JWT_SECRET = "secret";
+    delete process.env.INTERNAL_API_TOKEN;
+    process.env.NODE_ENV = "test";
     const request = createRequest();
 
     const generateForApplication = vi.fn().mockResolvedValue({
@@ -121,5 +151,52 @@ describe("InternalController long-answer generation", () => {
         }
       ]
     });
+  });
+
+  it("prefers INTERNAL_API_TOKEN over JWT_SECRET when both are set", async () => {
+    process.env.NODE_ENV = "test";
+    process.env.JWT_SECRET = "jwt-secret";
+    process.env.INTERNAL_API_TOKEN = "internal-secret";
+    const request = createRequest();
+
+    const generateForApplication = vi.fn().mockResolvedValue({
+      applicationId: "app_3",
+      answers: []
+    });
+    const controller = new InternalController({} as any, {} as any, {} as any, {
+      generateForApplication
+    } as any);
+
+    await expect(
+      controller.generateLongAnswers("app_3", request as any, "jwt-secret", {
+        questions: [{ fieldName: "why_company", questionText: "Why?" }]
+      })
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+
+    await expect(
+      controller.generateLongAnswers("app_3", request as any, "internal-secret", {
+        questions: [{ fieldName: "why_company", questionText: "Why?" }]
+      })
+    ).resolves.toEqual({
+      applicationId: "app_3",
+      answers: []
+    });
+  });
+
+  it("rejects JWT_SECRET fallback in production when INTERNAL_API_TOKEN is unset", async () => {
+    process.env.NODE_ENV = "production";
+    process.env.JWT_SECRET = "jwt-secret";
+    delete process.env.INTERNAL_API_TOKEN;
+    const request = createRequest();
+
+    const controller = new InternalController({} as any, {} as any, {} as any, {
+      generateForApplication: vi.fn()
+    } as any);
+
+    await expect(
+      controller.generateLongAnswers("app_4", request as any, "jwt-secret", {
+        questions: [{ fieldName: "why_company", questionText: "Why?" }]
+      })
+    ).rejects.toBeInstanceOf(UnauthorizedException);
   });
 });

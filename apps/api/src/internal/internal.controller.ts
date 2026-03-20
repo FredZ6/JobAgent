@@ -1,4 +1,5 @@
 import { Body, Controller, Headers, Inject, Param, Post, Req, UnauthorizedException } from "@nestjs/common";
+import { resolveInternalApiToken } from "@openclaw/config";
 import { orchestrationMetadataSchema, type OrchestrationMetadata } from "@openclaw/shared-types";
 import { z } from "zod";
 
@@ -30,7 +31,9 @@ export class InternalController {
   ) {}
 
   private assertInternalToken(internalToken?: string) {
-    if (!process.env.JWT_SECRET || internalToken !== process.env.JWT_SECRET) {
+    const expectedInternalToken = resolveInternalApiToken(process.env);
+
+    if (!expectedInternalToken || internalToken !== expectedInternalToken) {
       throw new UnauthorizedException("Invalid internal token");
     }
   }

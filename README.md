@@ -107,6 +107,17 @@ What they do:
 
 The prefill worker itself is always best-effort and does not require a separate feature flag.
 
+## Deployment Notes
+
+For real deployments, set these secrets explicitly and separately:
+
+- `JWT_SECRET`
+- `INTERNAL_API_TOKEN`
+
+The repo still allows non-production fallback from `INTERNAL_API_TOKEN` to
+`JWT_SECRET` so local development and tests stay lightweight. Production should
+set both values explicitly and should not rely on that fallback.
+
 ## Walkthrough
 
 If you want to see the full product loop quickly:
@@ -148,7 +159,6 @@ Runtime shape:
 - The project is not a multi-tenant production system yet.
 - Temporal support exists, but only for the current starter workflow slices.
 - The web build is currently stable but still carries some workaround-specific implementation that should be cleaned up later.
-- Security and public-deployment hardening are still in progress for the internal worker trust boundary.
 
 ## Roadmap
 
