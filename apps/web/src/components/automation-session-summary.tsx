@@ -1,3 +1,4 @@
+import React from "react";
 import type { AutomationSession } from "@openclaw/shared-types";
 
 import {

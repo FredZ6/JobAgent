@@ -1,19 +1,21 @@
 "use client";
 
+import React from "react";
 import { startTransition, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 
 import { ApplicationFieldResults } from "../../../components/application-field-results";
-import { AutomationSessionSummary } from "../../../components/automation-session-summary";
+import { AutomationSessionHistory } from "../../../components/automation-session-history";
 import { Panel } from "../../../components/panel";
 import {
-  buildApplicationScreenshotUrl,
   fetchApplication,
+  fetchAutomationSessions,
   runPrefill,
   updateApplicationApproval,
   type ApplicationWithContext
 } from "../../../lib/api";
+import type { AutomationSession } from "@openclaw/shared-types";
 import type { ApprovalStatus } from "@openclaw/shared-types";
 
 const approvalOptions: { label: string; value: ApprovalStatus; tone: "primary" | "secondary" }[] = [
@@ -27,8 +29,10 @@ export default function ApplicationReviewPage() {
   const applicationId = params?.id ?? "";
   const router = useRouter();
   const [applicationContext, setApplicationContext] = useState<ApplicationWithContext | null>(null);
+  const [automationSessions, setAutomationSessions] = useState<AutomationSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [sessionHistoryError, setSessionHistoryError] = useState("");
   const [approvalLoading, setApprovalLoading] = useState(false);
   const [approvalMessage, setApprovalMessage] = useState("");
   const [approvalError, setApprovalError] = useState("");
@@ -42,9 +46,25 @@ export default function ApplicationReviewPage() {
 
     startTransition(async () => {
       try {
-        const data = await fetchApplication(applicationId);
-        setApplicationContext(data);
-        setReviewNote(data.application.reviewNote);
+        const [applicationResult, sessionResult] = await Promise.allSettled([
+          fetchApplication(applicationId),
+          fetchAutomationSessions(applicationId)
+        ]);
+
+        if (applicationResult.status === "fulfilled") {
+          setApplicationContext(applicationResult.value);
+          setReviewNote(applicationResult.value.application.reviewNote);
+        } else {
+          throw applicationResult.reason;
+        }
+
+        if (sessionResult.status === "fulfilled") {
+          setAutomationSessions(sessionResult.value);
+          setSessionHistoryError("");
+        } else {
+          setAutomationSessions([]);
+          setSessionHistoryError("Session history could not be loaded.");
+        }
       } catch (fetchError) {
         setError(fetchError instanceof Error ? fetchError.message : "Failed to load application");
       } finally {
@@ -120,10 +140,7 @@ export default function ApplicationReviewPage() {
   }
 
   const { application, job, resumeVersion, latestAutomationSession } = applicationContext;
-  const screenshotFilenames = application.screenshotPaths.map((path) => {
-    const segments = path.split("/");
-    return segments[segments.length - 1];
-  });
+  const sessionHistory = automationSessions.length > 0 ? automationSessions : latestAutomationSession ? [latestAutomationSession] : [];
 
   return (
     <section className="content-grid">
@@ -218,17 +235,20 @@ export default function ApplicationReviewPage() {
         </div>
       </Panel>
 
-      <Panel
-        className="span-12"
-        eyebrow="Automation session"
-        title="Latest execution evidence"
-        copy="This records the newest browser automation attempt that populated the review data below."
-      >
-        <AutomationSessionSummary
-          session={latestAutomationSession}
-          emptyCopy="No automation session has been captured for this application yet."
-        />
-      </Panel>
+      <div id="automation-sessions" className="span-12">
+        <Panel
+          className="span-12"
+          eyebrow="Automation session"
+          title="Automation sessions"
+          copy="Browse the browser attempts that populated this application and compare the latest run with earlier tries."
+        >
+          {sessionHistoryError ? <p className="muted">{sessionHistoryError}</p> : null}
+          <AutomationSessionHistory
+            sessions={sessionHistory}
+            emptyCopy="No automation session has been captured for this application yet."
+          />
+        </Panel>
+      </div>
 
       <Panel
         className="span-12"
@@ -243,54 +263,6 @@ export default function ApplicationReviewPage() {
         />
       </Panel>
 
-      <div className="span-12 analysis-grid">
-        <Panel
-          className="span-7"
-          eyebrow="Worker log"
-          title="Playwright actions"
-          copy="The log tracks when the job ran and whether it succeeded."
-        >
-          {application.workerLog.length === 0 ? (
-            <div className="inline-note">No log entries captured.</div>
-          ) : (
-            <div className="stack">
-              {application.workerLog.map((entry, idx) => (
-                <div key={`${entry.message}-${idx}`} className="field-result-row">
-                  <div className="pill-row">
-                    <span className="mini-pill">{entry.level}</span>
-                    {entry.timestamp ? (
-                      <span className="mini-pill">{new Date(entry.timestamp).toLocaleString()}</span>
-                    ) : null}
-                  </div>
-                  <p className="panel-copy">{entry.message}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </Panel>
-
-        <Panel
-          className="span-5"
-          eyebrow="Screenshots"
-          title="Captured evidence"
-          copy="Images show how far the worker got before stopping."
-        >
-          {screenshotFilenames.length === 0 ? (
-            <div className="inline-note">No screenshots were captured.</div>
-          ) : (
-            <div className="application-screenshots">
-              {screenshotFilenames.map((filename) => (
-                <img
-                  key={filename}
-                  src={buildApplicationScreenshotUrl(application.id, filename)}
-                  alt="Prefill screenshot"
-                  className="application-screenshot"
-                />
-              ))}
-            </div>
-          )}
-        </Panel>
-      </div>
     </section>
   );
 }
