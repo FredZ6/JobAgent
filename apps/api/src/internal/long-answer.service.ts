@@ -13,6 +13,18 @@ type LongAnswerQuestionInput = {
   hints?: string[];
 };
 
+type LongAnswerJobFocus = {
+  topResponsibilities: string[];
+  topRequirements: string[];
+};
+
+type LongAnswerAnalysisContext = {
+  summary?: string;
+  requiredSkills: string[];
+  missingSkills: string[];
+  redFlags: string[];
+};
+
 const highRiskQuestionPatterns = [
   {
     category: "sponsorship",
@@ -37,9 +49,202 @@ const highRiskQuestionPatterns = [
 ] as const;
 
 const supportedProviders = ["openai", "gemini"] as const;
+const maxJobFocusItems = 3;
+
+const responsibilityHeaderSignals = [
+  "responsibilities",
+  "what you will do",
+  "what you'll do",
+  "what youll do",
+  "what the role does",
+  "in this role",
+  "role overview",
+  "your responsibilities",
+  "you will"
+];
+
+const requirementHeaderSignals = [
+  "requirements",
+  "qualifications",
+  "what we're looking for",
+  "what you bring",
+  "must have",
+  "must-haves",
+  "preferred qualifications",
+  "desired qualifications"
+];
+
+const responsibilitySignalWords = [
+  "build",
+  "design",
+  "own",
+  "lead",
+  "partner",
+  "ship",
+  "improve",
+  "maintain",
+  "develop",
+  "implement",
+  "support",
+  "drive",
+  "create"
+];
+
+const requirementSignalWords = [
+  "experience",
+  "proficient",
+  "strong",
+  "knowledge",
+  "familiar",
+  "familiarity",
+  "background",
+  "ability",
+  "skills",
+  "understanding",
+  "preferred",
+  "required",
+  "bonus"
+];
 
 function normalizeQuestionSignal(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, " ");
+}
+
+function normalizeJobSignal(value: string) {
+  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function stripBulletPrefix(value: string) {
+  return value.replace(/^\s*[-*•\u2022]+\s*/, "").trim();
+}
+
+function isShortSectionHeader(line: string) {
+  const normalized = normalizeJobSignal(line);
+  if (normalized.length === 0 || normalized.length > 45) {
+    return false;
+  }
+
+  return (
+    responsibilityHeaderSignals.some((signal) => normalized === signal || normalized.startsWith(`${signal} `) || normalized.startsWith(`${signal}:`)) ||
+    requirementHeaderSignals.some((signal) => normalized === signal || normalized.startsWith(`${signal} `) || normalized.startsWith(`${signal}:`))
+  );
+}
+
+function classifyJobFocusLine(line: string): "responsibilities" | "requirements" | null {
+  const normalized = normalizeJobSignal(line);
+
+  if (normalized.length === 0) {
+    return null;
+  }
+
+  const responsibilityScore = responsibilitySignalWords.reduce(
+    (score, signal) => score + (normalized.includes(signal) ? 1 : 0),
+    0
+  );
+  const requirementScore = requirementSignalWords.reduce(
+    (score, signal) => score + (normalized.includes(signal) ? 1 : 0),
+    0
+  );
+
+  if (responsibilityScore === 0 && requirementScore === 0) {
+    return null;
+  }
+
+  if (responsibilityScore === requirementScore) {
+    return normalized.includes("experience") || normalized.includes("required") || normalized.includes("preferred")
+      ? "requirements"
+      : "responsibilities";
+  }
+
+  return responsibilityScore > requirementScore ? "responsibilities" : "requirements";
+}
+
+function hasMeaningfulJobFocusSignal(line: string) {
+  const normalized = normalizeJobSignal(line);
+  const combinedSignalCount = [...responsibilitySignalWords, ...requirementSignalWords].reduce(
+    (score, signal) => score + (normalized.includes(signal) ? 1 : 0),
+    0
+  );
+
+  return (
+    combinedSignalCount >= 2 ||
+    normalized.includes("responsibilities") ||
+    normalized.includes("requirements") ||
+    normalized.includes("qualifications")
+  );
+}
+
+function limitJobFocusLines(lines: string[]) {
+  return Array.from(new Set(lines.map((line) => line.trim()).filter(Boolean))).slice(0, maxJobFocusItems);
+}
+
+function extractJobFocus(description: string): LongAnswerJobFocus {
+  const topResponsibilities: string[] = [];
+  const topRequirements: string[] = [];
+  const lines = description
+    .split(/\r?\n+/)
+    .flatMap((line) => line.split(/(?<=\.)\s+/))
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  let currentSection: "responsibilities" | "requirements" | null = null;
+  let currentSectionCaptures = 0;
+
+  for (const rawLine of lines) {
+    const strippedLine = stripBulletPrefix(rawLine);
+    const normalizedLine = normalizeJobSignal(strippedLine);
+
+    if (isShortSectionHeader(strippedLine)) {
+      currentSection = responsibilityHeaderSignals.some((signal) => normalizedLine === signal || normalizedLine.startsWith(`${signal} `) || normalizedLine.startsWith(`${signal}:`))
+        ? "responsibilities"
+        : "requirements";
+      currentSectionCaptures = 0;
+      continue;
+    }
+
+    const looksBulleted = /^\s*[-*•\u2022]/.test(rawLine) || /^\s*\d+[.)]/.test(rawLine);
+
+    if (currentSection && (looksBulleted || currentSectionCaptures < 3)) {
+      if (currentSection === "responsibilities") {
+        topResponsibilities.push(strippedLine);
+      } else {
+        topRequirements.push(strippedLine);
+      }
+
+      currentSectionCaptures += 1;
+      continue;
+    }
+
+    if (!looksBulleted && !hasMeaningfulJobFocusSignal(strippedLine)) {
+      continue;
+    }
+
+    const classified = classifyJobFocusLine(strippedLine);
+    if (!classified) {
+      continue;
+    }
+
+    if (classified === "responsibilities" && topResponsibilities.length < maxJobFocusItems) {
+      topResponsibilities.push(strippedLine);
+    } else if (classified === "requirements" && topRequirements.length < maxJobFocusItems) {
+      topRequirements.push(strippedLine);
+    }
+  }
+
+  return {
+    topResponsibilities: limitJobFocusLines(topResponsibilities),
+    topRequirements: limitJobFocusLines(topRequirements)
+  };
+}
+
+function toStringArray(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0)
+    .map((entry) => entry.trim());
 }
 
 function identifyHighRiskCategory(question: LongAnswerQuestionInput) {
@@ -110,6 +315,13 @@ export class LongAnswerService {
       }),
       this.settingsService.getSettings()
     ]);
+    const jobFocus = extractJobFocus(application.job.description);
+    const analysis: LongAnswerAnalysisContext = {
+      summary: typeof latestAnalysis?.summary === "string" ? latestAnalysis.summary : undefined,
+      requiredSkills: toStringArray(latestAnalysis?.requiredSkills),
+      missingSkills: toStringArray(latestAnalysis?.missingSkills),
+      redFlags: toStringArray(latestAnalysis?.redFlags)
+    };
 
     const defaultAnswers =
       application.resumeVersion.sourceProfile.defaultAnswers &&
@@ -119,16 +331,16 @@ export class LongAnswerService {
 
     const answers = await Promise.all(
       questions.map(async (question) => {
-      const defaultAnswerMatch = findDefaultAnswerMatch(defaultAnswers, question);
+        const defaultAnswerMatch = findDefaultAnswerMatch(defaultAnswers, question);
 
-      if (defaultAnswerMatch) {
-        return {
-          ...buildQuestionIdentity(question),
-          decision: "fill" as const,
-          answer: defaultAnswerMatch.answer,
-          source: "default_answer_match" as const
-        };
-      }
+        if (defaultAnswerMatch) {
+          return {
+            ...buildQuestionIdentity(question),
+            decision: "fill" as const,
+            answer: defaultAnswerMatch.answer,
+            source: "default_answer_match" as const
+          };
+        }
 
       const matchedRiskCategory = identifyHighRiskCategory(question);
 
@@ -155,12 +367,10 @@ export class LongAnswerService {
             apiKey: settings.apiKey,
             question,
             job: application.job,
+            jobFocus,
             resumeHeadline: application.resumeVersion.headline,
             profileSummary: application.resumeVersion.sourceProfile.summary,
-            analysisSummary:
-              typeof latestAnalysis?.summary === "string" && latestAnalysis.summary.length > 0
-                ? latestAnalysis.summary
-                : undefined,
+            analysis,
             signal
           });
 
@@ -183,10 +393,7 @@ export class LongAnswerService {
           job: application.job,
           resumeHeadline: application.resumeVersion.headline,
           profileSummary: application.resumeVersion.sourceProfile.summary,
-          analysisSummary:
-            typeof latestAnalysis?.summary === "string" && latestAnalysis.summary.length > 0
-              ? latestAnalysis.summary
-              : undefined
+          analysisSummary: analysis.summary
         }),
         source: "deterministic_fallback" as const
       };

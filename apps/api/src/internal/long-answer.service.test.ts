@@ -183,8 +183,32 @@ describe("LongAnswerService", () => {
     process.env.JOB_RESUME_MODE = "live";
 
     const prisma = mockPrisma();
-    prisma.application.findUnique.mockResolvedValue(createApplication({ id: "app_3" }));
-    prisma.jobAnalysis.findFirst.mockResolvedValue(createCompletedAnalysis());
+    prisma.application.findUnique.mockResolvedValue(
+      createApplication({
+        id: "app_3",
+        job: {
+          id: "job_1",
+          title: "Platform Engineer",
+          company: "Orbital",
+          description: [
+            "Responsibilities",
+            "- Own developer tooling that improves internal platform workflows.",
+            "- Partner with product and operations teams to ship reliable systems.",
+            "Requirements",
+            "- Strong TypeScript and Node.js experience.",
+            "- Experience with internal tools or platform engineering."
+          ].join("\n"),
+          location: "Remote"
+        }
+      })
+    );
+    prisma.jobAnalysis.findFirst.mockResolvedValue({
+      ...createCompletedAnalysis(),
+      summary: "Build dependable internal platform systems for product and operations teams.",
+      requiredSkills: ["TypeScript", "Node.js", "platform engineering"],
+      missingSkills: ["Infrastructure as code"],
+      redFlags: ["Some experience gap"]
+    });
 
     const settingsService = createSettingsService({
       provider: "gemini",
@@ -216,7 +240,27 @@ describe("LongAnswerService", () => {
     expect(llmLongAnswerService.generate).toHaveBeenCalledTimes(1);
     expect(llmLongAnswerService.generate).toHaveBeenCalledWith(
       expect.objectContaining({
-        signal
+        signal,
+        job: expect.objectContaining({
+          title: "Platform Engineer",
+          company: "Orbital"
+        }),
+        jobFocus: {
+          topResponsibilities: [
+            "Own developer tooling that improves internal platform workflows.",
+            "Partner with product and operations teams to ship reliable systems."
+          ],
+          topRequirements: [
+            "Strong TypeScript and Node.js experience.",
+            "Experience with internal tools or platform engineering."
+          ]
+        },
+        analysis: expect.objectContaining({
+          summary: "Build dependable internal platform systems for product and operations teams.",
+          requiredSkills: ["TypeScript", "Node.js", "platform engineering"],
+          missingSkills: ["Infrastructure as code"],
+          redFlags: ["Some experience gap"]
+        })
       })
     );
     expect(fallbackSpy).not.toHaveBeenCalled();
@@ -229,6 +273,55 @@ describe("LongAnswerService", () => {
         source: "llm_generated"
       }
     ]);
+  });
+
+  it("safely falls back to empty job focus when the description is noisy", async () => {
+    process.env.JOB_ANALYSIS_MODE = "live";
+    process.env.JOB_RESUME_MODE = "live";
+
+    const prisma = mockPrisma();
+    prisma.application.findUnique.mockResolvedValue(
+      createApplication({
+        id: "app_3b",
+        job: {
+          id: "job_1",
+          title: "Platform Engineer",
+          company: "Orbital",
+          description: "Join us and help build things.",
+          location: "Remote"
+        }
+      })
+    );
+    prisma.jobAnalysis.findFirst.mockResolvedValue(createCompletedAnalysis());
+
+    const settingsService = createSettingsService({
+      provider: "gemini",
+      model: "gemini-2.5-flash",
+      apiKey: "AIza-test",
+      isConfigured: true
+    });
+    const llmLongAnswerService = createLlmLongAnswerService();
+    const service = new LongAnswerService(
+      prisma as any,
+      settingsService as any,
+      llmLongAnswerService as any
+    );
+
+    await service.generateForApplication("app_3b", [
+      {
+        fieldName: "why_fit",
+        questionText: "Why are you a fit for this role?"
+      }
+    ]);
+
+    expect(llmLongAnswerService.generate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        jobFocus: {
+          topResponsibilities: [],
+          topRequirements: []
+        }
+      })
+    );
   });
 
   it("falls back deterministically when demo mode is enabled", async () => {

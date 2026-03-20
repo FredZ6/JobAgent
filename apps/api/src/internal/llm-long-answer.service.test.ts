@@ -27,9 +27,18 @@ describe("LlmLongAnswerService", () => {
         company: "Orbital",
         description: "Build platform systems."
       },
+      jobFocus: {
+        topResponsibilities: ["Own internal platform workflows.", "Ship reliable systems."],
+        topRequirements: ["Strong TypeScript experience.", "Internal tools experience."]
+      },
       resumeHeadline: "Platform Engineer",
       profileSummary: "Builder of stable internal tools.",
-      analysisSummary: "Strong platform fit."
+      analysis: {
+        summary: "Strong platform fit.",
+        requiredSkills: ["TypeScript"],
+        missingSkills: ["Kubernetes"],
+        redFlags: ["Gap in infra exposure"]
+      }
     });
 
     expect(gateway.generateText).toHaveBeenCalledTimes(1);
@@ -38,7 +47,7 @@ describe("LlmLongAnswerService", () => {
         provider: "gemini",
         model: "gemini-2.5-flash",
         apiKey: "AIza-test",
-        instructions: expect.stringContaining("truthful"),
+        instructions: expect.stringContaining("what the role is trying to do"),
         promptPayload: expect.objectContaining({
           question: {
             fieldName: "why_fit",
@@ -49,9 +58,18 @@ describe("LlmLongAnswerService", () => {
             company: "Orbital",
             description: "Build platform systems."
           },
+          jobFocus: {
+            topResponsibilities: ["Own internal platform workflows.", "Ship reliable systems."],
+            topRequirements: ["Strong TypeScript experience.", "Internal tools experience."]
+          },
           resumeHeadline: "Platform Engineer",
           profileSummary: "Builder of stable internal tools.",
-          analysisSummary: "Strong platform fit."
+          analysis: {
+            summary: "Strong platform fit.",
+            requiredSkills: ["TypeScript"],
+            missingSkills: ["Kubernetes"],
+            redFlags: ["Gap in infra exposure"]
+          }
         })
       })
     );
@@ -74,13 +92,23 @@ describe("LlmLongAnswerService", () => {
           fieldName: "why_fit",
           questionText: "Why are you a fit for this role?"
         },
-        job: {
-          title: "Platform Engineer",
-          company: "Orbital",
-          description: "Build platform systems."
-        },
-        resumeHeadline: "Platform Engineer",
-        profileSummary: "Builder of stable internal tools."
+      job: {
+        title: "Platform Engineer",
+        company: "Orbital",
+        description: "Build platform systems."
+      },
+      jobFocus: {
+        topResponsibilities: ["Own internal platform workflows.", "Ship reliable systems."],
+        topRequirements: ["Strong TypeScript experience.", "Internal tools experience."]
+      },
+      resumeHeadline: "Platform Engineer",
+      profileSummary: "Builder of stable internal tools.",
+      analysis: {
+        summary: "Strong platform fit.",
+        requiredSkills: ["TypeScript"],
+        missingSkills: ["Kubernetes"],
+        redFlags: ["Gap in infra exposure"]
+      }
       })
     ).rejects.toThrow("provider failed");
   });
@@ -101,14 +129,24 @@ describe("LlmLongAnswerService", () => {
           fieldName: "why_fit",
           questionText: "Why are you a fit for this role?"
         },
-        job: {
-          title: "Platform Engineer",
-          company: "Orbital",
-          description: "Build platform systems."
-        },
-        resumeHeadline: "Platform Engineer",
-        profileSummary: "Builder of stable internal tools."
-      })
+      job: {
+        title: "Platform Engineer",
+        company: "Orbital",
+        description: "Build platform systems."
+      },
+      jobFocus: {
+        topResponsibilities: ["Own internal platform workflows.", "Ship reliable systems."],
+        topRequirements: ["Strong TypeScript experience.", "Internal tools experience."]
+      },
+      resumeHeadline: "Platform Engineer",
+      profileSummary: "Builder of stable internal tools.",
+      analysis: {
+        summary: "Strong platform fit.",
+        requiredSkills: ["TypeScript"],
+        missingSkills: ["Kubernetes"],
+        redFlags: ["Gap in infra exposure"]
+      }
+    })
     ).rejects.toThrow("provider returned an empty answer");
   });
 });

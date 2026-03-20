@@ -11,7 +11,7 @@ Track the concrete steps needed to turn the current repo from a handoff/demo-qua
 - [ ] Replace `prisma db push`-only setup with a proper Prisma migration workflow
 - [x] Add GitHub Actions CI for install, typecheck, test, and build
 - [x] Add at least one happy-path end-to-end test covering the main product loop
-- [ ] Upgrade `LongAnswerService` to `defaultAnswers -> LLM -> deterministic fallback`, while high-risk prompts still require saved defaults
+- [x] Upgrade `LongAnswerService` to `defaultAnswers -> LLM -> deterministic fallback`, while high-risk prompts still require saved defaults
 - [ ] Build complete `automation_sessions` UX: list, detail, and comparison surfaces
 - [ ] Reduce or remove the current Next.js build workarounds once a cleaner route is safe
 - [ ] Separate internal-worker auth from `JWT_SECRET` and harden public deployment defaults
@@ -19,11 +19,10 @@ Track the concrete steps needed to turn the current repo from a handoff/demo-qua
 
 ## Current Focus
 
-The active slice starts with item 6:
+The next slice starts with item 7:
 
-- add a real `defaultAnswers` editor to the Profile page
-- tighten high-risk long-answer handling so unmatched prompts require manual review
-- use that as the first step toward the later LLM-backed answer-generation path
+- build complete `automation_sessions` UX: list, detail, and comparison surfaces
+- keep the existing application review flow intact while expanding execution visibility
 
 ## Suggested Execution Order
 
