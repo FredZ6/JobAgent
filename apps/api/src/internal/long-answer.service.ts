@@ -106,6 +106,13 @@ const requirementSignalWords = [
   "bonus"
 ];
 
+const normalizedResponsibilityHeaderSignals = responsibilityHeaderSignals.map((signal) =>
+  normalizeJobSignal(signal)
+);
+const normalizedRequirementHeaderSignals = requirementHeaderSignals.map((signal) =>
+  normalizeJobSignal(signal)
+);
+
 function normalizeQuestionSignal(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, " ");
 }
@@ -125,8 +132,18 @@ function isShortSectionHeader(line: string) {
   }
 
   return (
-    responsibilityHeaderSignals.some((signal) => normalized === signal || normalized.startsWith(`${signal} `) || normalized.startsWith(`${signal}:`)) ||
-    requirementHeaderSignals.some((signal) => normalized === signal || normalized.startsWith(`${signal} `) || normalized.startsWith(`${signal}:`))
+    normalizedResponsibilityHeaderSignals.some(
+      (signal) =>
+        normalized === signal ||
+        normalized.startsWith(`${signal} `) ||
+        normalized.startsWith(`${signal}:`)
+    ) ||
+    normalizedRequirementHeaderSignals.some(
+      (signal) =>
+        normalized === signal ||
+        normalized.startsWith(`${signal} `) ||
+        normalized.startsWith(`${signal}:`)
+    )
   );
 }
 
@@ -174,6 +191,11 @@ function hasMeaningfulJobFocusSignal(line: string) {
   );
 }
 
+function looksLikeDescriptiveSentence(line: string) {
+  const normalized = normalizeJobSignal(line);
+  return normalized.split(" ").filter(Boolean).length >= 4;
+}
+
 function limitJobFocusLines(lines: string[]) {
   return Array.from(new Set(lines.map((line) => line.trim()).filter(Boolean))).slice(0, maxJobFocusItems);
 }
@@ -195,7 +217,12 @@ function extractJobFocus(description: string): LongAnswerJobFocus {
     const normalizedLine = normalizeJobSignal(strippedLine);
 
     if (isShortSectionHeader(strippedLine)) {
-      currentSection = responsibilityHeaderSignals.some((signal) => normalizedLine === signal || normalizedLine.startsWith(`${signal} `) || normalizedLine.startsWith(`${signal}:`))
+      currentSection = normalizedResponsibilityHeaderSignals.some(
+        (signal) =>
+          normalizedLine === signal ||
+          normalizedLine.startsWith(`${signal} `) ||
+          normalizedLine.startsWith(`${signal}:`)
+      )
         ? "responsibilities"
         : "requirements";
       currentSectionCaptures = 0;
@@ -203,8 +230,22 @@ function extractJobFocus(description: string): LongAnswerJobFocus {
     }
 
     const looksBulleted = /^\s*[-*•\u2022]/.test(rawLine) || /^\s*\d+[.)]/.test(rawLine);
+    const looksLikeSectionBreak =
+      isShortSectionHeader(strippedLine) ||
+      (currentSectionCaptures > 0 && !looksBulleted && !hasMeaningfulJobFocusSignal(strippedLine));
 
-    if (currentSection && (looksBulleted || currentSectionCaptures < 3)) {
+    if (looksLikeSectionBreak) {
+      currentSection = null;
+      currentSectionCaptures = 0;
+    }
+
+    if (
+      currentSection &&
+      currentSectionCaptures < 3 &&
+      (looksBulleted ||
+        hasMeaningfulJobFocusSignal(strippedLine) ||
+        (currentSectionCaptures === 0 && looksLikeDescriptiveSentence(strippedLine)))
+    ) {
       if (currentSection === "responsibilities") {
         topResponsibilities.push(strippedLine);
       } else {

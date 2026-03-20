@@ -324,6 +324,116 @@ describe("LongAnswerService", () => {
     );
   });
 
+  it("recognizes apostrophe section headers after normalization", async () => {
+    process.env.JOB_ANALYSIS_MODE = "live";
+    process.env.JOB_RESUME_MODE = "live";
+
+    const prisma = mockPrisma();
+    prisma.application.findUnique.mockResolvedValue(
+      createApplication({
+        id: "app_3c",
+        job: {
+          id: "job_1",
+          title: "Platform Engineer",
+          company: "Orbital",
+          description: [
+            "What you'll do",
+            "- Build internal platform workflows for product teams.",
+            "What we're looking for",
+            "- Strong TypeScript experience in production systems."
+          ].join("\n"),
+          location: "Remote"
+        }
+      })
+    );
+    prisma.jobAnalysis.findFirst.mockResolvedValue(createCompletedAnalysis());
+
+    const settingsService = createSettingsService({
+      provider: "gemini",
+      model: "gemini-2.5-flash",
+      apiKey: "AIza-test",
+      isConfigured: true
+    });
+    const llmLongAnswerService = createLlmLongAnswerService();
+    const service = new LongAnswerService(
+      prisma as any,
+      settingsService as any,
+      llmLongAnswerService as any
+    );
+
+    await service.generateForApplication("app_3c", [
+      {
+        fieldName: "why_fit",
+        questionText: "Why are you a fit for this role?"
+      }
+    ]);
+
+    expect(llmLongAnswerService.generate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        jobFocus: {
+          topResponsibilities: ["Build internal platform workflows for product teams."],
+          topRequirements: ["Strong TypeScript experience in production systems."]
+        }
+      })
+    );
+  });
+
+  it("does not capture unrelated section headings inside a matched section", async () => {
+    process.env.JOB_ANALYSIS_MODE = "live";
+    process.env.JOB_RESUME_MODE = "live";
+
+    const prisma = mockPrisma();
+    prisma.application.findUnique.mockResolvedValue(
+      createApplication({
+        id: "app_3d",
+        job: {
+          id: "job_1",
+          title: "Platform Engineer",
+          company: "Orbital",
+          description: [
+            "Responsibilities",
+            "Build internal platform workflows for product teams.",
+            "Benefits",
+            "Competitive compensation and paid time off.",
+            "Requirements",
+            "Strong TypeScript experience in production systems."
+          ].join("\n"),
+          location: "Remote"
+        }
+      })
+    );
+    prisma.jobAnalysis.findFirst.mockResolvedValue(createCompletedAnalysis());
+
+    const settingsService = createSettingsService({
+      provider: "gemini",
+      model: "gemini-2.5-flash",
+      apiKey: "AIza-test",
+      isConfigured: true
+    });
+    const llmLongAnswerService = createLlmLongAnswerService();
+    const service = new LongAnswerService(
+      prisma as any,
+      settingsService as any,
+      llmLongAnswerService as any
+    );
+
+    await service.generateForApplication("app_3d", [
+      {
+        fieldName: "why_fit",
+        questionText: "Why are you a fit for this role?"
+      }
+    ]);
+
+    expect(llmLongAnswerService.generate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        jobFocus: {
+          topResponsibilities: ["Build internal platform workflows for product teams."],
+          topRequirements: ["Strong TypeScript experience in production systems."]
+        }
+      })
+    );
+  });
+
   it("falls back deterministically when demo mode is enabled", async () => {
     process.env.JOB_ANALYSIS_MODE = "mock";
     process.env.JOB_RESUME_MODE = "mock";
