@@ -1,10 +1,10 @@
-# OpenClaw Job Agent Delivery Package
+# Rolecraft Job Agent Delivery Package
 
 Date: 2026-03-18
 
 ## Delivery Status
 
-OpenClaw Job Agent is now in **closeout / handoff** state for the current local-first MVP scope.
+Rolecraft Job Agent is now in **closeout / handoff** state for the current local-first MVP scope.
 
 What that means:
 

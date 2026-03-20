@@ -1,4 +1,4 @@
-# Contributing to OpenClaw Job Agent
+# Contributing to Rolecraft Job Agent
 
 Thanks for taking the time to contribute.
 
