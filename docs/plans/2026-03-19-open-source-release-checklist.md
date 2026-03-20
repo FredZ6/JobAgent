@@ -6,7 +6,7 @@ Track the concrete steps needed to turn the current repo from a handoff/demo-qua
 
 ## Checklist
 
-- [ ] Add repository governance files: `LICENSE`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, issue templates, and PR template
+- [x] Add repository governance files: `LICENSE`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, issue templates, and PR template
 - [ ] Rewrite `README.md` for external users, including screenshots/GIFs, quickstart, architecture, known limitations, and roadmap
 - [ ] Replace `prisma db push`-only setup with a proper Prisma migration workflow
 - [x] Add GitHub Actions CI for install, typecheck, test, and build
@@ -19,10 +19,10 @@ Track the concrete steps needed to turn the current repo from a handoff/demo-qua
 
 ## Current Focus
 
-The next slice starts with item 8:
+The next slice starts with item 2:
 
-- reduce or remove the current Next.js build workarounds once a cleaner route is safe
-- preserve the now-stable web build while shrinking workaround-specific code
+- rewrite `README.md` for external users, including screenshots/GIFs, quickstart, architecture, known limitations, and roadmap
+- shift the repo voice from closeout/handoff language to public open-source onboarding
 
 ## Suggested Execution Order
 
@@ -31,8 +31,8 @@ The next slice starts with item 8:
 3. item 4 GitHub Actions CI
 4. item 5 happy-path end-to-end test
 5. item 7 `automation_sessions` UX
-6. item 8 Next.js build cleanup
-7. item 9 internal auth hardening
-8. item 1 governance files
-9. item 2 README rewrite
+6. item 1 governance files
+7. item 2 README rewrite
+8. item 9 internal auth hardening
+9. item 8 Next.js build cleanup
 10. item 10 release packaging
