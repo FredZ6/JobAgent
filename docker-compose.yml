@@ -49,8 +49,8 @@ services:
       - storage-applications:/app/storage/applications
     command: >
       sh -c "npm install &&
-      npx prisma db push &&
-      npm run prisma:seed &&
+      npm run prisma:generate &&
+      npm run prisma:migrate:deploy &&
       npm run dev:api"
 
   web:

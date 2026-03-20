@@ -2,6 +2,7 @@ import { existsSync, mkdirSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { resolveInternalApiToken } from "@openclaw/config";
 import type { Page } from "playwright";
 
 type UploadTarget = {
@@ -310,7 +311,7 @@ async function requestLongAnswers(
     method: "POST",
     headers: {
       "content-type": "application/json",
-      "x-internal-token": process.env.JWT_SECRET ?? ""
+      "x-internal-token": resolveInternalApiToken(process.env) ?? ""
     },
     body: JSON.stringify({
       questions: targets.map((target) => ({

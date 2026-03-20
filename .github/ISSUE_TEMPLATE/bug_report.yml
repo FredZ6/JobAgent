@@ -1,0 +1,128 @@
+name: Bug report
+description: Report a reproducible problem in OpenClaw Job Agent
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happened?
+      placeholder: A short description of the problem.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: What steps can someone else follow to hit the same problem?
+      placeholder: |
+        1. Open ...
+        2. Click ...
+        3. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      placeholder: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      placeholder: What happened instead?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: runtime
+    attributes:
+      label: Runtime
+      options:
+        - Docker Compose
+        - Local npm commands
+        - Mixed / custom
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: macOS 15, Ubuntu 24.04, Windows 11, etc.
+
+  - type: dropdown
+    id: import-mode
+    attributes:
+      label: JOB_IMPORT_MODE
+      options:
+        - live
+        - mock
+        - not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: analysis-mode
+    attributes:
+      label: JOB_ANALYSIS_MODE
+      options:
+        - live
+        - mock
+        - not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: resume-mode
+    attributes:
+      label: JOB_RESUME_MODE
+      options:
+        - live
+        - mock
+        - not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: temporal
+    attributes:
+      label: TEMPORAL_ENABLED
+      options:
+        - "true"
+        - "false"
+        - not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: provider
+    attributes:
+      label: LLM provider
+      options:
+        - OpenAI
+        - Gemini
+        - Not applicable
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Paste relevant logs or add links/screenshots if available.
+      render: shell
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      placeholder: Anything else that may help reproduce or explain the issue.

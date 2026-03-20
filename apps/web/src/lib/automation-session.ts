@@ -2,6 +2,21 @@ import type { AutomationSession } from "@openclaw/shared-types";
 
 import { summarizeFieldResults } from "./field-results";
 
+export type AutomationSessionEvidenceSummary = ReturnType<typeof summarizeAutomationSessionEvidence>;
+export type AutomationSessionComparison = {
+  latestId: string;
+  previousId: string;
+  latestStatus: AutomationSession["status"];
+  previousStatus: AutomationSession["status"];
+  latestSummary: AutomationSessionEvidenceSummary;
+  previousSummary: AutomationSessionEvidenceSummary;
+  filledDelta: number;
+  failedDelta: number;
+  unresolvedDelta: number;
+  screenshotDelta: number;
+  logDelta: number;
+};
+
 export function summarizeAutomationSessionEvidence(session: AutomationSession) {
   const fieldSummary = summarizeFieldResults(session.fieldResults);
 
@@ -34,4 +49,26 @@ export function getAutomationSessionPhaseLabel(session: AutomationSession) {
   }
 
   return "Pending";
+}
+
+export function compareAutomationSessions(
+  latest: AutomationSession,
+  previous: AutomationSession
+): AutomationSessionComparison {
+  const latestSummary = summarizeAutomationSessionEvidence(latest);
+  const previousSummary = summarizeAutomationSessionEvidence(previous);
+
+  return {
+    latestId: latest.id,
+    previousId: previous.id,
+    latestStatus: latest.status,
+    previousStatus: previous.status,
+    latestSummary,
+    previousSummary,
+    filledDelta: latestSummary.filled - previousSummary.filled,
+    failedDelta: latestSummary.failed - previousSummary.failed,
+    unresolvedDelta: latestSummary.unresolved - previousSummary.unresolved,
+    screenshotDelta: latestSummary.screenshotCount - previousSummary.screenshotCount,
+    logDelta: latestSummary.logCount - previousSummary.logCount
+  };
 }

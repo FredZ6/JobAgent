@@ -298,6 +298,10 @@ export function fetchSubmissionReview(id: string) {
   return request<SubmissionReviewWithContext>(`/applications/${id}/submission-review`);
 }
 
+export function fetchAutomationSessions(applicationId: string) {
+  return request<AutomationSession[]>(`/applications/${applicationId}/automation-sessions`);
+}
+
 export function fetchApplicationEvents(
   id: string,
   filters?: {

@@ -16,6 +16,8 @@ type MockDropzone = {
 
 const originalFetch = global.fetch;
 const originalJwtSecret = process.env.JWT_SECRET;
+const originalInternalApiToken = process.env.INTERNAL_API_TOKEN;
+const originalNodeEnv = process.env.NODE_ENV;
 
 function makeUploadPage(input: {
   resolveSelector: (selector: string) => unknown | null;
@@ -75,6 +77,18 @@ describe("prefill helpers", () => {
       delete process.env.JWT_SECRET;
     } else {
       process.env.JWT_SECRET = originalJwtSecret;
+    }
+
+    if (originalInternalApiToken === undefined) {
+      delete process.env.INTERNAL_API_TOKEN;
+    } else {
+      process.env.INTERNAL_API_TOKEN = originalInternalApiToken;
+    }
+
+    if (originalNodeEnv === undefined) {
+      delete process.env.NODE_ENV;
+    } else {
+      process.env.NODE_ENV = originalNodeEnv;
     }
 
     rmSync(tempDir, { recursive: true, force: true });
@@ -472,6 +486,8 @@ describe("prefill helpers", () => {
 
   it("does not autofill long-answer fields when the API requires manual review", async () => {
     process.env.JWT_SECRET = "secret";
+    delete process.env.INTERNAL_API_TOKEN;
+    process.env.NODE_ENV = "test";
 
     const textarea = {
       getAttribute: vi.fn(async (name: string) => {
@@ -543,6 +559,8 @@ describe("prefill helpers", () => {
 
   it("autofills long-answer fields when the API returns llm-generated answers", async () => {
     process.env.JWT_SECRET = "secret";
+    delete process.env.INTERNAL_API_TOKEN;
+    process.env.NODE_ENV = "test";
 
     const textarea = {
       getAttribute: vi.fn(async (name: string) => {
@@ -611,6 +629,8 @@ describe("prefill helpers", () => {
 
   it("does not mark blank llm-generated answers as filled", async () => {
     process.env.JWT_SECRET = "secret";
+    delete process.env.INTERNAL_API_TOKEN;
+    process.env.NODE_ENV = "test";
 
     const textarea = {
       getAttribute: vi.fn(async (name: string) => {
@@ -678,6 +698,8 @@ describe("prefill helpers", () => {
 
   it("returns failed long-answer results with empty suggested values when generation fails", async () => {
     process.env.JWT_SECRET = "secret";
+    delete process.env.INTERNAL_API_TOKEN;
+    process.env.NODE_ENV = "test";
 
     const textarea = {
       getAttribute: vi.fn(async (name: string) => {
@@ -729,5 +751,65 @@ describe("prefill helpers", () => {
         failureReason: "long-answer generation failed (500): generation exploded"
       }
     ]);
+  });
+
+  it("prefers INTERNAL_API_TOKEN over JWT_SECRET for long-answer generation requests", async () => {
+    process.env.NODE_ENV = "test";
+    process.env.JWT_SECRET = "jwt-secret";
+    process.env.INTERNAL_API_TOKEN = "internal-secret";
+
+    const textarea = {
+      getAttribute: vi.fn(async (name: string) => {
+        if (name === "name") {
+          return "why_fit";
+        }
+        if (name === "placeholder") {
+          return "Why are you a fit for this role?";
+        }
+        return null;
+      }),
+      fill: vi.fn().mockResolvedValue(undefined)
+    };
+
+    const fetchSpy = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        applicationId: "app_token",
+        answers: [
+          {
+            fieldName: "why_fit",
+            questionText: "Why are you a fit for this role?",
+            decision: "fill",
+            answer: "Because my work aligns.",
+            source: "llm_generated"
+          }
+        ]
+      })
+    });
+    vi.stubGlobal("fetch", fetchSpy);
+
+    const page = makeLongAnswerPage({
+      textareas: [textarea]
+    });
+
+    await fillLongAnswerFields(page, {
+      applicationId: "app_token",
+      resume: {
+        id: "resume_token",
+        headline: "Platform Engineer",
+        status: "completed",
+        pdfDownloadUrl: "http://api:3001/resume-versions/resume_token/pdf",
+        pdfFileName: "resume.pdf"
+      }
+    });
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://api:3001/internal/applications/app_token/generate-long-answers",
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          "x-internal-token": "internal-secret"
+        })
+      })
+    );
   });
 });

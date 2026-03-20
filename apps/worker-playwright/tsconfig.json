@@ -1,7 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": "src",
+    "rootDir": "../../",
     "outDir": "dist",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
@@ -9,5 +9,10 @@
     "types": ["node"],
     "typeRoots": ["./src/types", "../../node_modules/@types"]
   },
-  "include": ["src/**/*.ts", "src/**/*.d.ts"]
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.d.ts",
+    "../../packages/config/src/env.ts",
+    "../../packages/config/src/index.ts"
+  ]
 }

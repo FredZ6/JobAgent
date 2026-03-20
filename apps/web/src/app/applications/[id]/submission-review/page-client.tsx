@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
 import { startTransition, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
@@ -285,12 +286,17 @@ export default function SubmissionReviewPage() {
         className="span-12"
         eyebrow="Automation session"
         title="Latest execution evidence"
-        copy="Submission review is showing the newest captured browser automation evidence for this application."
+        copy="Submission review is showing the newest captured browser automation evidence for this application. The fuller session browser lives on the application page."
       >
         <AutomationSessionSummary
           session={latestAutomationSession}
           emptyCopy="No automation session has been captured for this application yet."
         />
+        <div className="button-row">
+          <Link className="button button-secondary" href={`/applications/${application.id}#automation-sessions`}>
+            Open full automation history
+          </Link>
+        </div>
       </Panel>
 
       <Panel

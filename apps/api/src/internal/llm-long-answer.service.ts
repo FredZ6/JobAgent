@@ -18,9 +18,18 @@ export type LongAnswerGenerationInput = {
     company: string;
     description: string;
   };
+  jobFocus: {
+    topResponsibilities: string[];
+    topRequirements: string[];
+  };
   resumeHeadline: string;
   profileSummary: string;
-  analysisSummary?: string;
+  analysis: {
+    summary?: string;
+    requiredSkills: string[];
+    missingSkills: string[];
+    redFlags: string[];
+  };
   signal?: AbortSignal;
 };
 
@@ -34,13 +43,14 @@ export class LlmLongAnswerService {
       model: input.model,
       apiKey: input.apiKey,
       instructions:
-        "You write concise, truthful answers to application questions. Use only the provided candidate facts and job context. Never invent experience or personal facts.",
+        "You write concise, truthful answers to application questions. First respond to what the role is trying to do. Then connect the candidate to the most relevant requirements. Close briefly and naturally. Use only the provided candidate facts and job context. Keep the answer to 2-4 sentences, usually 3. Never invent experience or personal facts.",
       promptPayload: {
         question: input.question,
         job: input.job,
+        jobFocus: input.jobFocus,
         resumeHeadline: input.resumeHeadline,
         profileSummary: input.profileSummary,
-        analysisSummary: input.analysisSummary
+        analysis: input.analysis
       },
       signal: input.signal
     });

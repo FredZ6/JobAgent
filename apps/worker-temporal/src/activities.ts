@@ -1,11 +1,19 @@
 import "reflect-metadata";
 import { Context } from "@temporalio/activity";
+import { resolveInternalApiToken } from "@openclaw/config";
 import type { OrchestrationMetadata } from "@openclaw/shared-types";
 
 type DirectInvocationBody = {
   orchestration?: OrchestrationMetadata;
   workflowRunId?: string;
 };
+
+function buildInternalHeaders() {
+  return {
+    "Content-Type": "application/json",
+    "x-internal-token": resolveInternalApiToken(process.env) ?? ""
+  };
+}
 
 async function runCancellableInternalRequest<T>(label: string, fn: (signal: AbortSignal) => Promise<T>) {
   const context = Context.current();
@@ -40,10 +48,7 @@ export async function runDirectAnalysis(
         {
           method: "POST",
           signal,
-          headers: {
-            "Content-Type": "application/json",
-            "x-internal-token": process.env.JWT_SECRET ?? ""
-          },
+          headers: buildInternalHeaders(),
           body: JSON.stringify({
             orchestration,
             workflowRunId
@@ -77,10 +82,7 @@ export async function runDirectResumeGeneration(
         {
           method: "POST",
           signal,
-          headers: {
-            "Content-Type": "application/json",
-            "x-internal-token": process.env.JWT_SECRET ?? ""
-          },
+          headers: buildInternalHeaders(),
           body: JSON.stringify({
             orchestration,
             workflowRunId
@@ -114,10 +116,7 @@ export async function runDirectPrefill(
         {
           method: "POST",
           signal,
-          headers: {
-            "Content-Type": "application/json",
-            "x-internal-token": process.env.JWT_SECRET ?? ""
-          },
+          headers: buildInternalHeaders(),
           body: JSON.stringify({
             orchestration,
             workflowRunId
