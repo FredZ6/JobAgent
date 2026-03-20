@@ -68,6 +68,8 @@ If you want the seeded demo data after startup, run it explicitly:
 docker compose exec api npm run prisma:seed
 ```
 
+Without that explicit seed step, the app starts with an empty database and expects you to create `Settings` and `Profile` data through the UI.
+
 If you previously booted an older local database from the pre-migration `db push` workflow, recreate your local Postgres volume before relying on the new migration history.
 
 ## Environment
