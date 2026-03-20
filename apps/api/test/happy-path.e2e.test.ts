@@ -144,7 +144,7 @@ function getRequestMethod(input: string | URL | Request, init?: RequestInit) {
 
 describe.skipIf(!process.env.RUN_RUNTIME_HAPPY_PATH)("runtime happy path API", () => {
   beforeAll(async () => {
-    postgresContainerName = `openclaw-happy-path-postgres-${process.pid}-${Date.now()}`;
+    postgresContainerName = `rolecraft-happy-path-postgres-${process.pid}-${Date.now()}`;
 
     await runDockerCommand([
       "run",
@@ -281,7 +281,7 @@ describe.skipIf(!process.env.RUN_RUNTIME_HAPPY_PATH)("runtime happy path API", (
       ],
       projectLibrary: [
         {
-          name: "OpenClaw",
+          name: "Rolecraft",
           tagline: "Human-in-the-loop workflow automation",
           bullets: [
             "Designed a local-first monorepo for AI-assisted job workflows.",

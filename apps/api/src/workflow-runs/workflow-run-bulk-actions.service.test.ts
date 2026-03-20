@@ -22,7 +22,7 @@ function buildRun(
     executionMode: overrides.executionMode ?? "direct",
     workflowId: overrides.executionMode === "temporal" ? `wf_${id}` : null,
     workflowType: overrides.executionMode === "temporal" ? "analyzeJobWorkflow" : null,
-    taskQueue: overrides.executionMode === "temporal" ? "openclaw-analysis" : null,
+    taskQueue: overrides.executionMode === "temporal" ? "rolecraft-analysis" : null,
     startedAt: null,
     completedAt: null,
     errorMessage: null,
@@ -55,7 +55,7 @@ function buildDetail(runId: string) {
     job: {
       id: `job_${runId}`,
       title: `Job ${runId}`,
-      company: "OpenClaw"
+      company: "Rolecraft"
     },
     application: null,
     resumeVersion: null,

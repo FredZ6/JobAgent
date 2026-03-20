@@ -1,6 +1,6 @@
 # GitHub Release Template
 
-Use this template when drafting a GitHub Release for Rolecraft Job Agent.
+Use this template when drafting a GitHub Release for Rolecraft.
 
 For the first public alpha, the tag should be:
 

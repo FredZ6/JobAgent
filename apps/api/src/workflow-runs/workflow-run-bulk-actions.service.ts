@@ -6,7 +6,7 @@ import {
   type WorkflowRun,
   type WorkflowRunDetail,
   type WorkflowRunsBulkActionResponse
-} from "@openclaw/shared-types";
+} from "@rolecraft/shared-types";
 
 import { WorkflowRunCancelService } from "./workflow-run-cancel.service.js";
 import { WorkflowRunRetriesService } from "./workflow-run-retries.service.js";

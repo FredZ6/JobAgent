@@ -4,7 +4,7 @@ import {
   type JobAnalysisResult,
   type ResumeContent,
   resumeContentSchema
-} from "@openclaw/shared-types";
+} from "@rolecraft/shared-types";
 import { isWorkflowRunCancelledError } from "../lib/workflow-run-cancellation.js";
 import { LlmGatewayService } from "../llm/llm-gateway.service.js";
 import { type LlmProviderName } from "../llm/llm-provider.types.js";

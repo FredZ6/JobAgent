@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { WorkflowRun } from "@openclaw/shared-types";
+import type { WorkflowRun } from "@rolecraft/shared-types";
 
 import {
   getWorkflowRunDashboardSummary,
@@ -20,7 +20,7 @@ function buildRun(overrides: Partial<WorkflowRun>): WorkflowRun {
     executionMode: "temporal",
     workflowId: "analyze-job-job_1-123",
     workflowType: "analyzeJobWorkflow",
-    taskQueue: "openclaw-analysis",
+    taskQueue: "rolecraft-analysis",
     startedAt: null,
     completedAt: null,
     errorMessage: null,

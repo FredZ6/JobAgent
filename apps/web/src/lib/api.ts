@@ -33,7 +33,7 @@ import {
   type WorkflowRunsBulkActionResponse,
   type WorkflowRunsListResponse,
   type WorkflowRun
-} from "@openclaw/shared-types";
+} from "@rolecraft/shared-types";
 import { extractApiErrorMessage } from "./api-error";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? process.env.API_URL ?? "http://localhost:3001";

@@ -1,10 +1,10 @@
-# Rolecraft Job Agent Delivery Package
+# Rolecraft Delivery Package
 
 Date: 2026-03-18
 
 ## Delivery Status
 
-Rolecraft Job Agent is now in **closeout / handoff** state for the current local-first MVP scope.
+Rolecraft is now in **closeout / handoff** state for the current local-first MVP scope.
 
 What that means:
 

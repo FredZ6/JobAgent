@@ -22,7 +22,7 @@ import {
   type ApplicationWithContext,
   type SubmissionReviewWithContext
 } from "../../../../lib/api";
-import type { ApplicationEvent, SubmissionReview } from "@openclaw/shared-types";
+import type { ApplicationEvent, SubmissionReview } from "@rolecraft/shared-types";
 
 const historyActorFilters: ApplicationHistoryActorFilter[] = ["all", "user", "worker", "api", "system"];
 const historySourceFilters = [

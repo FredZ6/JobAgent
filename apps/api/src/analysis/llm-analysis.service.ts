@@ -1,5 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { type CandidateProfile, type JobAnalysisResult, jobAnalysisResultSchema } from "@openclaw/shared-types";
+import { type CandidateProfile, type JobAnalysisResult, jobAnalysisResultSchema } from "@rolecraft/shared-types";
 import { isWorkflowRunCancelledError } from "../lib/workflow-run-cancellation.js";
 import { LlmGatewayService } from "../llm/llm-gateway.service.js";
 import { type LlmProviderName } from "../llm/llm-provider.types.js";

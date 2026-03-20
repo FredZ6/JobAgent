@@ -1,4 +1,4 @@
-import type { AutomationSession } from "@openclaw/shared-types";
+import type { AutomationSession } from "@rolecraft/shared-types";
 
 import { summarizeFieldResults } from "./field-results";
 

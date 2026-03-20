@@ -1,4 +1,4 @@
-import { type WorkflowRunsBulkActionResponse } from "@openclaw/shared-types";
+import { type WorkflowRunsBulkActionResponse } from "@rolecraft/shared-types";
 
 import {
   buildWorkflowRunsBulkResultSummary,

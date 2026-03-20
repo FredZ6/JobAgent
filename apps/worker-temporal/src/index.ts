@@ -13,14 +13,14 @@ async function bootstrap() {
 
   const worker = await Worker.create({
     connection,
-    taskQueue: process.env.TEMPORAL_TASK_QUEUE ?? "openclaw-analysis",
+    taskQueue: process.env.TEMPORAL_TASK_QUEUE ?? "rolecraft-analysis",
     workflowsPath: fileURLToPath(new URL("./workflows.ts", import.meta.url)),
     activities
   });
 
   console.log(
     `worker-temporal listening on ${process.env.TEMPORAL_ADDRESS ?? "temporal:7233"} for ${
-      process.env.TEMPORAL_TASK_QUEUE ?? "openclaw-analysis"
+      process.env.TEMPORAL_TASK_QUEUE ?? "rolecraft-analysis"
     }`
   );
 

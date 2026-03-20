@@ -9,7 +9,7 @@ import {
   markSubmitFailedRequestSchema,
   markSubmittedRequestSchema,
   reopenSubmissionRequestSchema
-} from "@openclaw/shared-types";
+} from "@rolecraft/shared-types";
 import { z } from "zod";
 
 import { ApplicationsService } from "./applications.service.js";

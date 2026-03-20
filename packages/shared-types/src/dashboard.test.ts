@@ -183,7 +183,7 @@ describe("timeline schemas", () => {
         executionMode: "temporal",
         workflowId: "prefill-job-job_1-123",
         workflowType: "prefillJobWorkflow",
-        taskQueue: "openclaw-analysis"
+        taskQueue: "rolecraft-analysis"
       },
       status: "ready_to_submit",
       meta: {

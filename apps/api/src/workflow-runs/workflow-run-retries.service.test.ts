@@ -124,7 +124,7 @@ describe("WorkflowRunRetriesService", () => {
         executionMode: "temporal",
         workflowId: "prefill-job-job_1-456",
         workflowType: "prefillJobWorkflow",
-        taskQueue: "openclaw-analysis",
+        taskQueue: "rolecraft-analysis",
         errorMessage: null
       }),
       markRetried: vi.fn().mockResolvedValue({})

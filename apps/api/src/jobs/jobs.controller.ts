@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Inject, NotFoundException, Param, Post } from "@nestjs/common";
-import { jobImportRequestSchema } from "@openclaw/shared-types";
+import { jobImportRequestSchema } from "@rolecraft/shared-types";
 import { Prisma } from "@prisma/client";
 
 import { AnalysisService } from "../analysis/analysis.service.js";

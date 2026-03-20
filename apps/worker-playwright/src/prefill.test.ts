@@ -61,7 +61,7 @@ describe("prefill helpers", () => {
   let tempDir: string;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "openclaw-prefill-test-"));
+    tempDir = mkdtempSync(join(tmpdir(), "rolecraft-prefill-test-"));
   });
 
   afterEach(() => {

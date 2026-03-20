@@ -5,7 +5,7 @@ import "./globals.css";
 import { AppShell } from "../components/app-shell";
 
 export const metadata: Metadata = {
-  title: "OpenClaw Job Agent",
+  title: "Rolecraft",
   description: "Semi-automated job application MVP"
 };
 

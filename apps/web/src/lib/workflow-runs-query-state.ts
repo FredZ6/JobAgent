@@ -4,7 +4,7 @@ import type {
   WorkflowRunSortBy,
   WorkflowRunSortOrder,
   WorkflowRunStatus
-} from "@openclaw/shared-types";
+} from "@rolecraft/shared-types";
 
 const kindValues = ["all", "analyze", "generate_resume", "prefill"] as const;
 const statusValues = ["all", "queued", "running", "completed", "failed", "cancelled"] as const;

@@ -1,6 +1,6 @@
-# Rolecraft Job Agent
+# Rolecraft
 
-Rolecraft Job Agent is a local-first, human-in-the-loop job application copilot. It helps you move from a saved candidate profile to imported jobs, structured job analysis, tailored resume versions, best-effort application prefills, and manual submission review without pretending the final submit step can be safely automated away.
+Rolecraft is a local-first, human-in-the-loop job application copilot. It helps you move from a saved candidate profile to imported jobs, structured job analysis, tailored resume versions, best-effort application prefills, and manual submission review without pretending the final submit step can be safely automated away.
 
 ## Why This Project Exists
 

@@ -1,5 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { candidateProfileSchema, type CandidateProfileInput } from "@openclaw/shared-types";
+import { candidateProfileSchema, type CandidateProfileInput } from "@rolecraft/shared-types";
 
 import { PrismaService } from "../lib/prisma.service.js";
 

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import type { AutomationSession } from "@openclaw/shared-types";
+import type { AutomationSession } from "@rolecraft/shared-types";
 
 import { buildApplicationScreenshotUrl } from "../lib/api";
 import {

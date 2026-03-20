@@ -30,7 +30,7 @@ async function main() {
         ],
         projectLibrary: [
           {
-            name: "OpenClaw",
+            name: "Rolecraft",
             tagline: "Human-in-the-loop workflow automation",
             bullets: [
               "Designed a local-first monorepo for AI-assisted job workflows.",

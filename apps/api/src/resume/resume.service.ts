@@ -1,5 +1,5 @@
 import { Inject, Injectable, NotFoundException } from "@nestjs/common";
-import { resumeVersionSchema, type OrchestrationMetadata } from "@openclaw/shared-types";
+import { resumeVersionSchema, type OrchestrationMetadata } from "@rolecraft/shared-types";
 import { ResumeVersion as PrismaResumeVersion } from "@prisma/client";
 
 import { PrismaService } from "../lib/prisma.service.js";

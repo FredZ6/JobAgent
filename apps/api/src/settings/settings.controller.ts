@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Inject, Put } from "@nestjs/common";
-import { llmSettingsSchema } from "@openclaw/shared-types";
+import { llmSettingsSchema } from "@rolecraft/shared-types";
 
 import { parseOrThrow } from "../lib/zod.js";
 import { SettingsService } from "./settings.service.js";

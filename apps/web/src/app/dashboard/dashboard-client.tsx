@@ -16,7 +16,7 @@ import {
   type DashboardTimelineEntityFilter,
   type DashboardTimelineEventFilter
 } from "../../lib/api";
-import type { DashboardHistory, TimelineItem } from "@openclaw/shared-types";
+import type { DashboardHistory, TimelineItem } from "@rolecraft/shared-types";
 import { getWorkflowRunDashboardSummary } from "../../lib/workflow-run-status";
 
 const stageFilters: DashboardStageFilter[] = [

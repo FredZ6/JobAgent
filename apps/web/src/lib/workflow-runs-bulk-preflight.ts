@@ -1,4 +1,4 @@
-import type { WorkflowRunListItem } from "@openclaw/shared-types";
+import type { WorkflowRunListItem } from "@rolecraft/shared-types";
 
 import type { WorkflowRunsBulkControlAction } from "./workflow-runs-bulk-controls";
 

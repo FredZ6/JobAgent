@@ -3,7 +3,7 @@
 import { startTransition, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import type { WorkflowRun } from "@openclaw/shared-types";
+import type { WorkflowRun } from "@rolecraft/shared-types";
 
 import { Panel } from "../../../components/panel";
 import { compareApplicationRuns } from "../../../lib/application-comparison";

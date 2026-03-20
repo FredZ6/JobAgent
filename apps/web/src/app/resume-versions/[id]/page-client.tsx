@@ -10,7 +10,7 @@ import {
   type ResumePdfTemplate,
   fetchResumeVersion
 } from "../../../lib/api";
-import { type ResumeVersion } from "@openclaw/shared-types";
+import { type ResumeVersion } from "@rolecraft/shared-types";
 
 export default function ResumeVersionPage() {
   const params = useParams<{ id: string }>();

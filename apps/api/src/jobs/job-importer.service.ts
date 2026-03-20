@@ -23,7 +23,7 @@ export class JobImporterService {
     try {
       const response = await fetch(sourceUrl, {
         headers: {
-          "user-agent": "OpenClaw Job Agent MVP"
+          "user-agent": "Rolecraft MVP"
         }
       });
 

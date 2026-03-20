@@ -17,7 +17,7 @@ describe("resume schemas", () => {
       ],
       projects: [
         {
-          name: "OpenClaw",
+          name: "Rolecraft",
           tagline: "A job workflow copilot",
           bullets: ["Built structured analysis", "Added local-first runtime"]
         }
@@ -67,7 +67,7 @@ describe("resume schemas", () => {
       ],
       projectSections: [
         {
-          name: "OpenClaw",
+          name: "Rolecraft",
           tagline: "A job workflow copilot",
           bullets: ["Built structured analysis"]
         }

@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Inject, Put } from "@nestjs/common";
-import { candidateProfileSchema } from "@openclaw/shared-types";
+import { candidateProfileSchema } from "@rolecraft/shared-types";
 
 import { parseOrThrow } from "../lib/zod.js";
 import { ProfileService } from "./profile.service.js";

@@ -512,7 +512,7 @@ describe("DashboardService", () => {
             executionMode: "temporal",
             workflowId: "analyze-job-job_1-123",
             workflowType: "analyzeJobWorkflow",
-            taskQueue: "openclaw-analysis"
+            taskQueue: "rolecraft-analysis"
           }
         },
         createdAt: new Date("2026-03-10T00:10:00.000Z")
@@ -532,7 +532,7 @@ describe("DashboardService", () => {
       executionMode: "temporal",
       workflowId: "analyze-job-job_1-123",
       workflowType: "analyzeJobWorkflow",
-      taskQueue: "openclaw-analysis"
+      taskQueue: "rolecraft-analysis"
     });
 
     mockPrisma.job.findMany.mockResolvedValueOnce(jobs);
@@ -549,7 +549,7 @@ describe("DashboardService", () => {
       executionMode: "temporal",
       workflowId: "analyze-job-job_1-123",
       workflowType: "analyzeJobWorkflow",
-      taskQueue: "openclaw-analysis"
+      taskQueue: "rolecraft-analysis"
     });
   });
 
@@ -577,7 +577,7 @@ describe("DashboardService", () => {
         executionMode: "temporal",
         workflowId: "prefill-job-job_1-123",
         workflowType: "prefillJobWorkflow",
-        taskQueue: "openclaw-analysis",
+        taskQueue: "rolecraft-analysis",
         startedAt: new Date("2026-03-10T00:02:00.000Z"),
         completedAt: new Date("2026-03-10T00:03:00.000Z"),
         errorMessage: null,

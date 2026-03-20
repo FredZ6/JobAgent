@@ -15,8 +15,8 @@ import {
   updateApplicationApproval,
   type ApplicationWithContext
 } from "../../../lib/api";
-import type { AutomationSession } from "@openclaw/shared-types";
-import type { ApprovalStatus } from "@openclaw/shared-types";
+import type { AutomationSession } from "@rolecraft/shared-types";
+import type { ApprovalStatus } from "@rolecraft/shared-types";
 
 const approvalOptions: { label: string; value: ApprovalStatus; tone: "primary" | "secondary" }[] = [
   { label: "Approve for later submit", value: "approved_for_submit", tone: "primary" },

@@ -1,4 +1,4 @@
-# Contributing to Rolecraft Job Agent
+# Contributing to Rolecraft
 
 Thanks for taking the time to contribute.
 

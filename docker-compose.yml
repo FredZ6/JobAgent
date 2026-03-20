@@ -40,7 +40,7 @@ services:
       TEMPORAL_ENABLED: ${TEMPORAL_ENABLED:-false}
       TEMPORAL_ADDRESS: temporal:7233
       TEMPORAL_NAMESPACE: default
-      TEMPORAL_TASK_QUEUE: openclaw-analysis
+      TEMPORAL_TASK_QUEUE: rolecraft-analysis
     ports:
       - "3001:3001"
     volumes:
@@ -83,7 +83,7 @@ services:
       - "4000:4000"
     volumes:
       - storage-applications:/app/storage/applications
-    command: npm run dev --workspace @openclaw/worker-playwright
+    command: npm run dev --workspace @rolecraft/worker-playwright
 
   worker-temporal:
     build:
@@ -103,13 +103,13 @@ services:
       TEMPORAL_ENABLED: ${TEMPORAL_ENABLED:-false}
       TEMPORAL_ADDRESS: temporal:7233
       TEMPORAL_NAMESPACE: default
-      TEMPORAL_TASK_QUEUE: openclaw-analysis
+      TEMPORAL_TASK_QUEUE: rolecraft-analysis
     volumes:
       - .:/app
       - worker-temporal-node-modules:/app/node_modules
     command: >
       sh -c "npm install &&
-      npm run dev --workspace @openclaw/worker-temporal"
+      npm run dev --workspace @rolecraft/worker-temporal"
 
 volumes:
   postgres-data:

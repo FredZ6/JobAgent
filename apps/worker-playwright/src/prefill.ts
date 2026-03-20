@@ -2,7 +2,7 @@ import { existsSync, mkdirSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { resolveInternalApiToken } from "@openclaw/config";
+import { resolveInternalApiToken } from "@rolecraft/config";
 import type { Page } from "playwright";
 
 type UploadTarget = {
@@ -430,7 +430,7 @@ export async function downloadResumePdf(input: {
     throw new Error("resume pdf metadata unavailable");
   }
 
-  const baseDir = input.tempBaseDir ?? join(tmpdir(), "openclaw-prefill");
+  const baseDir = input.tempBaseDir ?? join(tmpdir(), "rolecraft-prefill");
   const targetDir = ensureStorage(input.applicationId, baseDir);
   const filePath = join(targetDir, sanitizeUploadFileName(input.resume.pdfFileName));
   const response = await fetch(input.resume.pdfDownloadUrl);

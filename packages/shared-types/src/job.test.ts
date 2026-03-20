@@ -54,7 +54,7 @@ describe("job schemas", () => {
       executionMode: "temporal",
       workflowId: "prefill-job-job_1-123",
       workflowType: "prefillJobWorkflow",
-      taskQueue: "openclaw-analysis",
+      taskQueue: "rolecraft-analysis",
       startedAt: new Date().toISOString(),
       completedAt: new Date().toISOString(),
       errorMessage: null,
@@ -77,7 +77,7 @@ describe("job schemas", () => {
       executionMode: "temporal",
       workflowId: "analyze-job-job_1-123",
       workflowType: "analyzeJobWorkflow",
-      taskQueue: "openclaw-analysis",
+      taskQueue: "rolecraft-analysis",
       startedAt: null,
       completedAt: new Date().toISOString(),
       errorMessage: null,
@@ -117,7 +117,7 @@ describe("job schemas", () => {
         executionMode: "temporal",
         workflowId: "prefill-job-job_1-123",
         workflowType: "prefillJobWorkflow",
-        taskQueue: "openclaw-analysis",
+        taskQueue: "rolecraft-analysis",
         startedAt: timestamp,
         completedAt: timestamp,
         errorMessage: null,
@@ -127,7 +127,7 @@ describe("job schemas", () => {
       job: {
         id: "job_1",
         title: "Staff Platform Engineer",
-        company: "OpenClaw"
+        company: "Rolecraft"
       },
       application: {
         id: "app_1",
@@ -229,7 +229,7 @@ describe("job schemas", () => {
           job: {
             id: "job_1",
             title: "Staff Platform Engineer",
-            company: "OpenClaw"
+            company: "Rolecraft"
           },
           application: {
             id: "app_1",
@@ -283,7 +283,7 @@ describe("job schemas", () => {
       job: {
         id: "job_1",
         title: "Staff Platform Engineer",
-        company: "OpenClaw"
+        company: "Rolecraft"
       },
       application: null,
       resumeVersion: null,
@@ -357,7 +357,7 @@ describe("job schemas", () => {
           job: {
             id: "job_1",
             title: "Staff Platform Engineer",
-            company: "OpenClaw"
+            company: "Rolecraft"
           },
           application: null,
           resumeVersion: null

@@ -1,4 +1,4 @@
-import type { ApplicationDto } from "@openclaw/shared-types";
+import type { ApplicationDto } from "@rolecraft/shared-types";
 
 type FieldResultLike = ApplicationDto["fieldResults"][number];
 

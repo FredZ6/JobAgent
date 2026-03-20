@@ -1,7 +1,7 @@
 import { Controller, Get, Inject, Query } from "@nestjs/common";
 import { parseOrThrow } from "../lib/zod.js";
 import { z } from "zod";
-import { auditActorTypeSchema } from "@openclaw/shared-types";
+import { auditActorTypeSchema } from "@rolecraft/shared-types";
 
 import { DashboardService } from "./dashboard.service.js";
 

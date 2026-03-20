@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { Prisma } from "@prisma/client";
 
 import { ApplicationsService } from "./applications.service.js";
-import { approvalStatusSchema } from "@openclaw/shared-types";
+import { approvalStatusSchema } from "@rolecraft/shared-types";
 
 const mockFetch = vi.fn();
 beforeEach(() => {

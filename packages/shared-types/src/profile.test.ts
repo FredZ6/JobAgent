@@ -25,7 +25,7 @@ describe("candidateProfileSchema", () => {
       ],
       projectLibrary: [
         {
-          name: "OpenClaw",
+          name: "Rolecraft",
           tagline: "Human-in-the-loop automation",
           bullets: ["Built core workflow", "Integrated structured AI output"],
           skills: ["TypeScript", "Prisma"]

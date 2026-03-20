@@ -29,7 +29,7 @@ receive backported fixes.
 
 ## Scope Notes
 
-Rolecraft Job Agent is designed as a local-first, single-user MVP. Even so,
+Rolecraft is designed as a local-first, single-user MVP. Even so,
 please report vulnerabilities involving:
 
 - credential or secret handling

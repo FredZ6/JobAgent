@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { WorkflowRunListItem } from "@openclaw/shared-types";
+import type { WorkflowRunListItem } from "@rolecraft/shared-types";
 
 import {
   buildSelectedJobTargets,

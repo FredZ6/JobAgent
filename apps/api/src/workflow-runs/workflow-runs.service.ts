@@ -21,7 +21,7 @@ import {
   type WorkflowRunSortOrder,
   type WorkflowRunsListQuery,
   type WorkflowRunsListResponse
-} from "@openclaw/shared-types";
+} from "@rolecraft/shared-types";
 
 import { PrismaService } from "../lib/prisma.service.js";
 

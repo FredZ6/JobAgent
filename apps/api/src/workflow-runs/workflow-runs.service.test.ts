@@ -19,7 +19,7 @@ describe("WorkflowRunsService", () => {
             executionMode: "temporal",
             workflowId: "prefill-job-job_1-123",
             workflowType: "prefillJobWorkflow",
-            taskQueue: "openclaw-analysis",
+            taskQueue: "rolecraft-analysis",
             startedAt: new Date("2026-03-17T10:00:00.000Z"),
             completedAt: new Date("2026-03-17T10:01:00.000Z"),
             errorMessage: "worker failed",
@@ -28,7 +28,7 @@ describe("WorkflowRunsService", () => {
             job: {
               id: "job_1",
               title: "Staff Platform Engineer",
-              company: "OpenClaw"
+              company: "Rolecraft"
             },
             application: {
               id: "app_1",
@@ -93,7 +93,7 @@ describe("WorkflowRunsService", () => {
       hasMore: false,
       returnedCount: 1
     });
-    expect(result.runs[0]?.job.company).toBe("OpenClaw");
+    expect(result.runs[0]?.job.company).toBe("Rolecraft");
     expect(result.runs[0]?.application?.id).toBe("app_1");
   });
 
@@ -121,7 +121,7 @@ describe("WorkflowRunsService", () => {
             job: {
               id: "job_1",
               title: "Staff Platform Engineer",
-              company: "OpenClaw"
+              company: "Rolecraft"
             },
             application: null,
             resumeVersion: {
@@ -192,7 +192,7 @@ describe("WorkflowRunsService", () => {
             job: {
               id: "job_1",
               title: "Staff Platform Engineer",
-              company: "OpenClaw"
+              company: "Rolecraft"
             },
             application: null,
             resumeVersion: null
@@ -260,7 +260,7 @@ describe("WorkflowRunsService", () => {
             job: {
               id: "job_1",
               title: "Completed Job",
-              company: "OpenClaw"
+              company: "Rolecraft"
             },
             application: null,
             resumeVersion: null
@@ -276,7 +276,7 @@ describe("WorkflowRunsService", () => {
             executionMode: "temporal",
             workflowId: "wf-queued",
             workflowType: "analyzeJobWorkflow",
-            taskQueue: "openclaw-analysis",
+            taskQueue: "rolecraft-analysis",
             startedAt: null,
             completedAt: null,
             errorMessage: null,
@@ -285,7 +285,7 @@ describe("WorkflowRunsService", () => {
             job: {
               id: "job_2",
               title: "Queued Job",
-              company: "OpenClaw"
+              company: "Rolecraft"
             },
             application: null,
             resumeVersion: null
@@ -310,7 +310,7 @@ describe("WorkflowRunsService", () => {
             job: {
               id: "job_3",
               title: "Failed Job",
-              company: "OpenClaw"
+              company: "Rolecraft"
             },
             application: null,
             resumeVersion: null
@@ -356,7 +356,7 @@ describe("WorkflowRunsService", () => {
             job: {
               id: "job_1",
               title: "Newest Job",
-              company: "OpenClaw"
+              company: "Rolecraft"
             },
             application: null,
             resumeVersion: null
@@ -381,7 +381,7 @@ describe("WorkflowRunsService", () => {
             job: {
               id: "job_2",
               title: "Middle Job",
-              company: "OpenClaw"
+              company: "Rolecraft"
             },
             application: null,
             resumeVersion: null
@@ -397,7 +397,7 @@ describe("WorkflowRunsService", () => {
             executionMode: "temporal",
             workflowId: "wf-oldest",
             workflowType: "generateResumeWorkflow",
-            taskQueue: "openclaw-analysis",
+            taskQueue: "rolecraft-analysis",
             startedAt: new Date("2026-03-17T10:00:00.000Z"),
             completedAt: new Date("2026-03-17T10:01:00.000Z"),
             errorMessage: null,
@@ -406,7 +406,7 @@ describe("WorkflowRunsService", () => {
             job: {
               id: "job_3",
               title: "Oldest Job",
-              company: "OpenClaw"
+              company: "Rolecraft"
             },
             application: null,
             resumeVersion: null
@@ -454,7 +454,7 @@ describe("WorkflowRunsService", () => {
       executionMode: "temporal",
       workflowId: "analyze-job-job_1-123",
       workflowType: "analyzeJobWorkflow",
-      taskQueue: "openclaw-analysis",
+      taskQueue: "rolecraft-analysis",
       startedAt: null,
       completedAt: null,
       errorMessage: null,
@@ -477,7 +477,7 @@ describe("WorkflowRunsService", () => {
       kind: "analyze",
       workflowId: "analyze-job-job_1-123",
       workflowType: "analyzeJobWorkflow",
-      taskQueue: "openclaw-analysis"
+      taskQueue: "rolecraft-analysis"
     });
 
     expect(workflowRunEventCreate).toHaveBeenCalledWith({
@@ -504,7 +504,7 @@ describe("WorkflowRunsService", () => {
       executionMode: "temporal",
       workflowId: "prefill-job-job_1-123",
       workflowType: "prefillJobWorkflow",
-      taskQueue: "openclaw-analysis",
+      taskQueue: "rolecraft-analysis",
       startedAt: new Date(),
       completedAt: new Date(),
       errorMessage: null,
@@ -554,7 +554,7 @@ describe("WorkflowRunsService", () => {
           executionMode: "temporal",
           workflowId: "prefill-job-job_1-123",
           workflowType: "prefillJobWorkflow",
-          taskQueue: "openclaw-analysis",
+          taskQueue: "rolecraft-analysis",
           startedAt: new Date("2026-03-17T10:00:00.000Z"),
           completedAt: new Date("2026-03-17T10:01:00.000Z"),
           errorMessage: null,
@@ -563,7 +563,7 @@ describe("WorkflowRunsService", () => {
           job: {
             id: "job_1",
             title: "Staff Platform Engineer",
-            company: "OpenClaw"
+            company: "Rolecraft"
           },
           application: {
             id: "app_1",
@@ -607,7 +607,7 @@ describe("WorkflowRunsService", () => {
               executionMode: "temporal",
               workflowId: "prefill-job-job_1-456",
               workflowType: "prefillJobWorkflow",
-              taskQueue: "openclaw-analysis",
+              taskQueue: "rolecraft-analysis",
               startedAt: null,
               completedAt: null,
               errorMessage: null,
@@ -622,7 +622,7 @@ describe("WorkflowRunsService", () => {
 
     const result = await service.getWorkflowRunDetail("run_1");
 
-    expect(result.job.company).toBe("OpenClaw");
+    expect(result.job.company).toBe("Rolecraft");
     expect(result.application?.id).toBe("app_1");
     expect(result.resumeVersion?.id).toBe("resume_1");
     expect(result.retryOfRun?.id).toBe("run_0");

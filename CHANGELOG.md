@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-This repository is currently pre-1.0 and uses release tags such as `v0.1.0-alpha` to mark public milestones for Rolecraft Job Agent.
+This repository is currently pre-1.0 and uses release tags such as `v0.1.0-alpha` to mark public milestones for Rolecraft.
 
 ## [v0.1.0-alpha] - 2026-03-20
 

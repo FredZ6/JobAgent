@@ -1,5 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
-import type { OrchestrationMetadata } from "@openclaw/shared-types";
+import type { OrchestrationMetadata } from "@rolecraft/shared-types";
 
 import { TemporalService } from "../temporal/temporal.service.js";
 import { DirectAnalysisService } from "./direct-analysis.service.js";

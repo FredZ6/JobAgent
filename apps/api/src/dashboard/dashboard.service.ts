@@ -13,8 +13,8 @@ import type {
   TimelineEntityType,
   TimelineItem,
   WorkflowRun
-} from "@openclaw/shared-types";
-import { auditActorTypeSchema, orchestrationMetadataSchema, workflowRunSchema } from "@openclaw/shared-types";
+} from "@rolecraft/shared-types";
+import { auditActorTypeSchema, orchestrationMetadataSchema, workflowRunSchema } from "@rolecraft/shared-types";
 import { PrismaService } from "../lib/prisma.service.js";
 
 type JobWithRelations = Prisma.JobGetPayload<{

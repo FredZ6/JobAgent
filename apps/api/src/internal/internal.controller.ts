@@ -1,6 +1,6 @@
 import { Body, Controller, Headers, Inject, Param, Post, Req, UnauthorizedException } from "@nestjs/common";
-import { resolveInternalApiToken } from "@openclaw/config";
-import { orchestrationMetadataSchema, type OrchestrationMetadata } from "@openclaw/shared-types";
+import { resolveInternalApiToken } from "@rolecraft/config";
+import { orchestrationMetadataSchema, type OrchestrationMetadata } from "@rolecraft/shared-types";
 import { z } from "zod";
 
 import { DirectAnalysisService } from "../analysis/direct-analysis.service.js";

@@ -1,5 +1,5 @@
 import { proxyActivities } from "@temporalio/workflow";
-import type { OrchestrationMetadata } from "@openclaw/shared-types";
+import type { OrchestrationMetadata } from "@rolecraft/shared-types";
 
 import type * as activities from "./activities.js";
 

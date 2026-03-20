@@ -37,7 +37,7 @@ describe("workflow-runs-bulk-outcomes helpers", () => {
             job: {
               id: "job-1",
               title: "Staff Platform Engineer",
-              company: "OpenClaw"
+              company: "Rolecraft"
             },
             application: {
               id: "app-1",

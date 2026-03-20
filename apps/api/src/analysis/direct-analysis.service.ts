@@ -1,5 +1,5 @@
 import { ConflictException, Inject, Injectable, NotFoundException, Optional } from "@nestjs/common";
-import { jobAnalysisResultSchema, type OrchestrationMetadata } from "@openclaw/shared-types";
+import { jobAnalysisResultSchema, type OrchestrationMetadata } from "@rolecraft/shared-types";
 import { Prisma } from "@prisma/client";
 
 import {

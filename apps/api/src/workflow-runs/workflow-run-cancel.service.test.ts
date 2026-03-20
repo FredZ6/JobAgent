@@ -14,7 +14,7 @@ const queuedTemporalRun = {
   executionMode: "temporal",
   workflowId: "analyze-job-job_1-123",
   workflowType: "analyzeJobWorkflow",
-  taskQueue: "openclaw-analysis",
+  taskQueue: "rolecraft-analysis",
   startedAt: null,
   completedAt: null,
   errorMessage: null,

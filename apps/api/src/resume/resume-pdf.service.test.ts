@@ -53,7 +53,7 @@ describe("resume pdf helpers", () => {
     ],
     projectSections: [
       {
-        name: "OpenClaw",
+        name: "Rolecraft",
         tagline: "A job workflow copilot",
         bullets: ["Structured role analysis", "Grounded tailored resume generation"]
       }
@@ -76,7 +76,7 @@ describe("resume pdf helpers", () => {
       ],
       projects: [
         {
-          name: "OpenClaw",
+          name: "Rolecraft",
           tagline: "A job workflow copilot",
           bullets: ["Structured role analysis"]
         }
@@ -106,7 +106,7 @@ describe("resume pdf helpers", () => {
     ]);
     expect(result.skills).toEqual(["TypeScript", "NestJS", "Developer Experience"]);
     expect(result.experience[0]?.title).toBe("Senior Software Engineer");
-    expect(result.projects[0]?.name).toBe("OpenClaw");
+    expect(result.projects[0]?.name).toBe("Rolecraft");
   });
 
   it("rejects pdf export when the resume version is not completed", () => {

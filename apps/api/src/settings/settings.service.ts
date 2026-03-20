@@ -1,5 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { llmSettingsSchema, type LlmSettingsInput } from "@openclaw/shared-types";
+import { llmSettingsSchema, type LlmSettingsInput } from "@rolecraft/shared-types";
 
 import { PrismaService } from "../lib/prisma.service.js";
 

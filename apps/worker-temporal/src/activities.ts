@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { Context } from "@temporalio/activity";
-import { resolveInternalApiToken } from "@openclaw/config";
-import type { OrchestrationMetadata } from "@openclaw/shared-types";
+import { resolveInternalApiToken } from "@rolecraft/config";
+import type { OrchestrationMetadata } from "@rolecraft/shared-types";
 
 type DirectInvocationBody = {
   orchestration?: OrchestrationMetadata;

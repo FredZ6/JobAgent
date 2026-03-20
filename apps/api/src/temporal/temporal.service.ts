@@ -1,5 +1,5 @@
 import { ConflictException, Injectable } from "@nestjs/common";
-import type { OrchestrationMetadata } from "@openclaw/shared-types";
+import type { OrchestrationMetadata } from "@rolecraft/shared-types";
 import { CancelledFailure, Client, Connection, WorkflowFailedError } from "@temporalio/client";
 import { WorkflowRunsService } from "../workflow-runs/workflow-runs.service.js";
 import { Inject } from "@nestjs/common";
@@ -12,7 +12,7 @@ export class TemporalService {
 
   async executeAnalyzeJobWorkflow(jobId: string, options?: { retryOfRunId?: string }) {
     const client = await this.getClient();
-    const taskQueue = process.env.TEMPORAL_TASK_QUEUE ?? "openclaw-analysis";
+    const taskQueue = process.env.TEMPORAL_TASK_QUEUE ?? "rolecraft-analysis";
     const workflowId = `analyze-job-${jobId}-${Date.now()}`;
     const orchestration = this.buildOrchestrationMetadata(
       "analyzeJobWorkflow",
@@ -51,7 +51,7 @@ export class TemporalService {
 
   async executeGenerateResumeWorkflow(jobId: string, options?: { retryOfRunId?: string }) {
     const client = await this.getClient();
-    const taskQueue = process.env.TEMPORAL_TASK_QUEUE ?? "openclaw-analysis";
+    const taskQueue = process.env.TEMPORAL_TASK_QUEUE ?? "rolecraft-analysis";
     const workflowId = `generate-resume-${jobId}-${Date.now()}`;
     const orchestration = this.buildOrchestrationMetadata(
       "generateResumeWorkflow",
@@ -90,7 +90,7 @@ export class TemporalService {
 
   async executePrefillJobWorkflow(jobId: string, options?: { retryOfRunId?: string }) {
     const client = await this.getClient();
-    const taskQueue = process.env.TEMPORAL_TASK_QUEUE ?? "openclaw-analysis";
+    const taskQueue = process.env.TEMPORAL_TASK_QUEUE ?? "rolecraft-analysis";
     const workflowId = `prefill-job-${jobId}-${Date.now()}`;
     const orchestration = this.buildOrchestrationMetadata(
       "prefillJobWorkflow",

@@ -1,5 +1,5 @@
 import { BadRequestException, Inject, Injectable } from "@nestjs/common";
-import type { OrchestrationMetadata, WorkflowRun } from "@openclaw/shared-types";
+import type { OrchestrationMetadata, WorkflowRun } from "@rolecraft/shared-types";
 
 import { DirectAnalysisService } from "../analysis/direct-analysis.service.js";
 import { ApplicationsService } from "../applications/applications.service.js";

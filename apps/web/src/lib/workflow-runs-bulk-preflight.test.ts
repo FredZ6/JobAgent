@@ -26,7 +26,7 @@ describe("workflow-runs-bulk-preflight", () => {
       job: {
         id: "job-1",
         title: "Staff Platform Engineer",
-        company: "OpenClaw"
+        company: "Rolecraft"
       },
       application: {
         id: "app-1",
@@ -56,7 +56,7 @@ describe("workflow-runs-bulk-preflight", () => {
       job: {
         id: "job-2",
         title: "Backend Engineer",
-        company: "OpenClaw"
+        company: "Rolecraft"
       },
       application: null,
       resumeVersion: null
@@ -83,7 +83,7 @@ describe("workflow-runs-bulk-preflight", () => {
       job: {
         id: "job-3",
         title: "Infra Engineer",
-        company: "OpenClaw"
+        company: "Rolecraft"
       },
       application: null,
       resumeVersion: null

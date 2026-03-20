@@ -9,7 +9,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@openclaw/config": "0.1.0",
+    "@rolecraft/config": "0.1.0",
     "express": "^4.18.2",
     "playwright": "^1.51.0"
   }

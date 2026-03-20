@@ -1,4 +1,4 @@
-import type { WorkflowRunListItem } from "@openclaw/shared-types";
+import type { WorkflowRunListItem } from "@rolecraft/shared-types";
 
 export type WorkflowRunsEligibilitySummary = {
   selectedCount: number;

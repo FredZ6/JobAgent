@@ -1,5 +1,5 @@
 import React from "react";
-import type { ApplicationDto } from "@openclaw/shared-types";
+import type { ApplicationDto } from "@rolecraft/shared-types";
 
 import {
   getFieldResultDisplayName,

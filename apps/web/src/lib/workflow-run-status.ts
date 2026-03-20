@@ -1,4 +1,4 @@
-import type { WorkflowRun } from "@openclaw/shared-types";
+import type { WorkflowRun } from "@rolecraft/shared-types";
 
 type WorkflowRunStatusCopy = {
   label: string;

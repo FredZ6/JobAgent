@@ -8,7 +8,7 @@ import {
   type CandidateProfile,
   type JobDto,
   type ResumeVersion
-} from "@openclaw/shared-types";
+} from "@rolecraft/shared-types";
 import { chromium } from "playwright";
 
 import { PrismaService } from "../lib/prisma.service.js";

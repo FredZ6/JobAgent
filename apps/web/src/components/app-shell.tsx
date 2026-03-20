@@ -23,7 +23,7 @@ export function AppShell({ children }: PropsWithChildren) {
           <div className="brand-mark">
             <div className="brand-seal" />
             <div>
-              <h1 className="brand-title">OpenClaw Job Agent</h1>
+              <h1 className="brand-title">Rolecraft</h1>
               <p className="brand-subtitle">
                 A warm-start MVP for focused, human-in-the-loop job application prep.
               </p>

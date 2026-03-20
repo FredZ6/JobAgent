@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a reproducible problem in Rolecraft Job Agent
+description: Report a reproducible problem in Rolecraft
 title: "[Bug]: "
 labels:
   - bug

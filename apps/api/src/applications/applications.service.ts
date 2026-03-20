@@ -36,7 +36,7 @@ import {
   type WorkflowRunKind,
   type OrchestrationMetadata,
   type CandidateProfile
-} from "@openclaw/shared-types";
+} from "@rolecraft/shared-types";
 
 const defaultCandidateProfile = candidateProfileSchema.parse({
   fullName: "",
