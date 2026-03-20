@@ -47,6 +47,20 @@ Real screenshots and GIFs are still being prepared. The README now reserves spac
 
 For a current text walkthrough, see [docs/closeout/2026-03-18-delivery-package.md](docs/closeout/2026-03-18-delivery-package.md).
 
+## Release Status
+
+The repository is currently packaged as a first public alpha:
+
+- current milestone: [`v0.1.0-alpha`](docs/releases/v0.1.0-alpha.md)
+- version history: [`CHANGELOG.md`](CHANGELOG.md)
+- runtime expectations: [`docs/releases/support-matrix.md`](docs/releases/support-matrix.md)
+
+GitHub release drafting and label guidance live here:
+
+- release template: [`docs/releases/release-template.md`](docs/releases/release-template.md)
+- label scheme: [`docs/releases/github-labels.md`](docs/releases/github-labels.md)
+- demo asset plan: [`docs/releases/demo-assets/README.md`](docs/releases/demo-assets/README.md)
+
 ## Quick Start
 
 ```bash
@@ -164,9 +178,9 @@ Runtime shape:
 
 Near-term priorities:
 
-- tighten public-deployment and internal-worker auth defaults
-- reduce or remove the current Next.js build workarounds once a cleaner route is safe
-- add release packaging such as changelog, versioning guidance, and public demo assets
+- publish final demo screenshots and GIFs for the alpha release surfaces
+- expand runtime coverage beyond the current local-first alpha expectations
+- continue tightening the remaining best-effort automation edges without hiding uncertainty
 
 Broader product directions:
 
@@ -181,6 +195,8 @@ Broader product directions:
 - [Original product spec](spec.md)
 - [Original system design](system-design.md)
 - [Open-source release checklist](docs/plans/2026-03-19-open-source-release-checklist.md)
+- [Alpha release notes](docs/releases/v0.1.0-alpha.md)
+- [Support matrix](docs/releases/support-matrix.md)
 
 ## Contributing
 

@@ -1,0 +1,23 @@
+changelog:
+  categories:
+    - title: User-facing features
+      labels:
+        - feature
+        - prefill
+        - workflow
+        - provider
+    - title: Docs and onboarding
+      labels:
+        - documentation
+        - release
+    - title: Maintenance and tooling
+      labels:
+        - maintenance
+        - prisma
+        - web
+        - api
+        - worker-playwright
+        - worker-temporal
+  exclude:
+    labels:
+      - skip-changelog
