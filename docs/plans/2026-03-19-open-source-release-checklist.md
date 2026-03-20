@@ -13,16 +13,16 @@ Track the concrete steps needed to turn the current repo from a handoff/demo-qua
 - [x] Add at least one happy-path end-to-end test covering the main product loop
 - [x] Upgrade `LongAnswerService` to `defaultAnswers -> LLM -> deterministic fallback`, while high-risk prompts still require saved defaults
 - [x] Build complete `automation_sessions` UX: list, detail, and comparison surfaces
-- [ ] Reduce or remove the current Next.js build workarounds once a cleaner route is safe
+- [x] Reduce or remove the current Next.js build workarounds once a cleaner route is safe
 - [x] Separate internal-worker auth from `JWT_SECRET` and harden public deployment defaults
 - [ ] Add release packaging: `CHANGELOG`, version tags, support matrix, issue labels, and public-facing demo assets
 
 ## Current Focus
 
-The next slice starts with item 8:
+The next slice starts with item 10:
 
-- reduce or remove the current Next.js build workarounds once a cleaner route is safe
-- keep the web build stable while shrinking workaround-specific code paths
+- add release packaging: `CHANGELOG`, version tags, support matrix, issue labels, and public-facing demo assets
+- wrap the repo in enough public-facing release material to feel complete, not just functional
 
 ## Suggested Execution Order
 
