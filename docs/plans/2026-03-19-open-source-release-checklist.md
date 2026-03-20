@@ -9,7 +9,7 @@ Track the concrete steps needed to turn the current repo from a handoff/demo-qua
 - [ ] Add repository governance files: `LICENSE`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, issue templates, and PR template
 - [ ] Rewrite `README.md` for external users, including screenshots/GIFs, quickstart, architecture, known limitations, and roadmap
 - [ ] Replace `prisma db push`-only setup with a proper Prisma migration workflow
-- [ ] Add GitHub Actions CI for install, typecheck, test, and build
+- [x] Add GitHub Actions CI for install, typecheck, test, and build
 - [ ] Add at least one happy-path end-to-end test covering the main product loop
 - [ ] Upgrade `LongAnswerService` to `defaultAnswers -> LLM -> deterministic fallback`, while high-risk prompts still require saved defaults
 - [ ] Build complete `automation_sessions` UX: list, detail, and comparison surfaces
@@ -37,4 +37,3 @@ The active slice starts with item 6:
 8. item 1 governance files
 9. item 2 README rewrite
 10. item 10 release packaging
-
