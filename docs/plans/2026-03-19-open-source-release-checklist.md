@@ -7,8 +7,8 @@ Track the concrete steps needed to turn the current repo from a handoff/demo-qua
 ## Checklist
 
 - [x] Add repository governance files: `LICENSE`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, issue templates, and PR template
-- [ ] Rewrite `README.md` for external users, including screenshots/GIFs, quickstart, architecture, known limitations, and roadmap
-- [ ] Replace `prisma db push`-only setup with a proper Prisma migration workflow
+- [x] Rewrite `README.md` for external users, including screenshots/GIFs, quickstart, architecture, known limitations, and roadmap
+- [x] Replace `prisma db push`-only setup with a proper Prisma migration workflow
 - [x] Add GitHub Actions CI for install, typecheck, test, and build
 - [x] Add at least one happy-path end-to-end test covering the main product loop
 - [x] Upgrade `LongAnswerService` to `defaultAnswers -> LLM -> deterministic fallback`, while high-risk prompts still require saved defaults
@@ -19,17 +19,17 @@ Track the concrete steps needed to turn the current repo from a handoff/demo-qua
 
 ## Current Focus
 
-The next slice starts with item 2:
+The next slice starts with item 9:
 
-- rewrite `README.md` for external users, including screenshots/GIFs, quickstart, architecture, known limitations, and roadmap
-- shift the repo voice from closeout/handoff language to public open-source onboarding
+- separate internal-worker auth from `JWT_SECRET` and harden public deployment defaults
+- keep the local-first developer experience intact while making trust boundaries clearer
 
 ## Suggested Execution Order
 
-1. item 6 current slice: default-answer editing and high-risk manual review
-2. item 3 Prisma migrations
-3. item 4 GitHub Actions CI
-4. item 5 happy-path end-to-end test
+1. item 3 Prisma migrations
+2. item 4 GitHub Actions CI
+3. item 5 happy-path end-to-end test
+4. item 6 `LongAnswerService` LLM fallback upgrade
 5. item 7 `automation_sessions` UX
 6. item 1 governance files
 7. item 2 README rewrite
