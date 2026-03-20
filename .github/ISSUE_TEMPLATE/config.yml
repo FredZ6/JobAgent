@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Project README
+    url: https://github.com/FredZ6/JobAgent/blob/main/README.md
+    about: Start here for setup, scope, and current limitations before opening an issue.
+  - name: Security policy
+    url: https://github.com/FredZ6/JobAgent/blob/main/SECURITY.md
+    about: Please report security-sensitive issues privately instead of opening a public issue.

@@ -1,0 +1,60 @@
+name: Feature request
+description: Suggest an improvement to OpenClaw Job Agent
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What problem are you trying to solve?
+      placeholder: Describe the workflow pain point or limitation.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-change
+    attributes:
+      label: Proposed change
+      placeholder: What would you like the project to do differently?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: workflow-area
+    attributes:
+      label: Part of the workflow
+      options:
+        - Settings
+        - Profile
+        - Jobs / import
+        - Analyze
+        - Resume generation
+        - Prefill
+        - Review / submission
+        - Workflow runs
+        - Infrastructure / developer experience
+    validations:
+      required: true
+
+  - type: textarea
+    id: value
+    attributes:
+      label: Why it matters
+      placeholder: Why would this improve the product or developer experience?
+    validations:
+      required: true
+
+  - type: textarea
+    id: risks
+    attributes:
+      label: Risks or trade-offs
+      description: Call out any automation, safety, or complexity trade-offs you see.
+      placeholder: Optional, but very helpful for behavior changes.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      placeholder: Mockups, links, examples, or related issues.
