@@ -1,5 +1,5 @@
 {
-  "name": "openclaw-job-agent",
+  "name": "rolecraft-job-agent",
   "version": "0.1.0",
   "private": true,
   "workspaces": [
@@ -8,9 +8,9 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
-    "dev": "npm run dev --workspace @openclaw/api",
-    "dev:web": "npm run dev --workspace @openclaw/web",
-    "dev:api": "npm run dev --workspace @openclaw/api",
+    "dev": "npm run dev --workspace @rolecraft/api",
+    "dev:web": "npm run dev --workspace @rolecraft/web",
+    "dev:api": "npm run dev --workspace @rolecraft/api",
     "test": "npm run test --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "prisma:generate": "prisma generate",

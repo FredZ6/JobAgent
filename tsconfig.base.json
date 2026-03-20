@@ -14,8 +14,8 @@
     "jsx": "preserve",
     "baseUrl": ".",
     "paths": {
-      "@openclaw/config": ["packages/config/src/index.ts"],
-      "@openclaw/shared-types": ["packages/shared-types/src/index.ts"]
+      "@rolecraft/config": ["packages/config/src/index.ts"],
+      "@rolecraft/shared-types": ["packages/shared-types/src/index.ts"]
     }
   }
 }

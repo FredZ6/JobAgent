@@ -1,5 +1,5 @@
 {
-  "name": "@openclaw/api",
+  "name": "@rolecraft/api",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -13,8 +13,8 @@
     "@nestjs/core": "^11.0.12",
     "@nestjs/platform-express": "^11.0.12",
     "@nestjs/testing": "^11.0.12",
-    "@openclaw/config": "0.1.0",
-    "@openclaw/shared-types": "0.1.0",
+    "@rolecraft/config": "0.1.0",
+    "@rolecraft/shared-types": "0.1.0",
     "@prisma/client": "^6.5.0",
     "@temporalio/client": "^1.15.0",
     "playwright": "^1.51.0",

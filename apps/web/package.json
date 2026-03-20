@@ -1,5 +1,5 @@
 {
-  "name": "@openclaw/web",
+  "name": "@rolecraft/web",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -10,7 +10,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@openclaw/shared-types": "0.1.0",
+    "@rolecraft/shared-types": "0.1.0",
     "next": "^15.2.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

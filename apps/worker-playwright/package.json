@@ -1,5 +1,5 @@
 {
-  "name": "@openclaw/worker-playwright",
+  "name": "@rolecraft/worker-playwright",
   "version": "0.1.0",
   "private": true,
   "type": "module",
