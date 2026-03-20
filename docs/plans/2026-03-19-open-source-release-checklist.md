@@ -10,7 +10,7 @@ Track the concrete steps needed to turn the current repo from a handoff/demo-qua
 - [ ] Rewrite `README.md` for external users, including screenshots/GIFs, quickstart, architecture, known limitations, and roadmap
 - [ ] Replace `prisma db push`-only setup with a proper Prisma migration workflow
 - [x] Add GitHub Actions CI for install, typecheck, test, and build
-- [ ] Add at least one happy-path end-to-end test covering the main product loop
+- [x] Add at least one happy-path end-to-end test covering the main product loop
 - [ ] Upgrade `LongAnswerService` to `defaultAnswers -> LLM -> deterministic fallback`, while high-risk prompts still require saved defaults
 - [ ] Build complete `automation_sessions` UX: list, detail, and comparison surfaces
 - [ ] Reduce or remove the current Next.js build workarounds once a cleaner route is safe
