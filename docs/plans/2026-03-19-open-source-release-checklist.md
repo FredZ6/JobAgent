@@ -14,15 +14,15 @@ Track the concrete steps needed to turn the current repo from a handoff/demo-qua
 - [x] Upgrade `LongAnswerService` to `defaultAnswers -> LLM -> deterministic fallback`, while high-risk prompts still require saved defaults
 - [x] Build complete `automation_sessions` UX: list, detail, and comparison surfaces
 - [ ] Reduce or remove the current Next.js build workarounds once a cleaner route is safe
-- [ ] Separate internal-worker auth from `JWT_SECRET` and harden public deployment defaults
+- [x] Separate internal-worker auth from `JWT_SECRET` and harden public deployment defaults
 - [ ] Add release packaging: `CHANGELOG`, version tags, support matrix, issue labels, and public-facing demo assets
 
 ## Current Focus
 
-The next slice starts with item 9:
+The next slice starts with item 8:
 
-- separate internal-worker auth from `JWT_SECRET` and harden public deployment defaults
-- keep the local-first developer experience intact while making trust boundaries clearer
+- reduce or remove the current Next.js build workarounds once a cleaner route is safe
+- keep the web build stable while shrinking workaround-specific code paths
 
 ## Suggested Execution Order
 
