@@ -55,10 +55,20 @@ cp .env.example .env
 docker compose up --build
 ```
 
+`docker compose up --build` now applies the committed Prisma migrations automatically through `npm run prisma:migrate:deploy`.
+
 Then open:
 
 - Web: [http://localhost:3000](http://localhost:3000)
 - API health: [http://localhost:3001/health](http://localhost:3001/health)
+
+If you want the seeded demo data after startup, run it explicitly:
+
+```bash
+docker compose exec api npm run prisma:seed
+```
+
+If you previously booted an older local database from the pre-migration `db push` workflow, recreate your local Postgres volume before relying on the new migration history.
 
 ## Environment
 
@@ -83,6 +93,14 @@ TEMPORAL_ENABLED=false
 - `TEMPORAL_ENABLED=true` routes `POST /jobs/:id/analyze`, `POST /jobs/:id/generate-resume`, and `POST /jobs/:id/prefill` through the Temporal worker instead of the direct API paths.
 
 The prefill worker currently uses a best-effort heuristic path and does not require a separate feature flag.
+
+## Database Workflow
+
+- Use `docker compose up --build` to install dependencies, generate the Prisma client, and apply the committed migrations with `npm run prisma:migrate:deploy`.
+- Use `docker compose exec api npm run prisma:seed` only when you want the optional demo data; seed is no longer part of container startup.
+- Use `npm run prisma:migrate` when you change `prisma/schema.prisma` locally and need to create a new migration.
+- Use `npm run prisma:migrate:deploy` in deploy/CI-style contexts where the repo should only apply already-committed migrations.
+- If your local Postgres volume came from the older `prisma db push` setup, recreate it before switching to the committed migration workflow.
 
 ## Current App Flow
 
@@ -118,7 +136,6 @@ The prefill worker currently uses a best-effort heuristic path and does not requ
 
 ## Notes
 
-- The workspace is not initialized as a git repository yet.
 - `worker-playwright` is now part of the local runtime, but it still stops before any final submit action.
 - The new submission-safe flow records manual submission outcomes but still never clicks final submit for the user.
 - Recovery actions are tracked in a lightweight `application_events` history rather than a full workflow engine.
