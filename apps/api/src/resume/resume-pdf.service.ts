@@ -1,6 +1,5 @@
-import { existsSync } from "node:fs";
-
 import { ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { resolveChromiumRuntime } from "@rolecraft/config";
 import {
   candidateProfileSchema,
   jobSchema,
@@ -546,9 +545,20 @@ export class ResumePdfService {
   async renderPdf(id: string, template: ResumePdfTemplate = "classic") {
     const document = await this.getPrintableResumeDocument(id);
     const html = renderPrintableResumeHtml(document, template);
+    const chromiumRuntime = resolveChromiumRuntime(process.env);
+
+    if (!chromiumRuntime.resolvedExecutablePath) {
+      const configuredHint = chromiumRuntime.configuredPath
+        ? ` Configured CHROMIUM_EXECUTABLE_PATH was not found at ${chromiumRuntime.configuredPath}.`
+        : "";
+      throw new ConflictException(
+        `Chromium executable not found for PDF rendering.${configuredHint} Set CHROMIUM_EXECUTABLE_PATH or install Chromium in one of: ${chromiumRuntime.knownPaths.join(", ")}.`
+      );
+    }
+
     const browser = await chromium.launch({
       headless: true,
-      executablePath: this.resolveChromiumExecutablePath()
+      executablePath: chromiumRuntime.resolvedExecutablePath
     });
 
     try {
@@ -645,19 +655,6 @@ export class ResumePdfService {
       job,
       resumeVersion
     });
-  }
-
-  private resolveChromiumExecutablePath() {
-    const configuredPath = process.env.CHROMIUM_EXECUTABLE_PATH;
-
-    if (configuredPath) {
-      return configuredPath;
-    }
-
-    const knownPaths = ["/usr/bin/chromium", "/usr/bin/chromium-browser"];
-    const installedPath = knownPaths.find((path) => existsSync(path));
-
-    return installedPath;
   }
 }
 

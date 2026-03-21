@@ -1,6 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { ConflictException } from "@nestjs/common";
+import * as config from "@rolecraft/config";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  ResumePdfService,
   buildPrintableResumeDocument,
   buildResumePdfFileName,
   renderPrintableResumeHtml
@@ -92,6 +95,10 @@ describe("resume pdf helpers", () => {
     updatedAt: "2026-03-16T00:00:00.000Z"
   };
 
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("builds a printable document model from a completed resume version", () => {
     const result = buildPrintableResumeDocument({
       profile,
@@ -145,5 +152,34 @@ describe("resume pdf helpers", () => {
     expect(classicHtml).toContain('class="hero"');
     expect(modernHtml).toContain('class="modern-shell"');
     expect(modernHtml).not.toBe(classicHtml);
+  });
+
+  it("throws a readable error when Chromium cannot be resolved for PDF export", async () => {
+    const service = new ResumePdfService({} as never);
+    vi.spyOn(service as never, "getPrintableResumeDocument").mockResolvedValue(
+      buildPrintableResumeDocument({
+        profile,
+        job,
+        resumeVersion
+      })
+    );
+    vi.spyOn(config, "resolveChromiumRuntime").mockReturnValue({
+      configuredPath: "/custom/chromium",
+      resolvedExecutablePath: undefined,
+      knownPaths: ["/usr/bin/chromium", "/usr/bin/chromium-browser"]
+    });
+
+    let thrown: unknown;
+    try {
+      await service.renderPdf("resume_123");
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(ConflictException);
+    expect((thrown as Error).message).toContain("Chromium executable not found");
+    expect((thrown as Error).message).toContain("CHROMIUM_EXECUTABLE_PATH");
+    expect((thrown as Error).message).toContain("/custom/chromium");
+    expect((thrown as Error).message).toContain("/usr/bin/chromium");
   });
 });

@@ -5,6 +5,7 @@ import {
   resolveAnalysisRuntime,
   resolveApiBaseUrl,
   resolveApplicationStorageDir,
+  resolveChromiumRuntime,
   resolveInternalApiToken,
   resolveJobImportRuntime,
   resolveResumeRuntime,
@@ -180,5 +181,47 @@ describe("resolveServicePort", () => {
   it("falls back when PORT is invalid", () => {
     expect(resolveServicePort({ PORT: "NaN" }, 3001)).toBe(3001);
     expect(resolveServicePort({ PORT: "0" }, 3001)).toBe(3001);
+  });
+});
+
+describe("resolveChromiumRuntime", () => {
+  it("prefers a configured Chromium path when it exists", () => {
+    const runtime = resolveChromiumRuntime(
+      {
+        CHROMIUM_EXECUTABLE_PATH: " /custom/chromium "
+      },
+      (path) => path === "/custom/chromium"
+    );
+
+    expect(runtime).toEqual({
+      configuredPath: "/custom/chromium",
+      resolvedExecutablePath: "/custom/chromium",
+      knownPaths: ["/usr/bin/chromium", "/usr/bin/chromium-browser"]
+    });
+  });
+
+  it("falls back to known Chromium paths when no configured path is available", () => {
+    const runtime = resolveChromiumRuntime({}, (path) => path === "/usr/bin/chromium-browser");
+
+    expect(runtime).toEqual({
+      configuredPath: undefined,
+      resolvedExecutablePath: "/usr/bin/chromium-browser",
+      knownPaths: ["/usr/bin/chromium", "/usr/bin/chromium-browser"]
+    });
+  });
+
+  it("returns an unresolved runtime when no Chromium path is available", () => {
+    const runtime = resolveChromiumRuntime(
+      {
+        CHROMIUM_EXECUTABLE_PATH: "/missing/chromium"
+      },
+      () => false
+    );
+
+    expect(runtime).toEqual({
+      configuredPath: "/missing/chromium",
+      resolvedExecutablePath: undefined,
+      knownPaths: ["/usr/bin/chromium", "/usr/bin/chromium-browser"]
+    });
   });
 });

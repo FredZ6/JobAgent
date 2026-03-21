@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { z } from "zod";
 
 export const appEnvSchema = z.object({
@@ -122,4 +123,29 @@ export function resolveServicePort(
 
   const parsed = Number.parseInt(rawValue, 10);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+const knownChromiumPaths = ["/usr/bin/chromium", "/usr/bin/chromium-browser"] as const;
+
+export function resolveChromiumRuntime(
+  env: Partial<Record<"CHROMIUM_EXECUTABLE_PATH", string | undefined>>,
+  pathExists: (path: string) => boolean = existsSync
+) {
+  const configuredPath = env.CHROMIUM_EXECUTABLE_PATH?.trim() || undefined;
+
+  if (configuredPath && pathExists(configuredPath)) {
+    return {
+      configuredPath,
+      resolvedExecutablePath: configuredPath,
+      knownPaths: [...knownChromiumPaths]
+    };
+  }
+
+  const installedPath = knownChromiumPaths.find((path) => pathExists(path));
+
+  return {
+    configuredPath,
+    resolvedExecutablePath: installedPath,
+    knownPaths: [...knownChromiumPaths]
+  };
 }
