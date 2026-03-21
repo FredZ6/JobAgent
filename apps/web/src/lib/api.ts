@@ -20,6 +20,8 @@ import {
   type JobStage,
   type LlmSettingsInput,
   type ReopenSubmissionRequest,
+  type UnresolvedAutomationItem,
+  type UpdateUnresolvedAutomationItemRequest,
   type SubmissionReview,
   type TimelineEntityType,
   type TimelineItem,
@@ -300,6 +302,17 @@ export function fetchSubmissionReview(id: string) {
 
 export function fetchAutomationSessions(applicationId: string) {
   return request<AutomationSession[]>(`/applications/${applicationId}/automation-sessions`);
+}
+
+export function updateUnresolvedAutomationItem(
+  applicationId: string,
+  itemId: string,
+  payload: UpdateUnresolvedAutomationItemRequest
+) {
+  return request<UnresolvedAutomationItem>(`/applications/${applicationId}/unresolved-items/${itemId}`, {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
 }
 
 export function fetchApplicationEvents(

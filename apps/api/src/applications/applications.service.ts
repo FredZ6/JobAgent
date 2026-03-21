@@ -35,6 +35,8 @@ import {
   submissionReviewSchema,
   submissionStatusSchema,
   unresolvedAutomationItemSchema,
+  updateUnresolvedAutomationItemRequestSchema,
+  type UpdateUnresolvedAutomationItemRequest,
   type WorkflowRun,
   type WorkflowRunKind,
   type OrchestrationMetadata,
@@ -594,6 +596,65 @@ export class ApplicationsService {
     const unresolvedItems = await this.listUnresolvedAutomationItems(id);
 
     return this.buildSubmissionReview(application, latestAutomationSession, unresolvedItems);
+  }
+
+  async updateUnresolvedAutomationItem(
+    applicationId: string,
+    itemId: string,
+    payload: UpdateUnresolvedAutomationItemRequest
+  ) {
+    const parsed = updateUnresolvedAutomationItemRequestSchema.parse(payload);
+    const item = await this.prisma.unresolvedAutomationItem.findUnique({
+      where: { id: itemId }
+    });
+
+    if (!item || item.applicationId !== applicationId) {
+      throw new NotFoundException("Unresolved automation item not found");
+    }
+
+    if (item.status !== "unresolved") {
+      throw new ConflictException("Unresolved automation item has already been handled");
+    }
+
+    const resolutionKind = parsed.status === "resolved" ? "manual_answer" : "skipped_by_user";
+    const resolvedAt = new Date();
+    const note = parsed.note?.trim();
+    const nextMetadata = {
+      ...(item.metadata && typeof item.metadata === "object" && !Array.isArray(item.metadata) ? item.metadata : {}),
+      ...(note ? { note } : {})
+    };
+
+    const updated = await this.prisma.$transaction(async (transaction) => {
+      const tx = this.prismaMutationClient(transaction);
+      const nextItem = await tx.unresolvedAutomationItem.update({
+        where: { id: itemId },
+        data: {
+          status: parsed.status,
+          resolutionKind,
+          resolvedAt,
+          metadata: nextMetadata as Prisma.InputJsonValue
+        }
+      });
+
+      await this.recordApplicationEvent(
+        tx,
+        applicationId,
+        "unresolved_item_updated",
+        {
+          itemId: item.id,
+          fieldName: item.fieldName,
+          fromStatus: item.status,
+          toStatus: parsed.status,
+          resolutionKind,
+          note: note ?? ""
+        },
+        defaultUserActor
+      );
+
+      return nextItem;
+    });
+
+    return this.formatUnresolvedAutomationItem(updated);
   }
 
   async markSubmitted(id: string, payload: MarkSubmittedRequest) {
@@ -1401,6 +1462,10 @@ export class ApplicationsService {
       return "Submission reopened";
     }
 
+    if (type === "unresolved_item_updated") {
+      return "Unresolved item updated";
+    }
+
     return "Submission ready to retry";
   }
 
@@ -1584,6 +1649,15 @@ export class ApplicationsService {
         }): Promise<unknown>;
       };
       unresolvedAutomationItem: {
+        update(args: {
+          where: { id: string };
+          data: {
+            status: string;
+            resolutionKind: string;
+            resolvedAt: Date;
+            metadata: Prisma.InputJsonValue;
+          };
+        }): Promise<UnresolvedAutomationItem>;
         updateMany(args: {
           where: {
             applicationId: string;

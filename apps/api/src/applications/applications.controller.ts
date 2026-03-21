@@ -8,7 +8,8 @@ import {
   markRetryReadyRequestSchema,
   markSubmitFailedRequestSchema,
   markSubmittedRequestSchema,
-  reopenSubmissionRequestSchema
+  reopenSubmissionRequestSchema,
+  updateUnresolvedAutomationItemRequestSchema
 } from "@rolecraft/shared-types";
 import { z } from "zod";
 
@@ -92,5 +93,15 @@ export class ApplicationsController {
     return new StreamableFile(createReadStream(filePath), {
       disposition: `inline; filename="${filename}"`
     });
+  }
+
+  @Post(":applicationId/unresolved-items/:itemId")
+  updateUnresolvedAutomationItem(
+    @Param("applicationId") applicationId: string,
+    @Param("itemId") itemId: string,
+    @Body() body: unknown
+  ) {
+    const payload = parseOrThrow(updateUnresolvedAutomationItemRequestSchema, body);
+    return this.applicationsService.updateUnresolvedAutomationItem(applicationId, itemId, payload);
   }
 }

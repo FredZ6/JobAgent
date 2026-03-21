@@ -20,6 +20,7 @@ import {
   markApplicationSubmitFailed,
   markApplicationSubmitted,
   reopenApplicationSubmission,
+  updateUnresolvedAutomationItem,
   type ApplicationWithContext,
   type SubmissionReviewWithContext
 } from "../../../../lib/api";
@@ -40,7 +41,8 @@ const historyEventFilters: ApplicationHistoryEventFilter[] = [
   "submission_marked",
   "submission_failed",
   "submission_reopened",
-  "submission_retry_ready"
+  "submission_retry_ready",
+  "unresolved_item_updated"
 ];
 
 export default function SubmissionReviewPage() {
@@ -189,6 +191,42 @@ export default function SubmissionReviewPage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function handleUnresolvedItemUpdate(
+    itemId: string,
+    payload: { status: "resolved" | "ignored"; note?: string }
+  ) {
+    if (!review) {
+      throw new Error("Submission review not loaded");
+    }
+
+    const updatedItem = await updateUnresolvedAutomationItem(review.application.id, itemId, payload);
+    setReview((current) =>
+      current
+        ? {
+            ...current,
+            unresolvedItems: current.unresolvedItems.map((item) => (item.id === itemId ? updatedItem : item))
+          }
+        : current
+    );
+
+    try {
+      const latestEvents = await fetchApplicationEvents(review.application.id, {
+        actorType: historyActorFilter === "all" ? undefined : historyActorFilter,
+        eventType: historyEventFilter === "all" ? undefined : historyEventFilter,
+        source: historySourceFilter === "all" ? undefined : historySourceFilter,
+        q: historyQuery.trim() || undefined,
+        from: historyFrom || undefined,
+        to: historyTo || undefined,
+        limit: 20
+      });
+      setEvents(latestEvents);
+    } catch {
+      // Keep optimistic state if event refresh fails.
+    }
+
+    return updatedItem;
   }
 
   const screenshotFilenames = useMemo(() => {
@@ -392,6 +430,7 @@ export default function SubmissionReviewPage() {
         <UnresolvedAutomationItems
           items={unresolvedItems}
           emptyCopy="No unresolved automation items are waiting for manual follow-up."
+          onUpdateItem={handleUnresolvedItemUpdate}
         />
       </Panel>
 

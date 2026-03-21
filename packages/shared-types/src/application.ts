@@ -19,7 +19,8 @@ export const applicationEventTypeSchema = z.enum([
   "submission_marked",
   "submission_failed",
   "submission_reopened",
-  "submission_retry_ready"
+  "submission_retry_ready",
+  "unresolved_item_updated"
 ]);
 export const auditActorTypeSchema = z.enum(["system", "user", "worker", "api"]);
 const applicationEventOrchestrationSchema = z.object({
@@ -49,6 +50,11 @@ export const unresolvedAutomationItemResolutionKindSchema = z.enum([
   "skipped_by_user",
   "fixed_by_rerun"
 ]);
+
+export const updateUnresolvedAutomationItemRequestSchema = z.object({
+  status: z.enum(["resolved", "ignored"]),
+  note: z.string().trim().min(1).optional()
+});
 
 export const unresolvedAutomationItemSchema = z.object({
   id: z.string().min(1),
@@ -203,6 +209,7 @@ export type UnresolvedAutomationItemStatus = z.infer<typeof unresolvedAutomation
 export type UnresolvedAutomationItemResolutionKind = z.infer<
   typeof unresolvedAutomationItemResolutionKindSchema
 >;
+export type UpdateUnresolvedAutomationItemRequest = z.infer<typeof updateUnresolvedAutomationItemRequestSchema>;
 export type UnresolvedAutomationItem = z.infer<typeof unresolvedAutomationItemSchema>;
 export type WorkerLogEntry = z.infer<typeof workerLogEntrySchema>;
 export type FinalSubmissionSnapshot = z.infer<typeof finalSubmissionSnapshotSchema>;

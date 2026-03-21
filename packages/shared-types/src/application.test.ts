@@ -12,7 +12,8 @@ import {
   markSubmittedRequestSchema,
   markSubmitFailedRequestSchema,
   submissionReviewSchema,
-  submissionStatusSchema
+  submissionStatusSchema,
+  updateUnresolvedAutomationItemRequestSchema
 } from "./application";
 
 describe("application schemas", () => {
@@ -143,6 +144,23 @@ describe("application schemas", () => {
     );
   });
 
+  it("accepts unresolved item update requests for resolved and ignored", () => {
+    const resolvedResult = updateUnresolvedAutomationItemRequestSchema.safeParse({
+      status: "resolved",
+      note: "Handled manually"
+    });
+    const ignoredResult = updateUnresolvedAutomationItemRequestSchema.safeParse({
+      status: "ignored"
+    });
+    const invalidResult = updateUnresolvedAutomationItemRequestSchema.safeParse({
+      status: "unresolved"
+    });
+
+    expect(resolvedResult.success).toBe(true);
+    expect(ignoredResult.success).toBe(true);
+    expect(invalidResult.success).toBe(false);
+  });
+
   it("accepts a valid automation session payload with optional workflow and resume links", () => {
     const result = automationSessionSchema.safeParse({
       id: "session_123",
@@ -230,6 +248,12 @@ describe("application schemas", () => {
 
     expect(result.success).toBe(true);
     expect(result.success ? (result.data as any).unresolvedItems?.[0]?.fieldName : null).toBe("resume");
+  });
+
+  it("accepts unresolved_item_updated as an application event type", () => {
+    const result = applicationEventTypeSchema.safeParse("unresolved_item_updated");
+
+    expect(result.success).toBe(true);
   });
 
   it("accepts legacy field results alongside richer ones", () => {

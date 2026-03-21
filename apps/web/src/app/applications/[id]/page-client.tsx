@@ -13,6 +13,7 @@ import {
   fetchApplication,
   fetchAutomationSessions,
   runPrefill,
+  updateUnresolvedAutomationItem,
   updateApplicationApproval,
   type ApplicationWithContext
 } from "../../../lib/api";
@@ -122,6 +123,27 @@ export default function ApplicationReviewPage() {
     } finally {
       setRerunLoading(false);
     }
+  }
+
+  async function handleUnresolvedItemUpdate(
+    itemId: string,
+    payload: { status: "resolved" | "ignored"; note?: string }
+  ) {
+    if (!applicationContext) {
+      throw new Error("Application context not loaded");
+    }
+
+    const updatedItem = await updateUnresolvedAutomationItem(applicationContext.application.id, itemId, payload);
+    setApplicationContext((current) =>
+      current
+        ? {
+            ...current,
+            unresolvedItems: current.unresolvedItems.map((item) => (item.id === itemId ? updatedItem : item))
+          }
+        : current
+    );
+
+    return updatedItem;
   }
 
   if (loading) {
@@ -273,6 +295,7 @@ export default function ApplicationReviewPage() {
         <UnresolvedAutomationItems
           items={unresolvedItems}
           emptyCopy="No unresolved automation items are waiting for manual follow-up."
+          onUpdateItem={handleUnresolvedItemUpdate}
         />
       </Panel>
 

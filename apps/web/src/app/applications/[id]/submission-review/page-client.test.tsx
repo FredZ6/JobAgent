@@ -5,10 +5,15 @@ import "@testing-library/jest-dom/vitest";
 import React from "react";
 import { cleanup, render, screen } from "@testing-library/react";
 import { waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import SubmissionReviewPage from "./page-client";
-import { fetchApplicationEvents, fetchSubmissionReview } from "../../../../lib/api";
+import {
+  fetchApplicationEvents,
+  fetchSubmissionReview,
+  updateUnresolvedAutomationItem
+} from "../../../../lib/api";
 import { useParams } from "next/navigation";
 
 vi.mock("next/navigation", () => ({
@@ -22,12 +27,14 @@ vi.mock("../../../../lib/api", () => ({
   markApplicationRetryReady: vi.fn(),
   markApplicationSubmitFailed: vi.fn(),
   markApplicationSubmitted: vi.fn(),
-  reopenApplicationSubmission: vi.fn()
+  reopenApplicationSubmission: vi.fn(),
+  updateUnresolvedAutomationItem: vi.fn()
 }));
 
 const mockedUseParams = vi.mocked(useParams);
 const mockedFetchApplicationEvents = vi.mocked(fetchApplicationEvents);
 const mockedFetchSubmissionReview = vi.mocked(fetchSubmissionReview);
+const mockedUpdateUnresolvedAutomationItem = vi.mocked(updateUnresolvedAutomationItem);
 
 const submissionReview = {
   application: {
@@ -113,8 +120,17 @@ beforeEach(() => {
   mockedUseParams.mockReturnValue({ id: "app_1" } as never);
   mockedFetchSubmissionReview.mockReset();
   mockedFetchApplicationEvents.mockReset();
+  mockedUpdateUnresolvedAutomationItem.mockReset();
   mockedFetchSubmissionReview.mockResolvedValue(submissionReview);
   mockedFetchApplicationEvents.mockResolvedValue([]);
+  mockedUpdateUnresolvedAutomationItem.mockResolvedValue({
+    ...submissionReview.unresolvedItems[0],
+    status: "ignored",
+    resolutionKind: "skipped_by_user",
+    metadata: { note: "Handled in review" },
+    resolvedAt: "2026-03-20T09:10:00.000Z",
+    updatedAt: "2026-03-20T09:10:00.000Z"
+  });
 });
 
 describe("SubmissionReviewPage automation session navigation", () => {
@@ -137,5 +153,27 @@ describe("SubmissionReviewPage automation session navigation", () => {
 
     expect(await screen.findByRole("heading", { name: "Needs attention" })).toBeInTheDocument();
     expect(screen.getByText("high-risk question requires saved default answer")).toBeInTheDocument();
+  });
+
+  it("lets submission review ignore an unresolved item in place", async () => {
+    const user = userEvent.setup();
+
+    render(<SubmissionReviewPage />);
+
+    await screen.findByRole("heading", { name: "Needs attention" });
+    await user.type(
+      screen.getByLabelText("Add note for Why do you want to work here?"),
+      "Handled in review"
+    );
+    await user.click(screen.getByRole("button", { name: "Ignore for Why do you want to work here?" }));
+
+    await waitFor(() => {
+      expect(mockedUpdateUnresolvedAutomationItem).toHaveBeenCalledWith("app_1", "unresolved_1", {
+        status: "ignored",
+        note: "Handled in review"
+      });
+    });
+
+    expect(screen.getByText("ignored")).toBeInTheDocument();
   });
 });

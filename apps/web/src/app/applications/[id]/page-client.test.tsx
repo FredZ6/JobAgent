@@ -4,6 +4,7 @@ import "@testing-library/jest-dom/vitest";
 
 import React from "react";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import ApplicationReviewPage from "./page-client";
@@ -11,7 +12,8 @@ import {
   fetchApplication,
   fetchAutomationSessions,
   runPrefill,
-  updateApplicationApproval
+  updateApplicationApproval,
+  updateUnresolvedAutomationItem
 } from "../../../lib/api";
 import { useParams, useRouter } from "next/navigation";
 
@@ -24,7 +26,8 @@ vi.mock("../../../lib/api", () => ({
   fetchApplication: vi.fn(),
   fetchAutomationSessions: vi.fn(),
   runPrefill: vi.fn(),
-  updateApplicationApproval: vi.fn()
+  updateApplicationApproval: vi.fn(),
+  updateUnresolvedAutomationItem: vi.fn()
 }));
 
 const mockedUseParams = vi.mocked(useParams);
@@ -33,6 +36,7 @@ const mockedFetchApplication = vi.mocked(fetchApplication);
 const mockedFetchAutomationSessions = vi.mocked(fetchAutomationSessions);
 const mockedRunPrefill = vi.mocked(runPrefill);
 const mockedUpdateApplicationApproval = vi.mocked(updateApplicationApproval);
+const mockedUpdateUnresolvedAutomationItem = vi.mocked(updateUnresolvedAutomationItem);
 const push = vi.fn();
 
 const applicationContext = {
@@ -142,11 +146,20 @@ beforeEach(() => {
   mockedFetchAutomationSessions.mockReset();
   mockedRunPrefill.mockReset();
   mockedUpdateApplicationApproval.mockReset();
+  mockedUpdateUnresolvedAutomationItem.mockReset();
   push.mockReset();
   mockedFetchApplication.mockResolvedValue(applicationContext);
   mockedFetchAutomationSessions.mockResolvedValue(automationSessions);
   mockedRunPrefill.mockResolvedValue(applicationContext);
   mockedUpdateApplicationApproval.mockResolvedValue(applicationContext);
+  mockedUpdateUnresolvedAutomationItem.mockResolvedValue({
+    ...applicationContext.unresolvedItems[0],
+    status: "resolved",
+    resolutionKind: "manual_answer",
+    metadata: { note: "Handled manually" },
+    resolvedAt: "2026-03-20T09:10:00.000Z",
+    updatedAt: "2026-03-20T09:10:00.000Z"
+  });
 });
 
 describe("ApplicationReviewPage automation session history", () => {
@@ -176,5 +189,24 @@ describe("ApplicationReviewPage automation session history", () => {
 
     expect(await screen.findByRole("heading", { name: "Needs attention" })).toBeInTheDocument();
     expect(screen.getByText("resume upload control not found")).toBeInTheDocument();
+  });
+
+  it("lets the reviewer mark an unresolved item as resolved without reloading the page", async () => {
+    const user = userEvent.setup();
+
+    render(<ApplicationReviewPage />);
+
+    await screen.findByRole("heading", { name: "Needs attention" });
+    await user.type(screen.getByLabelText("Add note for Resume"), "Handled manually");
+    await user.click(screen.getByRole("button", { name: "Mark resolved for Resume" }));
+
+    await waitFor(() => {
+      expect(mockedUpdateUnresolvedAutomationItem).toHaveBeenCalledWith("app_1", "unresolved_1", {
+        status: "resolved",
+        note: "Handled manually"
+      });
+    });
+
+    expect(screen.getByText("resolved")).toBeInTheDocument();
   });
 });

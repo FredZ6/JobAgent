@@ -63,6 +63,8 @@ const mockPrisma = () => {
       findMany: vi.fn()
     },
     unresolvedAutomationItem: {
+      findUnique: vi.fn().mockResolvedValue(null),
+      update: vi.fn(),
       createMany: vi.fn().mockResolvedValue({ count: 0 }),
       updateMany: vi.fn().mockResolvedValue({ count: 0 }),
       findMany: vi.fn().mockResolvedValue([])
@@ -99,6 +101,8 @@ const mockPrisma = () => {
       findMany: vi.fn()
     },
     unresolvedAutomationItem: {
+      findUnique: vi.fn().mockResolvedValue(null),
+      update: vi.fn(),
       createMany: vi.fn().mockResolvedValue({ count: 0 }),
       updateMany: vi.fn().mockResolvedValue({ count: 0 }),
       findMany: vi.fn().mockResolvedValue([])
@@ -1252,6 +1256,222 @@ describe("ApplicationsService", () => {
         })
       ])
     });
+  });
+
+  it("updates an unresolved automation item to resolved and records an event", async () => {
+    const prisma = mockPrisma();
+    const workflowRunsService = mockWorkflowRunsService();
+    prisma.unresolvedAutomationItem.findMany.mockResolvedValueOnce([
+      {
+        id: "item_1",
+        automationSessionId: "session_1",
+        applicationId: "app_1",
+        fieldName: "why_company",
+        fieldLabel: "Why us?",
+        fieldType: "long_text",
+        questionText: "Why do you want to work here?",
+        status: "resolved",
+        resolutionKind: "manual_answer",
+        failureReason: "manual review required",
+        source: "llm_generated",
+        suggestedValue: "Because it fits.",
+        metadata: { note: "Handled manually" },
+        resolvedAt: new Date("2026-03-21T10:00:00.000Z"),
+        createdAt: new Date("2026-03-21T09:00:00.000Z"),
+        updatedAt: new Date("2026-03-21T10:00:00.000Z")
+      }
+    ]);
+    prisma.unresolvedAutomationItem.findUnique = vi.fn().mockResolvedValue({
+      id: "item_1",
+      automationSessionId: "session_1",
+      applicationId: "app_1",
+      fieldName: "why_company",
+      fieldLabel: "Why us?",
+      fieldType: "long_text",
+      questionText: "Why do you want to work here?",
+      status: "unresolved",
+      resolutionKind: null,
+      failureReason: "manual review required",
+      source: "llm_generated",
+      suggestedValue: "Because it fits.",
+      metadata: {},
+      resolvedAt: null,
+      createdAt: new Date("2026-03-21T09:00:00.000Z"),
+      updatedAt: new Date("2026-03-21T09:00:00.000Z")
+    });
+    prisma.__tx.unresolvedAutomationItem.update = vi.fn().mockResolvedValue({
+      id: "item_1",
+      automationSessionId: "session_1",
+      applicationId: "app_1",
+      fieldName: "why_company",
+      fieldLabel: "Why us?",
+      fieldType: "long_text",
+      questionText: "Why do you want to work here?",
+      status: "resolved",
+      resolutionKind: "manual_answer",
+      failureReason: "manual review required",
+      source: "llm_generated",
+      suggestedValue: "Because it fits.",
+      metadata: { note: "Handled manually" },
+      resolvedAt: new Date("2026-03-21T10:00:00.000Z"),
+      createdAt: new Date("2026-03-21T09:00:00.000Z"),
+      updatedAt: new Date("2026-03-21T10:00:00.000Z")
+    });
+    const service = new ApplicationsService(prisma as any, undefined, workflowRunsService as any);
+
+    const result = await (service as any).updateUnresolvedAutomationItem("app_1", "item_1", {
+      status: "resolved",
+      note: "Handled manually"
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: "item_1",
+        status: "resolved",
+        resolutionKind: "manual_answer"
+      })
+    );
+    expect(prisma.__tx.applicationEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        applicationId: "app_1",
+        type: "unresolved_item_updated",
+        payload: expect.objectContaining({
+          itemId: "item_1",
+          fromStatus: "unresolved",
+          toStatus: "resolved",
+          resolutionKind: "manual_answer",
+          note: "Handled manually"
+        })
+      })
+    });
+  });
+
+  it("updates an unresolved automation item to ignored", async () => {
+    const prisma = mockPrisma();
+    const workflowRunsService = mockWorkflowRunsService();
+    prisma.unresolvedAutomationItem.findMany.mockResolvedValueOnce([
+      {
+        id: "item_1",
+        automationSessionId: "session_1",
+        applicationId: "app_1",
+        fieldName: "resume",
+        fieldLabel: "Resume",
+        fieldType: "resume_upload",
+        questionText: null,
+        status: "ignored",
+        resolutionKind: "skipped_by_user",
+        failureReason: "resume upload control not found",
+        source: "resume_pdf",
+        suggestedValue: "resume.pdf",
+        metadata: {},
+        resolvedAt: new Date("2026-03-21T10:00:00.000Z"),
+        createdAt: new Date("2026-03-21T09:00:00.000Z"),
+        updatedAt: new Date("2026-03-21T10:00:00.000Z")
+      }
+    ]);
+    prisma.unresolvedAutomationItem.findUnique = vi.fn().mockResolvedValue({
+      id: "item_1",
+      automationSessionId: "session_1",
+      applicationId: "app_1",
+      fieldName: "resume",
+      fieldLabel: "Resume",
+      fieldType: "resume_upload",
+      questionText: null,
+      status: "unresolved",
+      resolutionKind: null,
+      failureReason: "resume upload control not found",
+      source: "resume_pdf",
+      suggestedValue: "resume.pdf",
+      metadata: {},
+      resolvedAt: null,
+      createdAt: new Date("2026-03-21T09:00:00.000Z"),
+      updatedAt: new Date("2026-03-21T09:00:00.000Z")
+    });
+    prisma.__tx.unresolvedAutomationItem.update = vi.fn().mockResolvedValue({
+      id: "item_1",
+      automationSessionId: "session_1",
+      applicationId: "app_1",
+      fieldName: "resume",
+      fieldLabel: "Resume",
+      fieldType: "resume_upload",
+      questionText: null,
+      status: "ignored",
+      resolutionKind: "skipped_by_user",
+      failureReason: "resume upload control not found",
+      source: "resume_pdf",
+      suggestedValue: "resume.pdf",
+      metadata: {},
+      resolvedAt: new Date("2026-03-21T10:00:00.000Z"),
+      createdAt: new Date("2026-03-21T09:00:00.000Z"),
+      updatedAt: new Date("2026-03-21T10:00:00.000Z")
+    });
+    const service = new ApplicationsService(prisma as any, undefined, workflowRunsService as any);
+
+    const result = await (service as any).updateUnresolvedAutomationItem("app_1", "item_1", {
+      status: "ignored"
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: "item_1",
+        status: "ignored",
+        resolutionKind: "skipped_by_user"
+      })
+    );
+  });
+
+  it("rejects updates for unresolved items that belong to another application", async () => {
+    const prisma = mockPrisma();
+    prisma.unresolvedAutomationItem.findUnique = vi.fn().mockResolvedValue({
+      id: "item_1",
+      automationSessionId: "session_1",
+      applicationId: "app_other",
+      fieldName: "resume",
+      fieldLabel: "Resume",
+      fieldType: "resume_upload",
+      questionText: null,
+      status: "unresolved",
+      resolutionKind: null,
+      failureReason: "resume upload control not found",
+      source: "resume_pdf",
+      suggestedValue: "resume.pdf",
+      metadata: {},
+      resolvedAt: null,
+      createdAt: new Date("2026-03-21T09:00:00.000Z"),
+      updatedAt: new Date("2026-03-21T09:00:00.000Z")
+    });
+    const service = new ApplicationsService(prisma as any, undefined, mockWorkflowRunsService() as any);
+
+    await expect(
+      (service as any).updateUnresolvedAutomationItem("app_1", "item_1", { status: "resolved" })
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it("rejects updates for unresolved items that are already handled", async () => {
+    const prisma = mockPrisma();
+    prisma.unresolvedAutomationItem.findUnique = vi.fn().mockResolvedValue({
+      id: "item_1",
+      automationSessionId: "session_1",
+      applicationId: "app_1",
+      fieldName: "resume",
+      fieldLabel: "Resume",
+      fieldType: "resume_upload",
+      questionText: null,
+      status: "ignored",
+      resolutionKind: "skipped_by_user",
+      failureReason: "resume upload control not found",
+      source: "resume_pdf",
+      suggestedValue: "resume.pdf",
+      metadata: {},
+      resolvedAt: new Date("2026-03-21T10:00:00.000Z"),
+      createdAt: new Date("2026-03-21T09:00:00.000Z"),
+      updatedAt: new Date("2026-03-21T10:00:00.000Z")
+    });
+    const service = new ApplicationsService(prisma as any, undefined, mockWorkflowRunsService() as any);
+
+    await expect(
+      (service as any).updateUnresolvedAutomationItem("app_1", "item_1", { status: "resolved" })
+    ).rejects.toBeInstanceOf(ConflictException);
   });
 
   it("prefillJob creates and finalizes an automation session for each run", async () => {
