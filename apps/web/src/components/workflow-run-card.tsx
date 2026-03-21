@@ -54,19 +54,21 @@ export function WorkflowRunCard({
           {subtitle ? <p className="muted">{subtitle}</p> : null}
         </div>
       ) : null}
-      <p className="muted workflow-run-summary">{statusCopy.detail}</p>
-      <div className="workflow-run-meta">
-        <p className="muted">
-          Started {run.startedAt ? new Date(run.startedAt).toLocaleString() : "not started yet"}
-          {run.completedAt ? ` · Completed ${new Date(run.completedAt).toLocaleString()}` : ""}
-        </p>
-        <p className="muted">
-          {run.workflowType ? `${run.workflowType} · ` : ""}
-          {run.taskQueue ? `queue ${run.taskQueue} · ` : ""}
-          {run.workflowId ? `workflow ${run.workflowId}` : "direct execution"}
-        </p>
-        {run.retryOfRunId ? <p className="muted">Retry of {run.retryOfRunId}</p> : null}
-        {statusNote ? <div className="inline-note">{statusNote}</div> : null}
+      <div className="workflow-run-body">
+        <p className="muted workflow-run-summary">{statusCopy.detail}</p>
+        <div className="workflow-run-meta">
+          <p className="muted">
+            Started {run.startedAt ? new Date(run.startedAt).toLocaleString() : "not started yet"}
+            {run.completedAt ? ` · Completed ${new Date(run.completedAt).toLocaleString()}` : ""}
+          </p>
+          <p className="muted">
+            {run.workflowType ? `${run.workflowType} · ` : ""}
+            {run.taskQueue ? `queue ${run.taskQueue} · ` : ""}
+            {run.workflowId ? `workflow ${run.workflowId}` : "direct execution"}
+          </p>
+          {run.retryOfRunId ? <p className="muted">Retry of {run.retryOfRunId}</p> : null}
+          {statusNote ? <div className="inline-note">{statusNote}</div> : null}
+        </div>
       </div>
       {links.length > 0 || actions ? (
         <div className="workflow-run-actions">
