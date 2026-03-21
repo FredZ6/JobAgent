@@ -143,4 +143,115 @@ describe("JobImporterService", () => {
       fetchError: "network down"
     });
   });
+
+  it("uses the Greenhouse adapter for richer field extraction", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => `<!doctype html>
+        <html>
+          <head>
+            <title>Generic job page</title>
+          </head>
+          <body>
+            <div id="app_body">
+              <div class="header">
+                <h1 class="app-title">Senior Platform Engineer</h1>
+                <div class="company-name">Orbital</div>
+                <div class="location">Remote (Canada)</div>
+              </div>
+              <section id="content">
+                <div class="content-intro">
+                  Build the internal platform that powers product delivery.
+                </div>
+                <div class="section-wrapper">
+                  <h3>About the role</h3>
+                  <p>Own platform reliability, developer workflows, and deployment foundations.</p>
+                </div>
+              </section>
+            </div>
+          </body>
+        </html>`
+    });
+
+    const service = new JobImporterService();
+    const sourceUrl = "https://boards.greenhouse.io/orbital/jobs/1234567";
+    const result = await service.importFromUrl(sourceUrl);
+
+    expect(result).toMatchObject({
+      title: "Senior Platform Engineer",
+      company: "Orbital",
+      location: "Remote (Canada)",
+      description: expect.stringContaining("Own platform reliability"),
+      applyUrl: sourceUrl,
+      importStatus: "imported",
+      importSource: "live_html",
+      diagnostics: {
+        adapter: "greenhouse",
+        adapterMatched: true,
+        applyUrlSource: "source_url",
+        locationSource: "greenhouse_location",
+        descriptionSource: "greenhouse_body"
+      }
+    });
+  });
+
+  it("records a Greenhouse adapter fallback when matched content is insufficient", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => `<!doctype html>
+        <html>
+          <body>
+            <div id="app_body">
+              <h1 class="app-title"></h1>
+            </div>
+          </body>
+        </html>`
+    });
+
+    const service = new JobImporterService();
+    const result = await service.importFromUrl("https://boards.greenhouse.io/orbital/jobs/platform-engineer");
+
+    expect(result).toMatchObject({
+      importStatus: "failed",
+      importSource: "synthetic_fallback",
+      diagnostics: {
+        adapterAttempted: "greenhouse",
+        adapterMatched: true,
+        adapterFallbackReason: "insufficient_greenhouse_content"
+      }
+    });
+  });
+
+  it("treats the Greenhouse source URL as a valid apply URL without generic warnings", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => `<!doctype html>
+        <html>
+          <body>
+            <div id="app_body">
+              <h1 class="app-title">Platform Engineer</h1>
+              <div class="company-name">Orbital</div>
+              <div class="location">Remote</div>
+              <section id="content">
+                <p>Build thoughtful workflow automation for product teams.</p>
+              </section>
+            </div>
+          </body>
+        </html>`
+    });
+
+    const service = new JobImporterService();
+    const sourceUrl = "https://boards.greenhouse.io/orbital/jobs/1234568";
+    const result = await service.importFromUrl(sourceUrl);
+
+    expect(result.applyUrl).toBe(sourceUrl);
+    expect(result.diagnostics).toMatchObject({
+      adapter: "greenhouse",
+      applyUrlSource: "source_url"
+    });
+    expect(result.warnings).not.toContain("apply_url_not_detected");
+  });
 });

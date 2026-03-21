@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { resolveJobImportRuntime } from "@rolecraft/config";
+import { extractGreenhouseJob, matchesGreenhouseJob } from "./greenhouse-importer.js";
 
 type ImportedJobRecord = {
   sourceUrl: string;
@@ -49,9 +50,33 @@ export class JobImporterService {
       }
 
       const html = await response.text();
-      const warnings: string[] = [];
+      const greenhouseAttempt = matchesGreenhouseJob(sourceUrl, html)
+        ? extractGreenhouseJob(html, sourceUrl)
+        : null;
+
+      if (greenhouseAttempt?.result) {
+        return {
+          sourceUrl,
+          applyUrl: greenhouseAttempt.result.applyUrl,
+          title: greenhouseAttempt.result.title,
+          company: greenhouseAttempt.result.company,
+          location: greenhouseAttempt.result.location,
+          description: greenhouseAttempt.result.description,
+          rawText: greenhouseAttempt.result.description,
+          importStatus: "imported",
+          importSource: "live_html",
+          warnings: greenhouseAttempt.result.warnings,
+          diagnostics: {
+            fetchStatus: response.status,
+            ...greenhouseAttempt.result.diagnostics
+          }
+        };
+      }
+
+      const warnings: string[] = [...(greenhouseAttempt?.warnings ?? [])];
       const diagnostics: Record<string, unknown> = {
-        fetchStatus: response.status
+        fetchStatus: response.status,
+        ...(greenhouseAttempt?.diagnostics ?? {})
       };
       const jsonLd = this.extractJobPostingJsonLd(html);
       diagnostics.usedJsonLd = jsonLd != null;
