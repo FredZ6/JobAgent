@@ -1,4 +1,5 @@
 import { ConflictException, Injectable } from "@nestjs/common";
+import { resolveTemporalRuntime } from "@rolecraft/config";
 import type { OrchestrationMetadata } from "@rolecraft/shared-types";
 import { CancelledFailure, Client, Connection, WorkflowFailedError } from "@temporalio/client";
 import { WorkflowRunsService } from "../workflow-runs/workflow-runs.service.js";
@@ -12,7 +13,7 @@ export class TemporalService {
 
   async executeAnalyzeJobWorkflow(jobId: string, options?: { retryOfRunId?: string }) {
     const client = await this.getClient();
-    const taskQueue = process.env.TEMPORAL_TASK_QUEUE ?? "rolecraft-analysis";
+    const { taskQueue } = resolveTemporalRuntime(process.env);
     const workflowId = `analyze-job-${jobId}-${Date.now()}`;
     const orchestration = this.buildOrchestrationMetadata(
       "analyzeJobWorkflow",
@@ -51,7 +52,7 @@ export class TemporalService {
 
   async executeGenerateResumeWorkflow(jobId: string, options?: { retryOfRunId?: string }) {
     const client = await this.getClient();
-    const taskQueue = process.env.TEMPORAL_TASK_QUEUE ?? "rolecraft-analysis";
+    const { taskQueue } = resolveTemporalRuntime(process.env);
     const workflowId = `generate-resume-${jobId}-${Date.now()}`;
     const orchestration = this.buildOrchestrationMetadata(
       "generateResumeWorkflow",
@@ -90,7 +91,7 @@ export class TemporalService {
 
   async executePrefillJobWorkflow(jobId: string, options?: { retryOfRunId?: string }) {
     const client = await this.getClient();
-    const taskQueue = process.env.TEMPORAL_TASK_QUEUE ?? "rolecraft-analysis";
+    const { taskQueue } = resolveTemporalRuntime(process.env);
     const workflowId = `prefill-job-${jobId}-${Date.now()}`;
     const orchestration = this.buildOrchestrationMetadata(
       "prefillJobWorkflow",
@@ -167,13 +168,14 @@ export class TemporalService {
   }
 
   private async createClient() {
+    const runtime = resolveTemporalRuntime(process.env);
     const connection = await Connection.connect({
-      address: process.env.TEMPORAL_ADDRESS ?? "temporal:7233"
+      address: runtime.address
     });
 
     return new Client({
       connection,
-      namespace: process.env.TEMPORAL_NAMESPACE ?? "default"
+      namespace: runtime.namespace
     });
   }
 

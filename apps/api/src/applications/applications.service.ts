@@ -4,6 +4,7 @@ import { constants as fsConstants } from "node:fs";
 import { basename, resolve } from "node:path";
 import { Prisma } from "@prisma/client";
 import type { Application, AutomationSession, Job, ResumeVersion, UnresolvedAutomationItem } from "@prisma/client";
+import { resolveTemporalRuntime } from "@rolecraft/config";
 import {
   isWorkflowRunCancelledError,
   mergeWorkflowRunCancellationSignals,
@@ -62,6 +63,16 @@ type WorkerResponse = {
   screenshotPaths: string[];
   workerLog: unknown[];
   errorMessage: string | null;
+};
+
+type WorkerErrorResponse = {
+  errorMessage?: string | null;
+  error?: string | null;
+  message?: string | null;
+  workerLog?: Array<{
+    level?: string;
+    message?: string | null;
+  }>;
 };
 
 type ApplicationEventRecord = {
@@ -133,7 +144,7 @@ export class ApplicationsService {
   ) {}
 
   async prefillJob(jobId: string) {
-    if (process.env.TEMPORAL_ENABLED === "true") {
+    if (resolveTemporalRuntime(process.env).enabled) {
       if (!this.temporalService) {
         throw new BadRequestException("TemporalService is not available");
       }
@@ -963,10 +974,47 @@ export class ApplicationsService {
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => "");
-      throw new Error(errorText || `Worker prefill failed with ${response.status}`);
+      throw new Error(this.extractWorkerErrorMessage(errorText, response.status));
     }
 
     return (await response.json()) as WorkerResponse;
+  }
+
+  private extractWorkerErrorMessage(errorText: string, statusCode: number) {
+    const trimmed = errorText.trim();
+
+    if (!trimmed) {
+      return `Worker prefill failed with ${statusCode}`;
+    }
+
+    try {
+      const parsed = JSON.parse(trimmed) as WorkerErrorResponse;
+      const directMessage = [parsed.errorMessage, parsed.error, parsed.message].find(
+        (value): value is string => typeof value === "string" && value.trim().length > 0
+      );
+
+      if (directMessage) {
+        return (
+          directMessage
+            .split("\n")
+            .map((line) => line.trim())
+            .find((line) => line.length > 0) ?? directMessage
+        );
+      }
+
+      const loggedMessage = parsed.workerLog?.find(
+        (entry): entry is { message: string } =>
+          typeof entry?.message === "string" && entry.message.trim().length > 0
+      )?.message;
+
+      if (loggedMessage) {
+        return loggedMessage;
+      }
+    } catch {
+      // Fall back to the raw worker response body below.
+    }
+
+    return trimmed;
   }
 
   private buildSubmissionReview(

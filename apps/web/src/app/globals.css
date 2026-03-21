@@ -821,6 +821,54 @@ textarea {
   accent-color: #cb5a2e;
 }
 
+.workflow-run-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-height: 100%;
+}
+
+.workflow-run-heading {
+  display: grid;
+  gap: 4px;
+}
+
+.workflow-run-heading h3,
+.workflow-run-heading p,
+.workflow-run-summary,
+.workflow-run-meta p {
+  margin: 0;
+}
+
+.workflow-run-body {
+  display: grid;
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+}
+
+.workflow-run-summary {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+}
+
+.workflow-run-meta {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+
+.workflow-run-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid rgba(31, 25, 20, 0.08);
+}
+
 .application-field {
   padding: 14px;
   border-radius: 18px;

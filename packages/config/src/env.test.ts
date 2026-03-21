@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseAppEnv, resolveInternalApiToken } from "./env";
+import { parseAppEnv, resolveInternalApiToken, resolveTemporalRuntime } from "./env";
 
 function buildEnv(overrides: Partial<Record<string, string>> = {}) {
   return {
@@ -64,5 +64,37 @@ describe("resolveInternalApiToken", () => {
     );
 
     expect(resolveInternalApiToken(env)).toBeUndefined();
+  });
+});
+
+describe("resolveTemporalRuntime", () => {
+  it("defaults to Rolecraft Temporal settings when values are unset", () => {
+    const runtime = resolveTemporalRuntime({});
+
+    expect(runtime.enabled).toBe(false);
+    expect(runtime.address).toBe("temporal:7233");
+    expect(runtime.namespace).toBe("default");
+    expect(runtime.taskQueue).toBe("rolecraft-analysis");
+  });
+
+  it("treats TEMPORAL_ENABLED as the single source of truth for enablement", () => {
+    expect(resolveTemporalRuntime({ TEMPORAL_ENABLED: "true" }).enabled).toBe(true);
+    expect(resolveTemporalRuntime({ TEMPORAL_ENABLED: "false" }).enabled).toBe(false);
+  });
+
+  it("prefers explicit Temporal connection values when present", () => {
+    const runtime = resolveTemporalRuntime({
+      TEMPORAL_ENABLED: "true",
+      TEMPORAL_ADDRESS: "temporal.example.com:7233",
+      TEMPORAL_NAMESPACE: "rolecraft-prod",
+      TEMPORAL_TASK_QUEUE: "rolecraft-prefill"
+    });
+
+    expect(runtime).toEqual({
+      enabled: true,
+      address: "temporal.example.com:7233",
+      namespace: "rolecraft-prod",
+      taskQueue: "rolecraft-prefill"
+    });
   });
 });

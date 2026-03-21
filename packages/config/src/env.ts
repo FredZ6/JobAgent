@@ -6,6 +6,10 @@ export const appEnvSchema = z.object({
   API_URL: z.string().url().default("http://localhost:3001"),
   DATABASE_URL: z.string().min(1),
   REDIS_URL: z.string().min(1),
+  TEMPORAL_ENABLED: z.string().default("false"),
+  TEMPORAL_ADDRESS: z.string().default("temporal:7233"),
+  TEMPORAL_NAMESPACE: z.string().default("default"),
+  TEMPORAL_TASK_QUEUE: z.string().default("rolecraft-analysis"),
   LLM_PROVIDER: z.string().default("openai"),
   LLM_MODEL: z.string().default("gpt-5.4"),
   LLM_API_KEY: z.string().default(""),
@@ -34,4 +38,20 @@ export function resolveInternalApiToken(
   }
 
   return undefined;
+}
+
+export function resolveTemporalRuntime(
+  env: Partial<
+    Record<
+      "TEMPORAL_ENABLED" | "TEMPORAL_ADDRESS" | "TEMPORAL_NAMESPACE" | "TEMPORAL_TASK_QUEUE",
+      string | undefined
+    >
+  >
+) {
+  return {
+    enabled: env.TEMPORAL_ENABLED === "true",
+    address: env.TEMPORAL_ADDRESS?.trim() || "temporal:7233",
+    namespace: env.TEMPORAL_NAMESPACE?.trim() || "default",
+    taskQueue: env.TEMPORAL_TASK_QUEUE?.trim() || "rolecraft-analysis"
+  };
 }

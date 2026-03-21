@@ -1,11 +1,13 @@
 "use client";
 
+import React from "react";
 import { startTransition, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import type { WorkflowRun } from "@rolecraft/shared-types";
 
 import { Panel } from "../../../components/panel";
+import { WorkflowRunCard } from "../../../components/workflow-run-card";
 import { compareApplicationRuns } from "../../../lib/application-comparison";
 import {
   analyzeJob,
@@ -20,10 +22,7 @@ import {
   generateResume,
   type JobDetail
 } from "../../../lib/api";
-import {
-  getWorkflowRunStatusCopy,
-  hasActiveWorkflowRuns
-} from "../../../lib/workflow-run-status";
+import { hasActiveWorkflowRuns } from "../../../lib/workflow-run-status";
 
 export default function JobDetailPage() {
   const params = useParams<{ id: string }>();
@@ -460,70 +459,46 @@ export default function JobDetailPage() {
         {workflowRuns.length > 0 ? (
           <div className="job-list">
             {workflowRuns.map((run) => {
-              const statusCopy = getWorkflowRunStatusCopy(run);
-
               return (
-                <div key={run.id} className="job-card">
-                  <div className="pill-row">
-                    <span className="mini-pill">{run.kind.replace(/_/g, " ")}</span>
-                    <span className="mini-pill">{statusCopy.label}</span>
-                    <span className="mini-pill">{run.executionMode}</span>
-                  </div>
-                  <p className="muted">{statusCopy.detail}</p>
-                  <p className="muted">
-                    Started {run.startedAt ? new Date(run.startedAt).toLocaleString() : "not started yet"}
-                    {run.completedAt ? ` · Completed ${new Date(run.completedAt).toLocaleString()}` : ""}
-                  </p>
-                  <p className="muted">
-                    {run.workflowType ? `${run.workflowType} · ` : ""}
-                    {run.taskQueue ? `queue ${run.taskQueue} · ` : ""}
-                    {run.workflowId ? `workflow ${run.workflowId}` : "direct execution"}
-                  </p>
-                  {run.retryOfRunId ? <p className="muted">Retry of {run.retryOfRunId}</p> : null}
-                  <Link className="button button-secondary" href={`/workflow-runs/${run.id}`}>
-                    Open run detail
-                  </Link>
-                  {run.resumeVersionId ? (
-                    <Link className="button button-secondary" href={`/resume-versions/${run.resumeVersionId}`}>
-                      Open resume version
-                    </Link>
-                  ) : null}
-                  {run.applicationId ? (
-                    <Link className="button button-secondary" href={`/applications/${run.applicationId}`}>
-                      Open application run
-                    </Link>
-                  ) : null}
-                  {run.status === "failed" ? (
-                    <button
-                      className="button button-primary"
-                      type="button"
-                      onClick={() => retryFailedRun(run.id)}
-                      disabled={retryingRunId === run.id}
-                    >
-                      {retryingRunId === run.id ? "Retrying..." : "Retry failed run"}
-                    </button>
-                  ) : null}
-                  {((run.executionMode === "temporal" &&
-                    (run.status === "queued" || run.status === "running")) ||
-                    (run.executionMode === "direct" && run.status === "running")) ? (
-                    <button
-                      className="button button-secondary"
-                      type="button"
-                      onClick={() => cancelRun(run.id)}
-                      disabled={cancellingRunId === run.id}
-                    >
-                      {cancellingRunId === run.id ? "Cancelling..." : "Cancel run"}
-                    </button>
-                  ) : null}
-                  {run.executionMode === "temporal" && run.status === "running" ? (
-                    <div className="inline-note">Stops the run at the next safe cancellation point.</div>
-                  ) : null}
-                  {run.executionMode === "direct" && run.status === "running" ? (
-                    <div className="inline-note">
-                      Stops the run at the next safe cancellation point in this API process.
-                    </div>
-                  ) : null}
-                </div>
+                <WorkflowRunCard
+                  key={run.id}
+                  run={run}
+                  links={[
+                    { href: `/workflow-runs/${run.id}`, label: "Open run detail" },
+                    ...(run.resumeVersionId
+                      ? [{ href: `/resume-versions/${run.resumeVersionId}`, label: "Open resume version" }]
+                      : []),
+                    ...(run.applicationId
+                      ? [{ href: `/applications/${run.applicationId}`, label: "Open application run" }]
+                      : [])
+                  ]}
+                  actions={
+                    <>
+                      {run.status === "failed" ? (
+                        <button
+                          className="button button-primary"
+                          type="button"
+                          onClick={() => retryFailedRun(run.id)}
+                          disabled={retryingRunId === run.id}
+                        >
+                          {retryingRunId === run.id ? "Retrying..." : "Retry failed run"}
+                        </button>
+                      ) : null}
+                      {((run.executionMode === "temporal" &&
+                        (run.status === "queued" || run.status === "running")) ||
+                        (run.executionMode === "direct" && run.status === "running")) ? (
+                        <button
+                          className="button button-secondary"
+                          type="button"
+                          onClick={() => cancelRun(run.id)}
+                          disabled={cancellingRunId === run.id}
+                        >
+                          {cancellingRunId === run.id ? "Cancelling..." : "Cancel run"}
+                        </button>
+                      ) : null}
+                    </>
+                  }
+                />
               );
             })}
           </div>

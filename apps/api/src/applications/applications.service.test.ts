@@ -198,6 +198,78 @@ describe("ApplicationsService", () => {
     await expect(service.prefillJob("job_1")).rejects.toBeInstanceOf(BadRequestException);
   });
 
+  it("prefillJob extracts nested worker error messages from JSON error bodies", async () => {
+    const prisma = mockPrisma();
+    prisma.job.findUnique.mockResolvedValue({
+      id: "job_1",
+      applyUrl: "https://apply",
+      title: "Role",
+      company: "Co",
+      location: "Remote"
+    });
+    prisma.resumeVersion.findFirst.mockResolvedValue({
+      id: "resume_1",
+      jobId: "job_1",
+      status: "completed",
+      headline: "Headline"
+    });
+    prisma.application.create.mockResolvedValue({
+      id: "app_1",
+      jobId: "job_1",
+      resumeVersionId: "resume_1",
+      status: "queued",
+      approvalStatus: "pending_review",
+      applyUrl: "https://apply",
+      formSnapshot: {},
+      fieldResults: [],
+      screenshotPaths: [],
+      workerLog: [],
+      submissionStatus: "not_ready",
+      submittedAt: null,
+      submissionNote: "",
+      submittedByUser: false,
+      finalSubmissionSnapshot: null,
+      reviewNote: "",
+      errorMessage: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      job: { id: "job_1", title: "Role", company: "Co", applyUrl: "https://apply" },
+      resumeVersion: { id: "resume_1", headline: "Headline", status: "completed" }
+    });
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      text: async () =>
+        JSON.stringify({
+          status: "failed",
+          errorMessage:
+            "page.goto: net::ERR_NAME_NOT_RESOLVED at https://example.com/jobs/staff-platform-engineer\nCall log:\n  - navigating...",
+          workerLog: [
+            {
+              level: "error",
+              message:
+                "page.goto: net::ERR_NAME_NOT_RESOLVED at https://example.com/jobs/staff-platform-engineer"
+            }
+          ]
+        })
+    });
+    prisma.application.update.mockResolvedValueOnce({}).mockResolvedValueOnce({});
+    const workflowRunsService = mockWorkflowRunsService();
+    const service = new ApplicationsService(prisma as any, undefined, workflowRunsService as any);
+
+    await expect(service.prefillJob("job_1")).rejects.toThrow(
+      "page.goto: net::ERR_NAME_NOT_RESOLVED at https://example.com/jobs/staff-platform-engineer"
+    );
+
+    expect(workflowRunsService.markFailed).toHaveBeenCalledWith(
+      "run_direct",
+      expect.objectContaining({
+        applicationId: "app_1",
+        errorMessage:
+          "page.goto: net::ERR_NAME_NOT_RESOLVED at https://example.com/jobs/staff-platform-engineer"
+      })
+    );
+  });
+
   it("getApplication throws when application does not exist", async () => {
     const prisma = mockPrisma();
     const workflowRunsService = mockWorkflowRunsService();
