@@ -1,6 +1,13 @@
 import { Body, Controller, Get, Inject, NotFoundException, Param, Post } from "@nestjs/common";
-import { jobImportRequestSchema } from "@rolecraft/shared-types";
+import {
+  jobImportDiagnosticsSchema,
+  jobImportRequestSchema,
+  jobImportSourceSchema,
+  type JobImportDiagnostics,
+  type JobImportSummary
+} from "@rolecraft/shared-types";
 import { Prisma } from "@prisma/client";
+import { z } from "zod";
 
 import { AnalysisService } from "../analysis/analysis.service.js";
 import { ApplicationsService } from "../applications/applications.service.js";
@@ -28,6 +35,15 @@ export class JobsController {
         createdAt: "desc"
       },
       include: {
+        events: {
+          where: {
+            type: "job_imported"
+          },
+          orderBy: {
+            createdAt: "desc"
+          },
+          take: 1
+        },
         analyses: {
           orderBy: {
             createdAt: "desc"
@@ -45,6 +61,7 @@ export class JobsController {
 
     return jobs.map((job) => ({
       ...job,
+      ...this.buildImportQuality(job.events[0]?.payload),
       latestAnalysis: job.analyses[0]
         ? {
             matchScore: job.analyses[0].matchScore,
@@ -67,6 +84,15 @@ export class JobsController {
     const job = await this.prisma.job.findUnique({
       where: { id },
       include: {
+        events: {
+          where: {
+            type: "job_imported"
+          },
+          orderBy: {
+            createdAt: "desc"
+          },
+          take: 1
+        },
         analyses: {
           orderBy: {
             createdAt: "desc"
@@ -86,6 +112,7 @@ export class JobsController {
 
     return {
       ...job,
+      ...this.buildImportQuality(job.events[0]?.payload),
       analyses: job.analyses,
       resumeVersions: job.resumeVersions
     };
@@ -174,4 +201,45 @@ export class JobsController {
   listResumeVersions(@Param("id") id: string) {
     return this.resumeService.listJobResumeVersions(id);
   }
+
+  private buildImportQuality(payload: Prisma.JsonValue | undefined) {
+    const parsedPayload = jobImportEventPayloadSchema.safeParse(payload);
+
+    if (!parsedPayload.success) {
+      return {};
+    }
+
+    const warnings = parsedPayload.data.warnings;
+    const importSummary: JobImportSummary = {
+      source: parsedPayload.data.importSource,
+      warnings,
+      hasWarnings: warnings.length > 0,
+      statusLabel: this.buildImportStatusLabel(parsedPayload.data.importSource, warnings.length > 0)
+    };
+    const importDiagnostics = this.buildImportDiagnostics(parsedPayload.data.diagnostics);
+
+    return {
+      importSummary,
+      ...(importDiagnostics ? { importDiagnostics } : {})
+    };
+  }
+
+  private buildImportStatusLabel(source: z.infer<typeof jobImportSourceSchema>, hasWarnings: boolean) {
+    if (source === "synthetic_fallback") {
+      return "Fallback import";
+    }
+
+    return hasWarnings ? "Live import · warnings" : "Live import";
+  }
+
+  private buildImportDiagnostics(diagnostics: unknown): JobImportDiagnostics | undefined {
+    const parsedDiagnostics = jobImportDiagnosticsSchema.safeParse(diagnostics);
+    return parsedDiagnostics.success ? parsedDiagnostics.data : undefined;
+  }
 }
+
+const jobImportEventPayloadSchema = z.object({
+  importSource: jobImportSourceSchema,
+  warnings: z.array(z.string().min(1)).default([]),
+  diagnostics: z.unknown().optional()
+});

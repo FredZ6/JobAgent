@@ -10,6 +10,25 @@ export const jobImportRequestSchema = z.object({
   sourceUrl: z.string().url()
 });
 
+export const jobImportSourceSchema = z.enum(["live_html", "synthetic_fallback"]);
+
+export const jobImportSummarySchema = z.object({
+  source: jobImportSourceSchema,
+  warnings: z.array(z.string().min(1)),
+  hasWarnings: z.boolean(),
+  statusLabel: z.string().min(1)
+});
+
+export const jobImportDiagnosticsSchema = z.object({
+  fetchStatus: z.number().int().nullable().optional(),
+  usedJsonLd: z.boolean().optional(),
+  usedBodyFallback: z.boolean().optional(),
+  applyUrlSource: z.string().nullable().optional(),
+  titleSource: z.string().nullable().optional(),
+  companySource: z.string().nullable().optional(),
+  descriptionSource: z.string().nullable().optional()
+});
+
 export const jobSchema = z.object({
   id: z.string().min(1),
   sourceUrl: z.string().url(),
@@ -20,6 +39,8 @@ export const jobSchema = z.object({
   description: z.string().min(1),
   rawText: z.string().min(1),
   importStatus: z.enum(["imported", "failed"]),
+  importSummary: jobImportSummarySchema.optional(),
+  importDiagnostics: jobImportDiagnosticsSchema.optional(),
   createdAt: z.string(),
   updatedAt: z.string()
 });
@@ -187,6 +208,9 @@ export const workflowRunDetailSchema = z.object({
 });
 
 export type JobImportRequest = z.infer<typeof jobImportRequestSchema>;
+export type JobImportSource = z.infer<typeof jobImportSourceSchema>;
+export type JobImportSummary = z.infer<typeof jobImportSummarySchema>;
+export type JobImportDiagnostics = z.infer<typeof jobImportDiagnosticsSchema>;
 export type JobDto = z.infer<typeof jobSchema>;
 export type JobAnalysisResult = z.infer<typeof jobAnalysisResultSchema>;
 export type WorkflowRunKind = z.infer<typeof workflowRunKindSchema>;

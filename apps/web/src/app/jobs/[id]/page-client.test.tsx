@@ -72,6 +72,21 @@ beforeEach(() => {
     sourceUrl: "https://jobs.example.com/platform",
     applyUrl: "https://apply.example.com/platform",
     importStatus: "imported",
+    importSummary: {
+      source: "live_html",
+      warnings: ["apply_url_not_detected"],
+      hasWarnings: true,
+      statusLabel: "Live import · warnings"
+    },
+    importDiagnostics: {
+      fetchStatus: 200,
+      usedJsonLd: true,
+      usedBodyFallback: false,
+      titleSource: "og:title",
+      companySource: "json_ld",
+      descriptionSource: "json_ld",
+      applyUrlSource: "source_url"
+    },
     analyses: [],
     resumeVersions: []
   } as never);
@@ -126,6 +141,23 @@ beforeEach(() => {
 });
 
 describe("JobDetailPage shared workflow-run cards", () => {
+  it("renders importer quality details from the latest import event summary", async () => {
+    render(<JobDetailPage />);
+
+    await waitFor(() => {
+      expect(mockedFetchJob).toHaveBeenCalledWith("job_1");
+    });
+
+    expect(await screen.findByRole("heading", { name: "Import quality" })).toBeInTheDocument();
+    expect(screen.getByText("Live import · warnings")).toBeInTheDocument();
+    expect(screen.getByText("Apply URL not detected")).toBeInTheDocument();
+    expect(screen.getByText("Title source: og:title")).toBeInTheDocument();
+    expect(screen.getByText("Company source: json_ld")).toBeInTheDocument();
+    expect(screen.getByText("Description source: json_ld")).toBeInTheDocument();
+    expect(screen.getByText("Apply URL source: source_url")).toBeInTheDocument();
+    expect(screen.getByText("Used JSON-LD: yes")).toBeInTheDocument();
+  });
+
   it("renders workflow-run cards with retry and cancel controls intact", async () => {
     render(<JobDetailPage />);
 

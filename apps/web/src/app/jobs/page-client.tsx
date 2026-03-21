@@ -1,11 +1,13 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
 import { startTransition, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Field } from "../../components/field";
 import { Panel } from "../../components/panel";
+import { getImportStatusLabel } from "../../lib/job-import-quality";
 import { fetchJobs, importJob, type JobListItem } from "../../lib/api";
 
 export default function JobsPage() {
@@ -97,6 +99,11 @@ export default function JobsPage() {
                 <p className="muted">
                   {job.company} · {job.location}
                 </p>
+                {job.importSummary ? (
+                  <div className="pill-row">
+                    <span className="mini-pill">{getImportStatusLabel(job.importSummary)}</span>
+                  </div>
+                ) : null}
                 <p className="muted">{job.description.slice(0, 160)}...</p>
                 {job.latestAnalysis ? (
                   <div className="pill-row">

@@ -9,6 +9,7 @@ import type { WorkflowRun } from "@rolecraft/shared-types";
 import { Panel } from "../../../components/panel";
 import { WorkflowRunCard } from "../../../components/workflow-run-card";
 import { compareApplicationRuns } from "../../../lib/application-comparison";
+import { buildImportDiagnosticsRows, formatImportWarning } from "../../../lib/job-import-quality";
 import {
   analyzeJob,
   buildResumePdfUrl,
@@ -297,6 +298,10 @@ export default function JobDetailPage() {
         : [],
     [runComparison]
   );
+  const importDiagnosticsRows = useMemo(
+    () => buildImportDiagnosticsRows(job?.importDiagnostics),
+    [job?.importDiagnostics]
+  );
 
   return (
     <section className="content-grid">
@@ -343,6 +348,48 @@ export default function JobDetailPage() {
           </>
         ) : (
           <div className="error-text">{error || "Job not found."}</div>
+        )}
+      </Panel>
+
+      <Panel
+        className="span-5"
+        eyebrow="Import quality"
+        title="Import quality"
+        copy="Importer diagnostics help you tell the difference between live page content and placeholder fallback content."
+      >
+        {job?.importSummary ? (
+          <>
+            <div className="pill-row">
+              <span className="mini-pill">{job.importSummary.statusLabel}</span>
+              <span className="mini-pill">{job.importStatus}</span>
+            </div>
+            <div className="stack">
+              <span className="muted">Source URL: {job.sourceUrl}</span>
+              <span className="muted">Apply URL: {job.applyUrl ?? "Unavailable"}</span>
+            </div>
+            {job.importSummary.warnings.length > 0 ? (
+              <div className="stack">
+                {job.importSummary.warnings.map((warning) => (
+                  <span key={warning} className="muted">
+                    {formatImportWarning(warning)}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <div className="inline-note">No importer warnings were recorded.</div>
+            )}
+            {importDiagnosticsRows.length > 0 ? (
+              <div className="stack">
+                {importDiagnosticsRows.map((row) => (
+                  <span key={row.label} className="muted">
+                    {row.label}: {row.value}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <div className="inline-note">No importer quality details are available for this job yet.</div>
         )}
       </Panel>
 
@@ -429,14 +476,6 @@ export default function JobDetailPage() {
                   {flag}
                 </span>
               ))}
-            </div>
-          </div>
-          <div className="analysis-card">
-            <div className="eyebrow">Import metadata</div>
-            <div className="stack">
-              <span className="muted">Source URL: {job?.sourceUrl}</span>
-              <span className="muted">Apply URL: {job?.applyUrl ?? "Unavailable"}</span>
-              <span className="muted">Status: {job?.importStatus}</span>
             </div>
           </div>
         </div>
