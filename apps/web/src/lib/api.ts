@@ -36,8 +36,11 @@ import {
   type WorkflowRun
 } from "@rolecraft/shared-types";
 import { extractApiErrorMessage } from "./api-error";
+import { resolveWebApiBaseUrl } from "./api-base";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? process.env.API_URL ?? "http://localhost:3001";
+const API_BASE = resolveWebApiBaseUrl(process.env, {
+  browser: typeof window !== "undefined"
+});
 
 type AnalysisRecord = JobAnalysisResult & {
   id: string;
