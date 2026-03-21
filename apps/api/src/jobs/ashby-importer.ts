@@ -1,25 +1,29 @@
 import type { JobImportAdapterAttempt, JobImporterAdapter } from "./job-importer-adapters.js";
 
-export const greenhouseImporterAdapter: JobImporterAdapter = {
-  name: "greenhouse",
-  matches: matchesGreenhouseJob,
-  extract: extractGreenhouseJob
+export const ashbyImporterAdapter: JobImporterAdapter = {
+  name: "ashby",
+  matches: matchesAshbyJob,
+  extract: extractAshbyJob
 };
 
-export function matchesGreenhouseJob(sourceUrl: string, html?: string) {
+export function matchesAshbyJob(sourceUrl: string, html?: string) {
   try {
     const url = new URL(sourceUrl);
-    const knownHost = ["boards.greenhouse.io", "job-boards.greenhouse.io"].includes(url.hostname);
-    const knownPath = /\/jobs\//i.test(url.pathname);
-    const htmlSignals = html ? /id="app_body"|class="app-title"|greenhouse/i.test(html) : false;
+    const knownHost = ["jobs.ashbyhq.com"].includes(url.hostname);
+    const knownPath = url.pathname.split("/").filter(Boolean).length >= 2;
+    const htmlSignals = html
+      ? /data-ashby-job-posting|data-ashby-job-description|ashby-location|ashby-company/i.test(
+          html
+        )
+      : false;
     return (knownHost && knownPath) || htmlSignals;
   } catch {
     return false;
   }
 }
 
-export function extractGreenhouseJob(html: string, sourceUrl: string): JobImportAdapterAttempt {
-  if (!matchesGreenhouseJob(sourceUrl, html)) {
+export function extractAshbyJob(html: string, sourceUrl: string): JobImportAdapterAttempt {
+  if (!matchesAshbyJob(sourceUrl, html)) {
     return {
       matched: false,
       result: null,
@@ -30,40 +34,46 @@ export function extractGreenhouseJob(html: string, sourceUrl: string): JobImport
 
   const title =
     pickFirstNonEmpty([
-      extractTag(html, /<h1[^>]*class="[^"]*app-title[^"]*"[^>]*>([\s\S]*?)<\/h1>/i),
+      extractTag(
+        html,
+        /<div[^>]*data-ashby-job-posting[^>]*>[\s\S]*?<h1[^>]*>([\s\S]*?)<\/h1>/i
+      ),
       extractTag(html, /<meta[^>]+property="og:title"[^>]+content="([^"]+)"/i),
       extractTag(html, /<title>(.*?)<\/title>/is)
     ]) ?? "";
   const company =
     pickFirstNonEmpty([
-      extractTag(html, /<div[^>]*class="[^"]*company-name[^"]*"[^>]*>([\s\S]*?)<\/div>/i),
-      extractTag(html, /<meta[^>]+property="og:site_name"[^>]+content="([^"]+)"/i),
+      extractTag(html, /<div[^>]*class="[^"]*ashby-company[^"]*"[^>]*>([\s\S]*?)<\/div>/i),
       deriveBoardCompany(sourceUrl)
     ]) ?? "";
   const location =
     pickFirstNonEmpty([
-      extractTag(html, /<div[^>]*class="[^"]*location[^"]*"[^>]*>([\s\S]*?)<\/div>/i),
-      extractTag(html, /<span[^>]*class="[^"]*location[^"]*"[^>]*>([\s\S]*?)<\/span>/i)
+      extractTag(html, /<div[^>]*class="[^"]*ashby-location[^"]*"[^>]*>([\s\S]*?)<\/div>/i)
     ]) ?? "";
-  const descriptionBlock =
-    extractTag(html, /<section[^>]*id="content"[^>]*>([\s\S]*?)<\/section>/i) ??
-    extractTag(html, /<div[^>]*class="[^"]*content[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
-  const description = normalizeText(descriptionBlock) ?? "";
-
-  const applyCta = extractApplyLink(html, sourceUrl);
+  const description =
+    pickFirstNonEmpty([
+      extractTag(html, /<section[^>]*data-ashby-job-description[^>]*>([\s\S]*?)<\/section>/i),
+      extractTag(html, /<div[^>]*data-ashby-job-posting[^>]*>([\s\S]*?)<\/div>/i)
+    ]) ?? "";
+  const applyCta =
+    normalizeUrl(
+      extractTag(html, /<a[^>]*data-ashby-apply-link[^>]*href="([^"]+)"/i),
+      sourceUrl
+    ) ?? extractApplyLink(html, sourceUrl);
   const applyUrl = applyCta ?? sourceUrl;
+
   const warnings: string[] = [];
   if (!location) {
-    warnings.push("greenhouse_location_not_detected");
+    warnings.push("ashby_location_not_detected");
   }
 
   const diagnostics = {
-    adapter: "greenhouse",
+    adapter: "ashby",
     adapterMatched: true,
     usedStructuredPosting: false,
-    descriptionSource: description ? "greenhouse_body" : null,
-    locationSource: location ? "greenhouse_location" : "fallback",
-    applyUrlSource: applyCta ? "greenhouse_apply_cta" : "source_url"
+    descriptionSource: description ? "ashby_body" : null,
+    locationSource: location ? "ashby_location" : "fallback",
+    applyUrlSource: applyCta ? "ashby_apply_cta" : "source_url"
   } satisfies Record<string, unknown>;
 
   const hasCoreContent = title.length > 0 && description.length > 0;
@@ -76,8 +86,8 @@ export function extractGreenhouseJob(html: string, sourceUrl: string): JobImport
       warnings,
       diagnostics: {
         ...diagnostics,
-        adapterAttempted: "greenhouse",
-        adapterFallbackReason: "insufficient_greenhouse_content"
+        adapterAttempted: "ashby",
+        adapterFallbackReason: "insufficient_ashby_content"
       }
     };
   }

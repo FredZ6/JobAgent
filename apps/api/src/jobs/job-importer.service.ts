@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { resolveJobImportRuntime } from "@rolecraft/config";
-import { extractGreenhouseJob, matchesGreenhouseJob } from "./greenhouse-importer.js";
+import { jobImporterAdapters } from "./job-importer-adapters.js";
 
 type ImportedJobRecord = {
   sourceUrl: string;
@@ -50,33 +50,31 @@ export class JobImporterService {
       }
 
       const html = await response.text();
-      const greenhouseAttempt = matchesGreenhouseJob(sourceUrl, html)
-        ? extractGreenhouseJob(html, sourceUrl)
-        : null;
+      const adapterAttempt = this.trySiteSpecificAdapters(sourceUrl, html);
 
-      if (greenhouseAttempt?.result) {
+      if (adapterAttempt?.result) {
         return {
           sourceUrl,
-          applyUrl: greenhouseAttempt.result.applyUrl,
-          title: greenhouseAttempt.result.title,
-          company: greenhouseAttempt.result.company,
-          location: greenhouseAttempt.result.location,
-          description: greenhouseAttempt.result.description,
-          rawText: greenhouseAttempt.result.description,
+          applyUrl: adapterAttempt.result.applyUrl,
+          title: adapterAttempt.result.title,
+          company: adapterAttempt.result.company,
+          location: adapterAttempt.result.location,
+          description: adapterAttempt.result.description,
+          rawText: adapterAttempt.result.description,
           importStatus: "imported",
           importSource: "live_html",
-          warnings: greenhouseAttempt.result.warnings,
+          warnings: adapterAttempt.result.warnings,
           diagnostics: {
             fetchStatus: response.status,
-            ...greenhouseAttempt.result.diagnostics
+            ...adapterAttempt.result.diagnostics
           }
         };
       }
 
-      const warnings: string[] = [...(greenhouseAttempt?.warnings ?? [])];
+      const warnings: string[] = [...(adapterAttempt?.warnings ?? [])];
       const diagnostics: Record<string, unknown> = {
         fetchStatus: response.status,
-        ...(greenhouseAttempt?.diagnostics ?? {})
+        ...(adapterAttempt?.diagnostics ?? {})
       };
       const jsonLd = this.extractJobPostingJsonLd(html);
       diagnostics.usedJsonLd = jsonLd != null;
@@ -225,6 +223,18 @@ export class JobImporterService {
 
   private extractTag(html: string, pattern: RegExp) {
     return pattern.exec(html)?.[1] ?? null;
+  }
+
+  private trySiteSpecificAdapters(sourceUrl: string, html: string) {
+    for (const adapter of jobImporterAdapters) {
+      if (!adapter.matches(sourceUrl, html)) {
+        continue;
+      }
+
+      return adapter.extract(html, sourceUrl);
+    }
+
+    return null;
   }
 
   private extractBodyText(html: string) {
