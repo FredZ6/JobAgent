@@ -95,6 +95,12 @@ export class JobsController {
   async importByUrl(@Body() body: unknown) {
     const input = parseOrThrow(jobImportRequestSchema, body);
     const imported = await this.importerService.importFromUrl(input.sourceUrl);
+    const {
+      importSource,
+      warnings,
+      diagnostics,
+      ...jobData
+    } = imported;
 
     return this.prisma.$transaction(async (transaction) => {
       const tx = transaction as Prisma.TransactionClient & {
@@ -114,7 +120,7 @@ export class JobsController {
       };
 
       const job = await tx.job.create({
-        data: imported
+        data: jobData
       });
 
       await tx.jobEvent.create({
@@ -127,7 +133,10 @@ export class JobsController {
           source: "jobs-controller",
           payload: {
             sourceUrl: imported.sourceUrl,
-            importStatus: imported.importStatus
+            importStatus: imported.importStatus,
+            importSource,
+            warnings,
+            diagnostics
           } as Prisma.InputJsonValue
         }
       });
