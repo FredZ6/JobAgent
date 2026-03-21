@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { resolveJobImportRuntime } from "@rolecraft/config";
 
 type ImportedJobRecord = {
   sourceUrl: string;
@@ -27,7 +28,7 @@ export class JobImporterService {
       }
     });
 
-    if (process.env.JOB_IMPORT_MODE === "mock") {
+    if (resolveJobImportRuntime(process.env).mode === "mock") {
       return fallback;
     }
 

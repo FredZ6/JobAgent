@@ -1,5 +1,6 @@
 import express from "express";
 import { chromium } from "playwright";
+import { resolveApplicationStorageDir, resolveServicePort } from "@rolecraft/config";
 import {
   buildSuggestions,
   captureScreenshot,
@@ -13,8 +14,8 @@ import {
 const app = express();
 app.use(express.json());
 
-const port = Number(process.env.PORT ?? 4000);
-const storageDir = process.env.APPLICATION_STORAGE_DIR ?? "/app/storage/applications";
+const port = resolveServicePort(process.env, 4000);
+const storageDir = resolveApplicationStorageDir(process.env);
 
 app.post("/prefill", async (req: any, res: any) => {
   const payload = req.body as PrefillRequest;

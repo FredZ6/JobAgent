@@ -1,5 +1,5 @@
 import { Inject, Injectable, NotFoundException } from "@nestjs/common";
-import { resolveTemporalRuntime } from "@rolecraft/config";
+import { resolveApiBaseUrl, resolveTemporalRuntime } from "@rolecraft/config";
 import { resumeVersionSchema, type OrchestrationMetadata } from "@rolecraft/shared-types";
 import { ResumeVersion as PrismaResumeVersion } from "@prisma/client";
 
@@ -9,7 +9,7 @@ import { DirectResumeService } from "./direct-resume.service.js";
 import { buildResumePdfFileName } from "./resume-pdf.service.js";
 
 export function buildResumePdfDownloadUrl(id: string) {
-  const baseUrl = (process.env.API_URL ?? "http://localhost:3001").replace(/\/$/, "");
+  const baseUrl = resolveApiBaseUrl(process.env);
   return `${baseUrl}/resume-versions/${id}/pdf`;
 }
 

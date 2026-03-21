@@ -1,4 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
+import { resolveResumeRuntime } from "@rolecraft/config";
 import {
   type CandidateProfile,
   type JobAnalysisResult,
@@ -26,7 +27,7 @@ export class LlmResumeService {
   constructor(@Inject(LlmGatewayService) private readonly llmGatewayService: LlmGatewayService) {}
 
   async generate(input: GenerateInput): Promise<ResumeContent> {
-    if (!input.apiKey || process.env.JOB_RESUME_MODE === "mock") {
+    if (!input.apiKey || resolveResumeRuntime(process.env).mode === "mock") {
       return this.mockResume(input);
     }
 

@@ -1,4 +1,5 @@
 import { Inject, Injectable, InternalServerErrorException, NotFoundException } from "@nestjs/common";
+import { resolveAnalysisRuntime, resolveResumeRuntime } from "@rolecraft/config";
 
 import { PrismaService } from "../lib/prisma.service.js";
 import { type LlmProviderName } from "../llm/llm-provider.types.js";
@@ -448,7 +449,10 @@ export class LongAnswerService {
   }
 
   private isDemoFallbackMode() {
-    return process.env.JOB_ANALYSIS_MODE === "mock" && process.env.JOB_RESUME_MODE === "mock";
+    return (
+      resolveAnalysisRuntime(process.env).mode === "mock" &&
+      resolveResumeRuntime(process.env).mode === "mock"
+    );
   }
 
   private isUsableProviderSettings(settings: {

@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { Context } from "@temporalio/activity";
-import { resolveInternalApiToken } from "@rolecraft/config";
+import { resolveApiBaseUrl, resolveInternalApiToken } from "@rolecraft/config";
 import type { OrchestrationMetadata } from "@rolecraft/shared-types";
 
 type DirectInvocationBody = {
@@ -13,6 +13,11 @@ function buildInternalHeaders() {
     "Content-Type": "application/json",
     "x-internal-token": resolveInternalApiToken(process.env) ?? ""
   };
+}
+
+function buildInternalApiUrl(path: string) {
+  const baseUrl = resolveApiBaseUrl(process.env, "http://api:3001");
+  return `${baseUrl}${path}`;
 }
 
 async function runCancellableInternalRequest<T>(label: string, fn: (signal: AbortSignal) => Promise<T>) {
@@ -43,18 +48,15 @@ export async function runDirectAnalysis(
 
   try {
     return await runCancellableInternalRequest("analysis", async (signal) => {
-      const response = await fetch(
-        `${process.env.API_URL ?? "http://api:3001"}/internal/jobs/${jobId}/analyze-direct`,
-        {
-          method: "POST",
-          signal,
-          headers: buildInternalHeaders(),
-          body: JSON.stringify({
-            orchestration,
-            workflowRunId
-          } satisfies DirectInvocationBody)
-        }
-      );
+      const response = await fetch(buildInternalApiUrl(`/internal/jobs/${jobId}/analyze-direct`), {
+        method: "POST",
+        signal,
+        headers: buildInternalHeaders(),
+        body: JSON.stringify({
+          orchestration,
+          workflowRunId
+        } satisfies DirectInvocationBody)
+      });
 
       if (!response.ok) {
         throw new Error(`Internal direct-analysis request failed with ${response.status}`);
@@ -77,18 +79,15 @@ export async function runDirectResumeGeneration(
 
   try {
     return await runCancellableInternalRequest("resume", async (signal) => {
-      const response = await fetch(
-        `${process.env.API_URL ?? "http://api:3001"}/internal/jobs/${jobId}/generate-resume-direct`,
-        {
-          method: "POST",
-          signal,
-          headers: buildInternalHeaders(),
-          body: JSON.stringify({
-            orchestration,
-            workflowRunId
-          } satisfies DirectInvocationBody)
-        }
-      );
+      const response = await fetch(buildInternalApiUrl(`/internal/jobs/${jobId}/generate-resume-direct`), {
+        method: "POST",
+        signal,
+        headers: buildInternalHeaders(),
+        body: JSON.stringify({
+          orchestration,
+          workflowRunId
+        } satisfies DirectInvocationBody)
+      });
 
       if (!response.ok) {
         throw new Error(`Internal direct-resume request failed with ${response.status}`);
@@ -111,18 +110,15 @@ export async function runDirectPrefill(
 
   try {
     return await runCancellableInternalRequest("prefill", async (signal) => {
-      const response = await fetch(
-        `${process.env.API_URL ?? "http://api:3001"}/internal/jobs/${jobId}/prefill-direct`,
-        {
-          method: "POST",
-          signal,
-          headers: buildInternalHeaders(),
-          body: JSON.stringify({
-            orchestration,
-            workflowRunId
-          } satisfies DirectInvocationBody)
-        }
-      );
+      const response = await fetch(buildInternalApiUrl(`/internal/jobs/${jobId}/prefill-direct`), {
+        method: "POST",
+        signal,
+        headers: buildInternalHeaders(),
+        body: JSON.stringify({
+          orchestration,
+          workflowRunId
+        } satisfies DirectInvocationBody)
+      });
 
       if (!response.ok) {
         throw new Error(`Internal direct-prefill request failed with ${response.status}`);
@@ -141,17 +137,14 @@ export async function markWorkflowRunPaused(workflowRunId: string, pauseReason?:
 
   try {
     return await runCancellableInternalRequest("mark-paused", async (signal) => {
-      const response = await fetch(
-        `${process.env.API_URL ?? "http://api:3001"}/internal/workflow-runs/${workflowRunId}/mark-paused`,
-        {
-          method: "POST",
-          signal,
-          headers: buildInternalHeaders(),
-          body: JSON.stringify({
-            pauseReason
-          })
-        }
-      );
+      const response = await fetch(buildInternalApiUrl(`/internal/workflow-runs/${workflowRunId}/mark-paused`), {
+        method: "POST",
+        signal,
+        headers: buildInternalHeaders(),
+        body: JSON.stringify({
+          pauseReason
+        })
+      });
 
       if (!response.ok) {
         throw new Error(`Internal mark-paused request failed with ${response.status}`);

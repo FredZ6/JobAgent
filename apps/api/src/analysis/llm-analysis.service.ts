@@ -1,4 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
+import { resolveAnalysisRuntime } from "@rolecraft/config";
 import { type CandidateProfile, type JobAnalysisResult, jobAnalysisResultSchema } from "@rolecraft/shared-types";
 import { isWorkflowRunCancelledError } from "../lib/workflow-run-cancellation.js";
 import { LlmGatewayService } from "../llm/llm-gateway.service.js";
@@ -25,7 +26,7 @@ export class LlmAnalysisService {
     apiKey,
     signal
   }: AnalyzeInput): Promise<JobAnalysisResult> {
-    if (!apiKey || process.env.JOB_ANALYSIS_MODE === "mock") {
+    if (!apiKey || resolveAnalysisRuntime(process.env).mode === "mock") {
       return this.mockAnalysis(profile, jobDescription);
     }
 

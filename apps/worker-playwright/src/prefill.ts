@@ -2,7 +2,7 @@ import { existsSync, mkdirSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { resolveInternalApiToken } from "@rolecraft/config";
+import { resolveApiBaseUrl, resolveInternalApiToken } from "@rolecraft/config";
 import type { Page } from "playwright";
 
 type UploadTarget = {
@@ -296,7 +296,7 @@ function buildLongAnswerApiUrl(applicationId: string, resume: PrefillRequest["re
     return `${resumeUrl.origin}${basePath}/internal/applications/${applicationId}/generate-long-answers`;
   }
 
-  const baseUrl = (process.env.API_URL ?? "http://localhost:3001").replace(/\/$/, "");
+  const baseUrl = resolveApiBaseUrl(process.env);
   return `${baseUrl}/internal/applications/${applicationId}/generate-long-answers`;
 }
 

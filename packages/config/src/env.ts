@@ -55,3 +55,71 @@ export function resolveTemporalRuntime(
     taskQueue: env.TEMPORAL_TASK_QUEUE?.trim() || "rolecraft-analysis"
   };
 }
+
+function resolveMockOrLiveMode(value: string | undefined) {
+  return {
+    mode: value?.trim().toLowerCase() === "mock" ? ("mock" as const) : ("live" as const)
+  };
+}
+
+function normalizeBaseUrl(value: string | undefined, fallback: string) {
+  const trimmed = value?.trim();
+  return (trimmed && trimmed.length > 0 ? trimmed : fallback).replace(/\/+$/, "");
+}
+
+function normalizePath(value: string | undefined, fallback: string) {
+  const trimmed = value?.trim();
+  return trimmed && trimmed.length > 0 ? trimmed : fallback;
+}
+
+export function resolveJobImportRuntime(
+  env: Partial<Record<"JOB_IMPORT_MODE", string | undefined>>
+) {
+  return resolveMockOrLiveMode(env.JOB_IMPORT_MODE);
+}
+
+export function resolveAnalysisRuntime(
+  env: Partial<Record<"JOB_ANALYSIS_MODE", string | undefined>>
+) {
+  return resolveMockOrLiveMode(env.JOB_ANALYSIS_MODE);
+}
+
+export function resolveResumeRuntime(
+  env: Partial<Record<"JOB_RESUME_MODE", string | undefined>>
+) {
+  return resolveMockOrLiveMode(env.JOB_RESUME_MODE);
+}
+
+export function resolveApiBaseUrl(
+  env: Partial<Record<"API_URL", string | undefined>>,
+  fallback = "http://localhost:3001"
+) {
+  return normalizeBaseUrl(env.API_URL, fallback);
+}
+
+export function resolveWorkerRuntime(
+  env: Partial<Record<"WORKER_URL", string | undefined>>,
+  fallback = "http://worker-playwright:4000"
+) {
+  return normalizeBaseUrl(env.WORKER_URL, fallback);
+}
+
+export function resolveApplicationStorageDir(
+  env: Partial<Record<"APPLICATION_STORAGE_DIR", string | undefined>>,
+  fallback = "/app/storage/applications"
+) {
+  return normalizePath(env.APPLICATION_STORAGE_DIR, fallback);
+}
+
+export function resolveServicePort(
+  env: Partial<Record<"PORT", string | undefined>>,
+  fallback: number
+) {
+  const rawValue = env.PORT?.trim();
+  if (!rawValue) {
+    return fallback;
+  }
+
+  const parsed = Number.parseInt(rawValue, 10);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}

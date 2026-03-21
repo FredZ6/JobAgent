@@ -4,7 +4,7 @@ import { constants as fsConstants } from "node:fs";
 import { basename, resolve } from "node:path";
 import { Prisma } from "@prisma/client";
 import type { Application, AutomationSession, Job, ResumeVersion, UnresolvedAutomationItem } from "@prisma/client";
-import { resolveTemporalRuntime } from "@rolecraft/config";
+import { resolveApplicationStorageDir, resolveTemporalRuntime, resolveWorkerRuntime } from "@rolecraft/config";
 import {
   isWorkflowRunCancelledError,
   mergeWorkflowRunCancellationSignals,
@@ -954,7 +954,7 @@ export class ApplicationsService {
     defaultAnswers: Record<string, string>;
     signal?: AbortSignal;
   }) {
-    const workerUrl = process.env.WORKER_URL ?? "http://worker-playwright:4000";
+    const workerUrl = resolveWorkerRuntime(process.env);
     const response = await fetch(`${workerUrl}/prefill`, {
       method: "POST",
       signal: payload.signal,
@@ -1321,7 +1321,7 @@ export class ApplicationsService {
   }
 
   private getApplicationStorageDir() {
-    return process.env.APPLICATION_STORAGE_DIR ?? "/app/storage/applications";
+    return resolveApplicationStorageDir(process.env);
   }
 
   private buildApplicationEventSummary(type: string, payload: Record<string, unknown>) {

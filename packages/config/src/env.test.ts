@@ -1,6 +1,17 @@
 import { describe, expect, it } from "vitest";
 
-import { parseAppEnv, resolveInternalApiToken, resolveTemporalRuntime } from "./env";
+import {
+  parseAppEnv,
+  resolveAnalysisRuntime,
+  resolveApiBaseUrl,
+  resolveApplicationStorageDir,
+  resolveInternalApiToken,
+  resolveJobImportRuntime,
+  resolveResumeRuntime,
+  resolveServicePort,
+  resolveTemporalRuntime,
+  resolveWorkerRuntime
+} from "./env";
 
 function buildEnv(overrides: Partial<Record<string, string>> = {}) {
   return {
@@ -96,5 +107,78 @@ describe("resolveTemporalRuntime", () => {
       namespace: "rolecraft-prod",
       taskQueue: "rolecraft-prefill"
     });
+  });
+});
+
+describe("mode runtime helpers", () => {
+  it("defaults import, analysis, and resume modes to live", () => {
+    expect(resolveJobImportRuntime({})).toEqual({ mode: "live" });
+    expect(resolveAnalysisRuntime({})).toEqual({ mode: "live" });
+    expect(resolveResumeRuntime({})).toEqual({ mode: "live" });
+  });
+
+  it("treats explicit mock mode as mock", () => {
+    expect(resolveJobImportRuntime({ JOB_IMPORT_MODE: "mock" })).toEqual({ mode: "mock" });
+    expect(resolveAnalysisRuntime({ JOB_ANALYSIS_MODE: "mock" })).toEqual({ mode: "mock" });
+    expect(resolveResumeRuntime({ JOB_RESUME_MODE: "mock" })).toEqual({ mode: "mock" });
+  });
+
+  it("treats unknown mode values as live", () => {
+    expect(resolveJobImportRuntime({ JOB_IMPORT_MODE: "staging" })).toEqual({ mode: "live" });
+    expect(resolveAnalysisRuntime({ JOB_ANALYSIS_MODE: "staging" })).toEqual({ mode: "live" });
+    expect(resolveResumeRuntime({ JOB_RESUME_MODE: "staging" })).toEqual({ mode: "live" });
+  });
+});
+
+describe("URL and path runtime helpers", () => {
+  it("normalizes API base URLs with trimming and trailing-slash removal", () => {
+    expect(resolveApiBaseUrl({ API_URL: " http://api.example.com:3001/ " })).toBe(
+      "http://api.example.com:3001"
+    );
+  });
+
+  it("falls back API base URL when unset", () => {
+    expect(resolveApiBaseUrl({}, "http://localhost:3001")).toBe("http://localhost:3001");
+  });
+
+  it("normalizes worker URLs with trimming and trailing-slash removal", () => {
+    expect(resolveWorkerRuntime({ WORKER_URL: " http://worker-playwright:4000/ " })).toBe(
+      "http://worker-playwright:4000"
+    );
+  });
+
+  it("falls back worker URL when unset", () => {
+    expect(resolveWorkerRuntime({}, "http://worker-playwright:4000")).toBe(
+      "http://worker-playwright:4000"
+    );
+  });
+
+  it("uses explicit application storage directory when present", () => {
+    expect(
+      resolveApplicationStorageDir({
+        APPLICATION_STORAGE_DIR: " /tmp/rolecraft-applications "
+      })
+    ).toBe("/tmp/rolecraft-applications");
+  });
+
+  it("falls back application storage directory when unset", () => {
+    expect(resolveApplicationStorageDir({}, "/app/storage/applications")).toBe(
+      "/app/storage/applications"
+    );
+  });
+});
+
+describe("resolveServicePort", () => {
+  it("parses explicit numeric PORT values", () => {
+    expect(resolveServicePort({ PORT: "4100" }, 3001)).toBe(4100);
+  });
+
+  it("falls back when PORT is missing", () => {
+    expect(resolveServicePort({}, 3001)).toBe(3001);
+  });
+
+  it("falls back when PORT is invalid", () => {
+    expect(resolveServicePort({ PORT: "NaN" }, 3001)).toBe(3001);
+    expect(resolveServicePort({ PORT: "0" }, 3001)).toBe(3001);
   });
 });

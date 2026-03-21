@@ -1,5 +1,6 @@
 import "reflect-metadata";
 
+import { resolveServicePort } from "@rolecraft/config";
 import { NestFactory } from "@nestjs/core";
 
 import { AppModule } from "./app.module.js";
@@ -10,7 +11,7 @@ async function bootstrap() {
     origin: true
   });
 
-  const port = Number(process.env.PORT ?? "3001");
+  const port = resolveServicePort(process.env, 3001);
   await app.listen(port);
 }
 
