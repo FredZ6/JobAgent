@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { PropsWithChildren } from "react";
 
+import { appBrand } from "../lib/brand";
+
 const navigation = [
   { href: "/", label: "Overview" },
   { href: "/dashboard", label: "Dashboard" },
@@ -23,13 +25,11 @@ export function AppShell({ children }: PropsWithChildren) {
           <div className="brand-mark">
             <div className="brand-seal" />
             <div>
-              <h1 className="brand-title">Rolecraft</h1>
-              <p className="brand-subtitle">
-                A warm-start MVP for focused, human-in-the-loop job application prep.
-              </p>
+              <h1 className="brand-title">{appBrand.name}</h1>
+              <p className="brand-subtitle">{appBrand.subtitle}</p>
             </div>
           </div>
-          <div className="status-pill">Round one focus: settings, profile, import, analysis</div>
+          <div className="status-pill">{appBrand.statusPill}</div>
         </div>
         <nav className="nav-row">
           {navigation.map((item) => (

@@ -3,10 +3,11 @@ import { PropsWithChildren } from "react";
 
 import "./globals.css";
 import { AppShell } from "../components/app-shell";
+import { appBrand } from "../lib/brand";
 
 export const metadata: Metadata = {
-  title: "Rolecraft",
-  description: "Semi-automated job application MVP"
+  title: appBrand.name,
+  description: appBrand.description
 };
 
 export default function RootLayout({ children }: PropsWithChildren) {

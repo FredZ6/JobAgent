@@ -38,7 +38,7 @@ describe("workflow-run-status helpers", () => {
   it("describes queued Temporal runs clearly", () => {
     const copy = getWorkflowRunStatusCopy(buildRun({ status: "queued", executionMode: "temporal" }));
 
-    expect(copy.label).toBe("Queued in Temporal");
+    expect(copy.label).toBe("Queued");
     expect(copy.detail).toContain("waiting for a worker");
   });
 
@@ -56,7 +56,7 @@ describe("workflow-run-status helpers", () => {
   it("describes cancelled runs before start without presenting them like failures", () => {
     const copy = getWorkflowRunStatusCopy(buildRun({ status: "cancelled", startedAt: null }));
 
-    expect(copy.label).toBe("Cancelled before execution");
+    expect(copy.label).toBe("Cancelled");
     expect(copy.detail).toContain("did not roll back");
   });
 
@@ -83,7 +83,7 @@ describe("workflow-run-status helpers", () => {
       })
     );
 
-    expect(copy.label).toBe("Cancelled during execution");
+    expect(copy.label).toBe("Cancelled");
     expect(copy.detail).toContain("stopped at a safe cancellation point");
   });
 
@@ -131,6 +131,30 @@ describe("workflow-run-status helpers", () => {
     );
 
     expect(copy.label).toBe("Failed");
+    expect(copy.detail).toBe(
+      "page.goto: net::ERR_NAME_NOT_RESOLVED at https://example.com/jobs/staff-platform-engineer"
+    );
+  });
+
+  it("extracts readable failure text from persisted JSON payload strings", () => {
+    const copy = getWorkflowRunStatusCopy(
+      buildRun({
+        status: "failed",
+        errorMessage: JSON.stringify({
+          status: "failed",
+          workerLog: [
+            {
+              level: "error",
+              message:
+                "page.goto: net::ERR_NAME_NOT_RESOLVED at https://example.com/jobs/staff-platform-engineer"
+            }
+          ],
+          errorMessage:
+            "page.goto: net::ERR_NAME_NOT_RESOLVED at https://example.com/jobs/staff-platform-engineer\nCall log:\n  - navigating..."
+        })
+      })
+    );
+
     expect(copy.detail).toBe(
       "page.goto: net::ERR_NAME_NOT_RESOLVED at https://example.com/jobs/staff-platform-engineer"
     );

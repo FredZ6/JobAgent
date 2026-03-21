@@ -1,4 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
+import { resolveTemporalRuntime } from "@rolecraft/config";
 import type { OrchestrationMetadata } from "@rolecraft/shared-types";
 
 import { TemporalService } from "../temporal/temporal.service.js";
@@ -12,7 +13,7 @@ export class AnalysisService {
   ) {}
 
   async analyzeJob(jobId: string) {
-    if (process.env.TEMPORAL_ENABLED === "true") {
+    if (resolveTemporalRuntime(process.env).enabled) {
       return this.temporalService.executeAnalyzeJobWorkflow(jobId);
     }
 

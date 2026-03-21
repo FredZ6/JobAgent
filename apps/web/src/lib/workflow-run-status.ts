@@ -12,7 +12,7 @@ export function hasActiveWorkflowRuns(runs: WorkflowRun[]) {
 export function getWorkflowRunStatusCopy(run: WorkflowRun): WorkflowRunStatusCopy {
   if (run.status === "queued") {
     return {
-      label: "Queued in Temporal",
+      label: "Queued",
       detail: "This run is waiting for a worker to pick it up."
     };
   }
@@ -64,13 +64,13 @@ export function getWorkflowRunStatusCopy(run: WorkflowRun): WorkflowRunStatusCop
 
   if (run.startedAt) {
     return {
-      label: "Cancelled during execution",
+      label: "Cancelled",
       detail: "This run was stopped at a safe cancellation point and did not roll back any existing business records."
     };
   }
 
   return {
-    label: "Cancelled before execution",
+    label: "Cancelled",
     detail: "This run was cancelled and did not roll back any existing business records."
   };
 }
@@ -90,8 +90,44 @@ function summarizeWorkflowRunError(errorMessage: string | null) {
     return "";
   }
 
-  return errorMessage
+  const structuredError = extractStructuredErrorMessage(errorMessage);
+
+  return (structuredError || errorMessage)
     .split("\n")
     .map((line) => line.trim())
     .find((line) => line.length > 0) ?? "";
+}
+
+function extractStructuredErrorMessage(errorMessage: string) {
+  const trimmed = errorMessage.trim();
+
+  if (!trimmed.startsWith("{")) {
+    return "";
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed) as {
+      errorMessage?: unknown;
+      error?: unknown;
+      message?: unknown;
+      workerLog?: Array<{ message?: unknown }>;
+    };
+
+    const directMessage = [parsed.errorMessage, parsed.error, parsed.message].find(
+      (value): value is string => typeof value === "string" && value.trim().length > 0
+    );
+
+    if (directMessage) {
+      return directMessage;
+    }
+
+    const loggedMessage = parsed.workerLog?.find(
+      (entry): entry is { message: string } =>
+        typeof entry?.message === "string" && entry.message.trim().length > 0
+    )?.message;
+
+    return loggedMessage ?? "";
+  } catch {
+    return "";
+  }
 }

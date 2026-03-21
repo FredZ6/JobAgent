@@ -1,4 +1,5 @@
 import { BadRequestException, Inject, Injectable } from "@nestjs/common";
+import { resolveTemporalRuntime } from "@rolecraft/config";
 import type { OrchestrationMetadata, WorkflowRun } from "@rolecraft/shared-types";
 
 import { DirectAnalysisService } from "../analysis/direct-analysis.service.js";
@@ -25,7 +26,7 @@ export class WorkflowRunRetriesService {
     }
 
     try {
-      if (process.env.TEMPORAL_ENABLED === "true") {
+      if (resolveTemporalRuntime(process.env).enabled) {
         await this.retryWithTemporal(originalRun);
         const latestRetry = await this.workflowRunsService.getLatestRetryRun(originalRun.id);
         await this.workflowRunsService.markRetried(originalRun.id, latestRetry.id);

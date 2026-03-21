@@ -1,4 +1,5 @@
 import { Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { resolveTemporalRuntime } from "@rolecraft/config";
 import { resumeVersionSchema, type OrchestrationMetadata } from "@rolecraft/shared-types";
 import { ResumeVersion as PrismaResumeVersion } from "@prisma/client";
 
@@ -29,7 +30,7 @@ export class ResumeService {
   ) {}
 
   async generateResume(jobId: string) {
-    if (process.env.TEMPORAL_ENABLED === "true") {
+    if (resolveTemporalRuntime(process.env).enabled) {
       return this.temporalService.executeGenerateResumeWorkflow(jobId);
     }
 

@@ -821,6 +821,33 @@ textarea {
   accent-color: #cb5a2e;
 }
 
+.workflow-run-card {
+  align-content: start;
+}
+
+.workflow-run-heading {
+  display: grid;
+  gap: 4px;
+}
+
+.workflow-run-heading h3,
+.workflow-run-heading p,
+.workflow-run-summary,
+.workflow-run-meta p {
+  margin: 0;
+}
+
+.workflow-run-meta {
+  display: grid;
+  gap: 6px;
+}
+
+.workflow-run-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .application-field {
   padding: 14px;
   border-radius: 18px;

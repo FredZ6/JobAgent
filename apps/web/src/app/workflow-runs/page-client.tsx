@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, startTransition, useEffect, useMemo, useState } from "react";
 
 import { Panel } from "../../components/panel";
+import { WorkflowRunCard } from "../../components/workflow-run-card";
 import {
   bulkCancelWorkflowRuns,
   bulkRetryWorkflowRuns,
@@ -47,7 +48,6 @@ import {
 } from "../../lib/workflow-runs-bulk-controls";
 import { buildWorkflowRunsBulkOutcomePanel } from "../../lib/workflow-runs-bulk-outcomes";
 import { buildWorkflowRunsBulkPreflight } from "../../lib/workflow-runs-bulk-preflight";
-import { getWorkflowRunStatusCopy } from "../../lib/workflow-run-status";
 
 const kindFilters = ["all", "analyze", "generate_resume", "prefill"] as const;
 const statusFilters = ["all", "queued", "running", "paused", "completed", "failed", "cancelled"] as const;
@@ -872,63 +872,41 @@ function WorkflowRunsPageContent() {
         {data && data.runs.length > 0 ? (
           <div className="job-list">
             {data.runs.map((item) => {
-              const statusCopy = getWorkflowRunStatusCopy(item.workflowRun);
               const isSelected = selectedRunIds.includes(item.workflowRun.id);
 
               return (
-                <div
+                <WorkflowRunCard
                   key={item.workflowRun.id}
-                  className={`job-card ${isSelected ? "job-card-selected" : ""}`}
-                >
-                  <label className="selection-row">
-                    <input
-                      className="selection-checkbox"
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() =>
-                        setSelectedRunIds((current) =>
-                          toggleWorkflowRunSelection(current, item.workflowRun.id)
-                        )
-                      }
-                    />
-                    <span className="muted">Select this run</span>
-                  </label>
-                  <div className="pill-row">
-                    <span className="mini-pill">{item.workflowRun.kind.replace(/_/g, " ")}</span>
-                    <span className="mini-pill">{statusCopy.label}</span>
-                    <span className="mini-pill">{item.workflowRun.executionMode}</span>
-                  </div>
-                  <h3>{item.job.title}</h3>
-                  <p className="muted">{item.job.company}</p>
-                  <p className="muted">{statusCopy.detail}</p>
-                  <p className="muted">
-                    Started{" "}
-                    {item.workflowRun.startedAt
-                      ? new Date(item.workflowRun.startedAt).toLocaleString()
-                      : "not started yet"}
-                    {item.workflowRun.completedAt
-                      ? ` · Completed ${new Date(item.workflowRun.completedAt).toLocaleString()}`
-                      : ""}
-                  </p>
-                  <div className="button-row">
-                    <Link className="button button-secondary" href={`/workflow-runs/${item.workflowRun.id}`}>
-                      Open run detail
-                    </Link>
-                    <Link className="button button-secondary" href={`/jobs/${item.job.id}`}>
-                      Open job
-                    </Link>
-                    {item.application ? (
-                      <Link className="button button-secondary" href={`/applications/${item.application.id}`}>
-                        Open application
-                      </Link>
-                    ) : null}
-                    {item.resumeVersion ? (
-                      <Link className="button button-secondary" href={`/resume-versions/${item.resumeVersion.id}`}>
-                        Open resume
-                      </Link>
-                    ) : null}
-                  </div>
-                </div>
+                  run={item.workflowRun}
+                  className={isSelected ? "job-card-selected" : undefined}
+                  title={item.job.title}
+                  subtitle={item.job.company}
+                  leadingControl={
+                    <label className="selection-row">
+                      <input
+                        className="selection-checkbox"
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() =>
+                          setSelectedRunIds((current) =>
+                            toggleWorkflowRunSelection(current, item.workflowRun.id)
+                          )
+                        }
+                      />
+                      <span className="muted">Select this run</span>
+                    </label>
+                  }
+                  links={[
+                    { href: `/workflow-runs/${item.workflowRun.id}`, label: "Open run detail" },
+                    { href: `/jobs/${item.job.id}`, label: "Open job" },
+                    ...(item.application
+                      ? [{ href: `/applications/${item.application.id}`, label: "Open application" }]
+                      : []),
+                    ...(item.resumeVersion
+                      ? [{ href: `/resume-versions/${item.resumeVersion.id}`, label: "Open resume" }]
+                      : [])
+                  ]}
+                />
               );
             })}
           </div>
