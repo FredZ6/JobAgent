@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { startTransition, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -9,6 +10,8 @@ import {
   cancelWorkflowRun,
   fetchWorkflowRun,
   fetchWorkflowRunEvents,
+  pauseWorkflowRun,
+  resumeWorkflowRun,
   retryWorkflowRun,
   type WorkflowRunDetail
 } from "../../../lib/api";
@@ -26,6 +29,8 @@ export default function WorkflowRunDetailPage() {
   const [actionError, setActionError] = useState("");
   const [retrying, setRetrying] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [pausing, setPausing] = useState(false);
+  const [resuming, setResuming] = useState(false);
 
   useEffect(() => {
     if (!runId) {
@@ -126,8 +131,58 @@ export default function WorkflowRunDetailPage() {
     }
   }
 
+  async function pauseRun() {
+    if (!runId) {
+      return;
+    }
+
+    setPausing(true);
+    setActionError("");
+    setActionMessage("");
+
+    try {
+      const next = await pauseWorkflowRun(runId);
+      setActionMessage(
+        next.workflowRun.status === "paused"
+          ? `Paused run ${next.workflowRun.id}.`
+          : `Pause requested for run ${next.workflowRun.id}. It will pause at the next safe checkpoint.`
+      );
+      await loadRunDetail(next.workflowRun.id, false);
+    } catch (pauseError) {
+      setActionError(pauseError instanceof Error ? pauseError.message : "Pause failed");
+    } finally {
+      setPausing(false);
+    }
+  }
+
+  async function resumeRun() {
+    if (!runId) {
+      return;
+    }
+
+    setResuming(true);
+    setActionError("");
+    setActionMessage("");
+
+    try {
+      const next = await resumeWorkflowRun(runId);
+      setActionMessage(`Resume requested for run ${next.workflowRun.id}.`);
+      await loadRunDetail(next.workflowRun.id, false);
+    } catch (resumeError) {
+      setActionError(resumeError instanceof Error ? resumeError.message : "Resume failed");
+    } finally {
+      setResuming(false);
+    }
+  }
+
   const workflowRun = detail?.workflowRun;
   const statusCopy = workflowRun ? getWorkflowRunStatusCopy(workflowRun) : null;
+  const canPauseTemporalRun =
+    workflowRun?.executionMode === "temporal" &&
+    (workflowRun.status === "queued" || workflowRun.status === "running") &&
+    !workflowRun.pauseRequestedAt;
+  const canResumeTemporalRun =
+    workflowRun?.executionMode === "temporal" && workflowRun.status === "paused";
 
   return (
     <section className="content-grid">
@@ -168,6 +223,18 @@ export default function WorkflowRunDetailPage() {
                 {workflowRun.taskQueue ? `queue ${workflowRun.taskQueue} · ` : ""}
                 {workflowRun.workflowId ? `workflow ${workflowRun.workflowId}` : "direct execution"}
               </span>
+              {workflowRun.pauseRequestedAt && workflowRun.status !== "paused" ? (
+                <span className="muted">
+                  Pause requested at {new Date(workflowRun.pauseRequestedAt).toLocaleString()}.
+                  This run will pause at the next safe checkpoint.
+                </span>
+              ) : null}
+              {workflowRun.pausedAt ? (
+                <span className="muted">
+                  Paused at {new Date(workflowRun.pausedAt).toLocaleString()}
+                  {workflowRun.pauseReason ? ` · ${workflowRun.pauseReason}` : ""}
+                </span>
+              ) : null}
               {workflowRun.errorMessage ? <span className="error-text">{workflowRun.errorMessage}</span> : null}
             </div>
           </>
@@ -187,6 +254,16 @@ export default function WorkflowRunDetailPage() {
             {retrying ? "Retrying..." : "Retry failed run"}
           </button>
         ) : null}
+        {canPauseTemporalRun ? (
+          <button className="button button-secondary" type="button" onClick={pauseRun} disabled={pausing}>
+            {pausing ? "Pausing..." : "Pause run"}
+          </button>
+        ) : null}
+        {canResumeTemporalRun ? (
+          <button className="button button-secondary" type="button" onClick={resumeRun} disabled={resuming}>
+            {resuming ? "Resuming..." : "Resume run"}
+          </button>
+        ) : null}
         {((workflowRun?.executionMode === "temporal" &&
           (workflowRun.status === "queued" || workflowRun.status === "running")) ||
           (workflowRun?.executionMode === "direct" && workflowRun.status === "running")) ? (
@@ -201,6 +278,15 @@ export default function WorkflowRunDetailPage() {
         ) : null}
         {workflowRun?.executionMode === "temporal" && workflowRun.status === "running" ? (
           <div className="inline-note">Stops the run at the next safe cancellation point.</div>
+        ) : null}
+        {workflowRun?.executionMode === "temporal" &&
+        (workflowRun.status === "queued" || workflowRun.status === "running") ? (
+          <div className="inline-note">
+            Pause requests are checkpoint-based. The run will only pause before the next safe workflow stage begins.
+          </div>
+        ) : null}
+        {workflowRun?.executionMode === "temporal" && workflowRun.status === "paused" ? (
+          <div className="inline-note">This run is paused and can be resumed from here.</div>
         ) : null}
         {workflowRun?.executionMode === "direct" && workflowRun.status === "running" ? (
           <div className="inline-note">

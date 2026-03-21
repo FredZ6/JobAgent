@@ -2,6 +2,7 @@ import { Body, Controller, Get, Inject, Param, Post, Query } from "@nestjs/commo
 
 import { WorkflowRunBulkActionsService } from "./workflow-run-bulk-actions.service.js";
 import { WorkflowRunCancelService } from "./workflow-run-cancel.service.js";
+import { WorkflowRunPauseResumeService } from "./workflow-run-pause-resume.service.js";
 import { WorkflowRunRetriesService } from "./workflow-run-retries.service.js";
 import { WorkflowRunsService } from "./workflow-runs.service.js";
 
@@ -11,6 +12,8 @@ export class WorkflowRunsController {
     @Inject(WorkflowRunsService) private readonly workflowRunsService: WorkflowRunsService,
     @Inject(WorkflowRunCancelService)
     private readonly workflowRunCancelService: WorkflowRunCancelService,
+    @Inject(WorkflowRunPauseResumeService)
+    private readonly workflowRunPauseResumeService: WorkflowRunPauseResumeService,
     @Inject(WorkflowRunRetriesService)
     private readonly workflowRunRetriesService: WorkflowRunRetriesService,
     @Inject(WorkflowRunBulkActionsService)
@@ -36,6 +39,16 @@ export class WorkflowRunsController {
   async cancelWorkflowRun(@Param("id") id: string) {
     const run = await this.workflowRunCancelService.cancelWorkflowRun(id);
     return this.workflowRunsService.getWorkflowRunDetail(run.id);
+  }
+
+  @Post(":id/pause")
+  pauseWorkflowRun(@Param("id") id: string) {
+    return this.workflowRunPauseResumeService.pauseWorkflowRun(id);
+  }
+
+  @Post(":id/resume")
+  resumeWorkflowRun(@Param("id") id: string) {
+    return this.workflowRunPauseResumeService.resumeWorkflowRun(id);
   }
 
   @Post(":id/retry")

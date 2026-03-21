@@ -135,3 +135,32 @@ export async function runDirectPrefill(
     throw error;
   }
 }
+
+export async function markWorkflowRunPaused(workflowRunId: string, pauseReason?: string) {
+  console.log(`worker-temporal marking workflow run ${workflowRunId} paused`);
+
+  try {
+    return await runCancellableInternalRequest("mark-paused", async (signal) => {
+      const response = await fetch(
+        `${process.env.API_URL ?? "http://api:3001"}/internal/workflow-runs/${workflowRunId}/mark-paused`,
+        {
+          method: "POST",
+          signal,
+          headers: buildInternalHeaders(),
+          body: JSON.stringify({
+            pauseReason
+          })
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Internal mark-paused request failed with ${response.status}`);
+      }
+
+      return response.json();
+    });
+  } catch (error) {
+    console.error("worker-temporal mark-paused activity failed", error);
+    throw error;
+  }
+}

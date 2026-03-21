@@ -3,7 +3,7 @@ import { access } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
 import { basename, resolve } from "node:path";
 import { Prisma } from "@prisma/client";
-import type { Application, AutomationSession, Job, ResumeVersion } from "@prisma/client";
+import type { Application, AutomationSession, Job, ResumeVersion, UnresolvedAutomationItem } from "@prisma/client";
 import {
   isWorkflowRunCancelledError,
   mergeWorkflowRunCancellationSignals,
@@ -19,6 +19,7 @@ import {
   automationSessionSchema,
   ApprovalRequest,
   ApplicationEventType,
+  applicationContextSchema,
   MarkRetryReadyRequest,
   MarkSubmitFailedRequest,
   MarkSubmittedRequest,
@@ -32,6 +33,7 @@ import {
   reopenSubmissionRequestSchema,
   submissionReviewSchema,
   submissionStatusSchema,
+  unresolvedAutomationItemSchema,
   type WorkflowRun,
   type WorkflowRunKind,
   type OrchestrationMetadata,
@@ -373,6 +375,12 @@ export class ApplicationsService {
               completedAt: new Date()
             }
           });
+
+          await this.syncUnresolvedAutomationItems(tx, {
+            applicationId: application.id,
+            automationSessionId,
+            fieldResults: workerResult.fieldResults
+          });
         }
 
         return savedApplication;
@@ -506,8 +514,9 @@ export class ApplicationsService {
     }
 
     const latestAutomationSession = await this.getLatestAutomationSession(id);
+    const unresolvedItems = await this.listUnresolvedAutomationItems(id);
 
-    return this.formatApplication(application, latestAutomationSession);
+    return this.formatApplication(application, latestAutomationSession, unresolvedItems);
   }
 
   async listAutomationSessions(applicationId: string) {
@@ -571,8 +580,9 @@ export class ApplicationsService {
     }
 
     const latestAutomationSession = await this.getLatestAutomationSession(id);
+    const unresolvedItems = await this.listUnresolvedAutomationItems(id);
 
-    return this.buildSubmissionReview(application, latestAutomationSession);
+    return this.buildSubmissionReview(application, latestAutomationSession, unresolvedItems);
   }
 
   async markSubmitted(id: string, payload: MarkSubmittedRequest) {
@@ -797,32 +807,33 @@ export class ApplicationsService {
 
   private formatApplication(
     application: Application & { job?: Job; resumeVersion?: ResumeVersion | null },
-    latestAutomationSession?: AutomationSession | null
+    latestAutomationSession?: AutomationSession | null,
+    unresolvedItems: UnresolvedAutomationItem[] = []
   ) {
     const effectiveApplication = this.applyAutomationSessionExecutionState(application, latestAutomationSession);
-    const dto = applicationSchema.parse({
-      ...effectiveApplication,
-      submittedAt: effectiveApplication.submittedAt?.toISOString() ?? null,
-      createdAt: effectiveApplication.createdAt.toISOString(),
-      updatedAt: effectiveApplication.updatedAt.toISOString()
-    });
-
-    return {
-      application: dto,
+    return applicationContextSchema.parse({
+      application: {
+        ...effectiveApplication,
+        submittedAt: effectiveApplication.submittedAt?.toISOString() ?? null,
+        createdAt: effectiveApplication.createdAt.toISOString(),
+        updatedAt: effectiveApplication.updatedAt.toISOString()
+      },
       job: this.includeJobSummary(application.job),
       resumeVersion: this.includeResumeSummary(application.resumeVersion),
       latestAutomationSession: latestAutomationSession
         ? this.formatAutomationSession(latestAutomationSession)
-        : null
-    };
+        : null,
+      unresolvedItems: unresolvedItems.map((item) => this.formatUnresolvedAutomationItem(item))
+    });
   }
 
   private async formatApplicationWithLatestAutomationSession(
     application: Application & { job?: Job; resumeVersion?: ResumeVersion | null }
   ) {
     const latestAutomationSession = await this.getLatestAutomationSession(application.id);
+    const unresolvedItems = await this.listUnresolvedAutomationItems(application.id);
 
-    return this.formatApplication(application, latestAutomationSession);
+    return this.formatApplication(application, latestAutomationSession, unresolvedItems);
   }
 
   private formatAutomationSession(session: AutomationSession) {
@@ -835,6 +846,21 @@ export class ApplicationsService {
       completedAt: session.completedAt?.toISOString() ?? null,
       createdAt: session.createdAt.toISOString(),
       updatedAt: session.updatedAt.toISOString()
+    });
+  }
+
+  private formatUnresolvedAutomationItem(item: UnresolvedAutomationItem) {
+    return unresolvedAutomationItemSchema.parse({
+      ...item,
+      fieldLabel: item.fieldLabel ?? null,
+      questionText: item.questionText ?? null,
+      resolutionKind: item.resolutionKind ?? null,
+      failureReason: item.failureReason ?? null,
+      source: item.source ?? null,
+      suggestedValue: item.suggestedValue ?? null,
+      resolvedAt: item.resolvedAt?.toISOString() ?? null,
+      createdAt: item.createdAt.toISOString(),
+      updatedAt: item.updatedAt.toISOString()
     });
   }
 
@@ -945,15 +971,25 @@ export class ApplicationsService {
 
   private buildSubmissionReview(
     application: Application & { job?: Job; resumeVersion?: ResumeVersion | null },
-    latestAutomationSession?: AutomationSession | null
+    latestAutomationSession?: AutomationSession | null,
+    unresolvedItems: UnresolvedAutomationItem[] = []
   ) {
-    const formatted = this.formatApplication(application, latestAutomationSession);
+    const formatted = this.formatApplication(application, latestAutomationSession, unresolvedItems);
     const fieldSummary = this.summarizeFieldStates(formatted.application.fieldResults);
+    const unresolvedCount =
+      formatted.unresolvedItems.length > 0
+        ? formatted.unresolvedItems.filter((item) => item.status === "unresolved").length
+        : fieldSummary.unresolved;
+    const failedCount =
+      formatted.unresolvedItems.length > 0
+        ? formatted.unresolvedItems.filter((item) => item.status === "unresolved" && item.failureReason)
+            .length
+        : fieldSummary.failed;
 
     const review = submissionReviewSchema.parse({
       ...formatted,
-      unresolvedFieldCount: fieldSummary.unresolved,
-      failedFieldCount: fieldSummary.failed
+      unresolvedFieldCount: unresolvedCount,
+      failedFieldCount: failedCount
     });
 
     return {
@@ -969,6 +1005,13 @@ export class ApplicationsService {
         orderBy: { createdAt: "desc" }
       })) ?? null
     );
+  }
+
+  private async listUnresolvedAutomationItems(applicationId: string) {
+    return this.prisma.unresolvedAutomationItem.findMany({
+      where: { applicationId },
+      orderBy: [{ createdAt: "desc" }]
+    });
   }
 
   private applyAutomationSessionExecutionState(
@@ -1034,6 +1077,93 @@ export class ApplicationsService {
       },
       { unresolved: 0, failed: 0 }
     );
+  }
+
+  private async syncUnresolvedAutomationItems(
+    tx: ReturnType<typeof this.prismaMutationClient>,
+    input: {
+      applicationId: string;
+      automationSessionId: string;
+      fieldResults: unknown[];
+    }
+  ) {
+    const unresolvedItems = this.buildUnresolvedAutomationItems(input);
+    const resolvedFieldNames = this.extractResolvedFieldNames(input.fieldResults);
+
+    if (resolvedFieldNames.length > 0) {
+      await tx.unresolvedAutomationItem.updateMany({
+        where: {
+          applicationId: input.applicationId,
+          fieldName: { in: resolvedFieldNames },
+          status: "unresolved"
+        },
+        data: {
+          status: "resolved",
+          resolutionKind: "fixed_by_rerun",
+          resolvedAt: new Date()
+        }
+      });
+    }
+
+    if (unresolvedItems.length > 0) {
+      await tx.unresolvedAutomationItem.createMany({
+        data: unresolvedItems
+      });
+    }
+  }
+
+  private buildUnresolvedAutomationItems(input: {
+    applicationId: string;
+    automationSessionId: string;
+    fieldResults: unknown[];
+  }) {
+    return input.fieldResults
+      .filter((value): value is Record<string, unknown> => typeof value === "object" && value !== null)
+      .flatMap((result) => {
+        const fieldName = typeof result.fieldName === "string" ? result.fieldName : "";
+        if (!fieldName || this.isFieldResultFilled(result)) {
+          return [];
+        }
+
+        const fieldType =
+          result.fieldType === "resume_upload" || result.fieldType === "long_text"
+            ? result.fieldType
+            : "basic_text";
+
+        return [
+          {
+            automationSessionId: input.automationSessionId,
+            applicationId: input.applicationId,
+            fieldName,
+            fieldLabel: typeof result.fieldLabel === "string" ? result.fieldLabel : null,
+            fieldType,
+            questionText: typeof result.questionText === "string" ? result.questionText : null,
+            status: "unresolved",
+            resolutionKind: null,
+            failureReason: typeof result.failureReason === "string" ? result.failureReason : null,
+            source: typeof result.source === "string" ? result.source : null,
+            suggestedValue: typeof result.suggestedValue === "string" ? result.suggestedValue : null,
+            metadata:
+              result.metadata && typeof result.metadata === "object"
+                ? (result.metadata as Prisma.InputJsonValue)
+                : ({} as Prisma.InputJsonValue),
+            resolvedAt: null
+          }
+        ];
+      });
+  }
+
+  private extractResolvedFieldNames(fieldResults: unknown[]) {
+    return fieldResults
+      .filter((value): value is Record<string, unknown> => typeof value === "object" && value !== null)
+      .flatMap((result) => {
+        const fieldName = typeof result.fieldName === "string" ? result.fieldName : "";
+        return fieldName && this.isFieldResultFilled(result) ? [fieldName] : [];
+      });
+  }
+
+  private isFieldResultFilled(result: Record<string, unknown>) {
+    return result.filled === true || result.status === "filled";
   }
 
   private buildSubmissionSnapshot(
@@ -1403,6 +1533,37 @@ export class ApplicationsService {
             errorMessage?: string | null;
             completedAt?: Date;
           };
+        }): Promise<unknown>;
+      };
+      unresolvedAutomationItem: {
+        updateMany(args: {
+          where: {
+            applicationId: string;
+            fieldName: { in: string[] };
+            status: string;
+          };
+          data: {
+            status: string;
+            resolutionKind: string;
+            resolvedAt: Date;
+          };
+        }): Promise<unknown>;
+        createMany(args: {
+          data: Array<{
+            automationSessionId: string;
+            applicationId: string;
+            fieldName: string;
+            fieldLabel: string | null;
+            fieldType: string;
+            questionText: string | null;
+            status: string;
+            resolutionKind: string | null;
+            failureReason: string | null;
+            source: string | null;
+            suggestedValue: string | null;
+            metadata: Prisma.InputJsonValue;
+            resolvedAt: null;
+          }>;
         }): Promise<unknown>;
       };
     };

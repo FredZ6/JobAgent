@@ -108,6 +108,10 @@ describe("jobTrackerRow schema", () => {
         taskQueue: null,
         startedAt: new Date().toISOString(),
         completedAt: new Date().toISOString(),
+        pauseRequestedAt: null,
+        pausedAt: null,
+        pauseReason: null,
+        resumeRequestedAt: null,
         errorMessage: null,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()

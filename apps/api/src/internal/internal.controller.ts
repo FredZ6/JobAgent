@@ -9,6 +9,7 @@ import { buildRequestAbortSignal } from "../lib/workflow-run-cancellation.js";
 import { parseOrThrow } from "../lib/zod.js";
 import { DirectResumeService } from "../resume/direct-resume.service.js";
 import { LongAnswerService } from "./long-answer.service.js";
+import { WorkflowRunsService } from "../workflow-runs/workflow-runs.service.js";
 
 const longAnswerQuestionSchema = z.object({
   fieldName: z.string().trim().min(1),
@@ -21,13 +22,18 @@ const generateLongAnswersRequestSchema = z.object({
   questions: z.array(longAnswerQuestionSchema).min(1)
 });
 
+const markPausedRequestSchema = z.object({
+  pauseReason: z.string().trim().min(1).optional()
+});
+
 @Controller("internal")
 export class InternalController {
   constructor(
     @Inject(DirectAnalysisService) private readonly directAnalysisService: DirectAnalysisService,
     @Inject(DirectResumeService) private readonly directResumeService: DirectResumeService,
     @Inject(ApplicationsService) private readonly applicationsService: ApplicationsService,
-    @Inject(LongAnswerService) private readonly longAnswerService: LongAnswerService
+    @Inject(LongAnswerService) private readonly longAnswerService: LongAnswerService,
+    @Inject(WorkflowRunsService) private readonly workflowRunsService: WorkflowRunsService
   ) {}
 
   private assertInternalToken(internalToken?: string) {
@@ -121,5 +127,16 @@ export class InternalController {
       input.questions,
       buildRequestAbortSignal(request)
     );
+  }
+
+  @Post("workflow-runs/:id/mark-paused")
+  async markWorkflowRunPaused(
+    @Param("id") id: string,
+    @Headers("x-internal-token") internalToken?: string,
+    @Body() body?: unknown
+  ) {
+    this.assertInternalToken(internalToken);
+    const input = parseOrThrow(markPausedRequestSchema, body ?? {});
+    return this.workflowRunsService.markPaused(id, input.pauseReason);
   }
 }

@@ -540,6 +540,234 @@ describe("WorkflowRunsService", () => {
     });
   });
 
+  it("records a pause-request lifecycle event for temporal runs", async () => {
+    const workflowRunFindUnique = vi
+      .fn()
+      .mockResolvedValueOnce({
+        id: "run_running",
+        executionMode: "temporal",
+        status: "running"
+      })
+      .mockResolvedValueOnce({
+        id: "run_running",
+        jobId: "job_1",
+        retryOfRunId: null,
+        applicationId: null,
+        resumeVersionId: null,
+        kind: "prefill",
+        status: "running",
+        executionMode: "temporal",
+        workflowId: "prefill-job-job_1-123",
+        workflowType: "prefillJobWorkflow",
+        taskQueue: "rolecraft-analysis",
+        startedAt: new Date("2026-03-20T10:00:00.000Z"),
+        completedAt: null,
+        pauseRequestedAt: new Date("2026-03-20T10:01:00.000Z"),
+        pausedAt: null,
+        pauseReason: "Requested from workflow detail",
+        resumeRequestedAt: null,
+        errorMessage: null,
+        createdAt: new Date("2026-03-20T10:00:00.000Z"),
+        updatedAt: new Date("2026-03-20T10:01:00.000Z")
+      });
+    const workflowRunUpdate = vi.fn().mockResolvedValue({
+      id: "run_running",
+      jobId: "job_1",
+      retryOfRunId: null,
+      applicationId: null,
+      resumeVersionId: null,
+      kind: "prefill",
+      status: "running",
+      executionMode: "temporal",
+      workflowId: "prefill-job-job_1-123",
+      workflowType: "prefillJobWorkflow",
+      taskQueue: "rolecraft-analysis",
+      startedAt: new Date("2026-03-20T10:00:00.000Z"),
+      completedAt: null,
+      pauseRequestedAt: new Date("2026-03-20T10:01:00.000Z"),
+      pausedAt: null,
+      pauseReason: "Requested from workflow detail",
+      resumeRequestedAt: null,
+      errorMessage: null,
+      createdAt: new Date("2026-03-20T10:00:00.000Z"),
+      updatedAt: new Date("2026-03-20T10:01:00.000Z")
+    });
+    const workflowRunEventCreate = vi.fn().mockResolvedValue({});
+    const prisma = {
+      workflowRun: {
+        findUnique: workflowRunFindUnique,
+        update: workflowRunUpdate
+      },
+      workflowRunEvent: {
+        create: workflowRunEventCreate
+      }
+    };
+    const service = new WorkflowRunsService(prisma as any);
+
+    const result = await (service as any).requestPause("run_running", "Requested from workflow detail");
+
+    expect(workflowRunUpdate).toHaveBeenCalledWith({
+      where: { id: "run_running" },
+      data: expect.objectContaining({
+        pauseRequestedAt: expect.any(Date),
+        pauseReason: "Requested from workflow detail"
+      })
+    });
+    expect(workflowRunEventCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        workflowRunId: "run_running",
+        type: "run_pause_requested",
+        payload: expect.objectContaining({
+          status: "running",
+          pauseReason: "Requested from workflow detail"
+        })
+      })
+    });
+    expect(result.pauseReason).toBe("Requested from workflow detail");
+  });
+
+  it("marks a temporal run paused and records a lifecycle event", async () => {
+    const workflowRunUpdate = vi.fn().mockResolvedValue({
+      id: "run_paused",
+      jobId: "job_1",
+      retryOfRunId: null,
+      applicationId: null,
+      resumeVersionId: null,
+      kind: "prefill",
+      status: "paused",
+      executionMode: "temporal",
+      workflowId: "prefill-job-job_1-123",
+      workflowType: "prefillJobWorkflow",
+      taskQueue: "rolecraft-analysis",
+      startedAt: new Date("2026-03-20T10:00:00.000Z"),
+      completedAt: null,
+      pauseRequestedAt: new Date("2026-03-20T10:01:00.000Z"),
+      pausedAt: new Date("2026-03-20T10:02:00.000Z"),
+      pauseReason: "Checkpoint pause",
+      resumeRequestedAt: null,
+      errorMessage: null,
+      createdAt: new Date("2026-03-20T10:00:00.000Z"),
+      updatedAt: new Date("2026-03-20T10:02:00.000Z")
+    });
+    const workflowRunEventCreate = vi.fn().mockResolvedValue({});
+    const prisma = {
+      workflowRun: {
+        update: workflowRunUpdate
+      },
+      workflowRunEvent: {
+        create: workflowRunEventCreate
+      }
+    };
+    const service = new WorkflowRunsService(prisma as any);
+
+    const result = await (service as any).markPaused("run_paused", "Checkpoint pause");
+
+    expect(workflowRunUpdate).toHaveBeenCalledWith({
+      where: { id: "run_paused" },
+      data: expect.objectContaining({
+        status: "paused",
+        pausedAt: expect.any(Date),
+        pauseReason: "Checkpoint pause"
+      })
+    });
+    expect(workflowRunEventCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        workflowRunId: "run_paused",
+        type: "run_paused",
+        payload: expect.objectContaining({
+          status: "paused",
+          pauseReason: "Checkpoint pause"
+        })
+      })
+    });
+    expect(result.status).toBe("paused");
+  });
+
+  it("resumes a paused temporal run and records a lifecycle event", async () => {
+    const workflowRunFindUnique = vi
+      .fn()
+      .mockResolvedValueOnce({
+        id: "run_paused",
+        executionMode: "temporal",
+        status: "paused"
+      })
+      .mockResolvedValueOnce({
+        id: "run_paused",
+        jobId: "job_1",
+        retryOfRunId: null,
+        applicationId: null,
+        resumeVersionId: null,
+        kind: "prefill",
+        status: "running",
+        executionMode: "temporal",
+        workflowId: "prefill-job-job_1-123",
+        workflowType: "prefillJobWorkflow",
+        taskQueue: "rolecraft-analysis",
+        startedAt: new Date("2026-03-20T10:00:00.000Z"),
+        completedAt: null,
+        pauseRequestedAt: null,
+        pausedAt: new Date("2026-03-20T10:02:00.000Z"),
+        pauseReason: null,
+        resumeRequestedAt: new Date("2026-03-20T10:03:00.000Z"),
+        errorMessage: null,
+        createdAt: new Date("2026-03-20T10:00:00.000Z"),
+        updatedAt: new Date("2026-03-20T10:03:00.000Z")
+      });
+    const workflowRunUpdate = vi.fn().mockResolvedValue({
+      id: "run_paused",
+      jobId: "job_1",
+      retryOfRunId: null,
+      applicationId: null,
+      resumeVersionId: null,
+      kind: "prefill",
+      status: "running",
+      executionMode: "temporal",
+      workflowId: "prefill-job-job_1-123",
+      workflowType: "prefillJobWorkflow",
+      taskQueue: "rolecraft-analysis",
+      startedAt: new Date("2026-03-20T10:00:00.000Z"),
+      completedAt: null,
+      pauseRequestedAt: null,
+      pausedAt: new Date("2026-03-20T10:02:00.000Z"),
+      pauseReason: null,
+      resumeRequestedAt: new Date("2026-03-20T10:03:00.000Z"),
+      errorMessage: null,
+      createdAt: new Date("2026-03-20T10:00:00.000Z"),
+      updatedAt: new Date("2026-03-20T10:03:00.000Z")
+    });
+    const workflowRunEventCreate = vi.fn().mockResolvedValue({});
+    const prisma = {
+      workflowRun: {
+        findUnique: workflowRunFindUnique,
+        update: workflowRunUpdate
+      },
+      workflowRunEvent: {
+        create: workflowRunEventCreate
+      }
+    };
+    const service = new WorkflowRunsService(prisma as any);
+
+    const result = await (service as any).markResumed("run_paused");
+
+    expect(workflowRunUpdate).toHaveBeenCalledWith({
+      where: { id: "run_paused" },
+      data: expect.objectContaining({
+        status: "running",
+        resumeRequestedAt: expect.any(Date)
+      })
+    });
+    expect(workflowRunEventCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        workflowRunId: "run_paused",
+        type: "run_resumed",
+        payload: expect.objectContaining({
+          status: "running"
+        })
+      })
+    });
+    expect(result.status).toBe("running");
+  });
+
   it("returns workflow run detail with linked records and retry chain", async () => {
     const prisma = {
       workflowRun: {

@@ -8,6 +8,7 @@ import Link from "next/link";
 import { ApplicationFieldResults } from "../../../components/application-field-results";
 import { AutomationSessionHistory } from "../../../components/automation-session-history";
 import { Panel } from "../../../components/panel";
+import { UnresolvedAutomationItems } from "../../../components/unresolved-automation-items";
 import {
   fetchApplication,
   fetchAutomationSessions,
@@ -139,7 +140,7 @@ export default function ApplicationReviewPage() {
     );
   }
 
-  const { application, job, resumeVersion, latestAutomationSession } = applicationContext;
+  const { application, job, resumeVersion, latestAutomationSession, unresolvedItems } = applicationContext;
   const sessionHistory = automationSessions.length > 0 ? automationSessions : latestAutomationSession ? [latestAutomationSession] : [];
 
   return (
@@ -260,6 +261,18 @@ export default function ApplicationReviewPage() {
           results={application.fieldResults}
           emptyCopy="No field data captured yet."
           summaryTitle="Prefill summary"
+        />
+      </Panel>
+
+      <Panel
+        className="span-12"
+        eyebrow="Manual follow-up"
+        title="Needs attention"
+        copy="This is the independent queue of items the automation did not finish, so you can decide what needs manual handling or another rerun."
+      >
+        <UnresolvedAutomationItems
+          items={unresolvedItems}
+          emptyCopy="No unresolved automation items are waiting for manual follow-up."
         />
       </Panel>
 

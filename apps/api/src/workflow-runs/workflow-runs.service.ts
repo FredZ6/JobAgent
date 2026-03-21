@@ -93,7 +93,10 @@ export class WorkflowRunsService {
         where: { id },
         data: {
           status: workflowRunStatusSchema.parse("running"),
-          startedAt: new Date()
+          startedAt: new Date(),
+          pauseRequestedAt: null,
+          pausedAt: null,
+          pauseReason: null
         }
       })
     );
@@ -182,6 +185,70 @@ export class WorkflowRunsService {
     });
 
     return run;
+  }
+
+  async requestPause(id: string, pauseReason?: string | null) {
+    const run = await this.requireTemporalControllableRun(id, ["queued", "running"]);
+    const pauseRequestedAt = new Date();
+    const updated = this.mapWorkflowRun(
+      await this.prisma.workflowRun.update({
+        where: { id },
+        data: {
+          pauseRequestedAt,
+          pauseReason: pauseReason ?? null
+        }
+      })
+    );
+
+    await this.recordLifecycleEvent(updated.id, "run_pause_requested", {
+      status: run.status,
+      pauseReason: pauseReason ?? null
+    });
+
+    return updated;
+  }
+
+  async markPaused(id: string, pauseReason?: string | null) {
+    const pausedAt = new Date();
+    const updated = this.mapWorkflowRun(
+      await this.prisma.workflowRun.update({
+        where: { id },
+        data: {
+          status: workflowRunStatusSchema.parse("paused"),
+          pausedAt,
+          pauseReason: pauseReason ?? null
+        }
+      })
+    );
+
+    await this.recordLifecycleEvent(updated.id, "run_paused", {
+      status: updated.status,
+      pauseReason: pauseReason ?? updated.pauseReason ?? null
+    });
+
+    return updated;
+  }
+
+  async markResumed(id: string) {
+    await this.requireTemporalControllableRun(id, ["paused"]);
+    const resumeRequestedAt = new Date();
+    const updated = this.mapWorkflowRun(
+      await this.prisma.workflowRun.update({
+        where: { id },
+        data: {
+          status: workflowRunStatusSchema.parse("running"),
+          resumeRequestedAt,
+          pauseRequestedAt: null,
+          pauseReason: null
+        }
+      })
+    );
+
+    await this.recordLifecycleEvent(updated.id, "run_resumed", {
+      status: updated.status
+    });
+
+    return updated;
   }
 
   async markRetried(id: string, newRunId: string) {
@@ -485,7 +552,7 @@ export class WorkflowRunsService {
         return this.compareWorkflowRunOrderValue(
           left.status,
           right.status,
-          ["queued", "running", "failed", "cancelled", "completed"] satisfies WorkflowRun["status"][]
+          ["queued", "running", "paused", "failed", "cancelled", "completed"] satisfies WorkflowRun["status"][]
         );
       case "kind":
         return this.compareWorkflowRunOrderValue(
@@ -680,6 +747,34 @@ export class WorkflowRunsService {
     }).workflowRunEvent;
   }
 
+  private async requireTemporalControllableRun(
+    id: string,
+    allowedStatuses: WorkflowRun["status"][]
+  ) {
+    const run = await this.prisma.workflowRun.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        executionMode: true,
+        status: true
+      }
+    });
+
+    if (!run) {
+      throw new NotFoundException("Workflow run not found");
+    }
+
+    if (run.executionMode !== "temporal") {
+      throw new BadRequestException("Only Temporal workflow runs support pause or resume");
+    }
+
+    if (!allowedStatuses.includes(run.status as WorkflowRun["status"])) {
+      throw new BadRequestException("Workflow run is not in a pause/resume-compatible state");
+    }
+
+    return run;
+  }
+
   private mapWorkflowRun(run: {
     id: string;
     jobId: string;
@@ -694,6 +789,10 @@ export class WorkflowRunsService {
     taskQueue: string | null;
     startedAt: Date | null;
     completedAt: Date | null;
+    pauseRequestedAt?: Date | null;
+    pausedAt?: Date | null;
+    pauseReason?: string | null;
+    resumeRequestedAt?: Date | null;
     errorMessage: string | null;
     createdAt: Date;
     updatedAt: Date;
@@ -702,6 +801,10 @@ export class WorkflowRunsService {
       ...run,
       startedAt: run.startedAt?.toISOString() ?? null,
       completedAt: run.completedAt?.toISOString() ?? null,
+      pauseRequestedAt: run.pauseRequestedAt?.toISOString() ?? null,
+      pausedAt: run.pausedAt?.toISOString() ?? null,
+      pauseReason: run.pauseReason ?? null,
+      resumeRequestedAt: run.resumeRequestedAt?.toISOString() ?? null,
       createdAt: run.createdAt.toISOString(),
       updatedAt: run.updatedAt.toISOString()
     });

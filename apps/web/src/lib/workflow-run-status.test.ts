@@ -23,6 +23,10 @@ function buildRun(overrides: Partial<WorkflowRun>): WorkflowRun {
     taskQueue: "rolecraft-analysis",
     startedAt: null,
     completedAt: null,
+    pauseRequestedAt: null,
+    pausedAt: null,
+    pauseReason: null,
+    resumeRequestedAt: null,
     errorMessage: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -54,6 +58,20 @@ describe("workflow-run-status helpers", () => {
 
     expect(copy.label).toBe("Cancelled before execution");
     expect(copy.detail).toContain("did not roll back");
+  });
+
+  it("describes paused Temporal runs as waiting for resume", () => {
+    const copy = getWorkflowRunStatusCopy(
+      buildRun({
+        status: "paused",
+        pausedAt: "2026-03-20T00:37:35.022Z",
+        pauseRequestedAt: "2026-03-20T00:37:34.000Z",
+        pauseReason: "Requested from workflow detail"
+      } as Partial<WorkflowRun>)
+    );
+
+    expect(copy.label).toBe("Paused");
+    expect(copy.detail).toContain("can be resumed");
   });
 
   it("describes cancelled runs that had already started as stopped in progress", () => {

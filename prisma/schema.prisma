@@ -123,6 +123,7 @@ model Application {
   events          ApplicationEvent[]
   workflowRuns    WorkflowRun[]
   automationSessions AutomationSession[]
+  unresolvedAutomationItems UnresolvedAutomationItem[]
 
   @@index([jobId])
   @@index([resumeVersionId])
@@ -148,10 +149,37 @@ model AutomationSession {
   application     Application    @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   workflowRun     WorkflowRun?    @relation(fields: [workflowRunId], references: [id], onDelete: SetNull)
   resumeVersion   ResumeVersion?  @relation(fields: [resumeVersionId], references: [id], onDelete: SetNull)
+  unresolvedAutomationItems UnresolvedAutomationItem[]
 
   @@index([applicationId, createdAt])
   @@index([workflowRunId, createdAt])
   @@index([resumeVersionId, createdAt])
+  @@index([status, createdAt])
+}
+
+model UnresolvedAutomationItem {
+  id                  String            @id @default(cuid())
+  automationSessionId String
+  applicationId       String
+  fieldName           String
+  fieldLabel          String?
+  fieldType           String
+  questionText        String?
+  status              String
+  resolutionKind      String?
+  failureReason       String?
+  source              String?
+  suggestedValue      String?
+  metadata            Json
+  resolvedAt          DateTime?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  automationSession   AutomationSession @relation(fields: [automationSessionId], references: [id], onDelete: Cascade)
+  application         Application       @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([automationSessionId, createdAt])
+  @@index([applicationId, createdAt])
+  @@index([applicationId, fieldName, status])
   @@index([status, createdAt])
 }
 
@@ -199,6 +227,10 @@ model WorkflowRun {
   taskQueue       String?
   startedAt       DateTime?
   completedAt     DateTime?
+  pauseRequestedAt DateTime?
+  pausedAt        DateTime?
+  pauseReason     String?
+  resumeRequestedAt DateTime?
   errorMessage    String?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt

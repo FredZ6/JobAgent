@@ -43,6 +43,32 @@ export const fieldResultSchema = z.object({
   failureReason: z.string().optional()
 });
 
+export const unresolvedAutomationItemStatusSchema = z.enum(["unresolved", "resolved", "ignored"]);
+export const unresolvedAutomationItemResolutionKindSchema = z.enum([
+  "manual_answer",
+  "skipped_by_user",
+  "fixed_by_rerun"
+]);
+
+export const unresolvedAutomationItemSchema = z.object({
+  id: z.string().min(1),
+  automationSessionId: z.string().min(1),
+  applicationId: z.string().min(1),
+  fieldName: z.string().min(1),
+  fieldLabel: z.string().nullable().default(null),
+  fieldType: z.enum(["basic_text", "resume_upload", "long_text"]),
+  questionText: z.string().nullable().default(null),
+  status: unresolvedAutomationItemStatusSchema,
+  resolutionKind: unresolvedAutomationItemResolutionKindSchema.nullable().default(null),
+  failureReason: z.string().nullable().default(null),
+  source: z.string().nullable().default(null),
+  suggestedValue: z.string().nullable().default(null),
+  metadata: z.record(z.unknown()).default({}),
+  resolvedAt: z.string().nullable().default(null),
+  createdAt: z.string(),
+  updatedAt: z.string()
+});
+
 export const workerLogEntrySchema = z.object({
   level: z.enum(["debug", "info", "warn", "error"]),
   message: z.string().min(1),
@@ -120,6 +146,27 @@ export const applicationSchema = z.object({
   updatedAt: z.string()
 });
 
+export const applicationJobSummarySchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  company: z.string().min(1),
+  applyUrl: z.string().nullable()
+});
+
+export const applicationResumeSummarySchema = z.object({
+  id: z.string().min(1),
+  headline: z.string().min(1),
+  status: z.string().min(1)
+});
+
+export const applicationContextSchema = z.object({
+  application: applicationSchema,
+  job: applicationJobSummarySchema.nullable(),
+  resumeVersion: applicationResumeSummarySchema.nullable(),
+  latestAutomationSession: automationSessionSchema.nullable().default(null),
+  unresolvedItems: z.array(unresolvedAutomationItemSchema).default([])
+});
+
 export const approvalRequestSchema = z.object({
   approvalStatus: approvalStatusSchema,
   reviewNote: z.string().optional()
@@ -141,24 +188,7 @@ export const markRetryReadyRequestSchema = z.object({
   note: z.string().optional()
 });
 
-export const applicationJobSummarySchema = z.object({
-  id: z.string().min(1),
-  title: z.string().min(1),
-  company: z.string().min(1),
-  applyUrl: z.string().nullable()
-});
-
-export const applicationResumeSummarySchema = z.object({
-  id: z.string().min(1),
-  headline: z.string().min(1),
-  status: z.string().min(1)
-});
-
-export const submissionReviewSchema = z.object({
-  application: applicationSchema,
-  job: applicationJobSummarySchema.nullable(),
-  resumeVersion: applicationResumeSummarySchema.nullable(),
-  latestAutomationSession: automationSessionSchema.nullable().default(null),
+export const submissionReviewSchema = applicationContextSchema.extend({
   unresolvedFieldCount: z.number().int().nonnegative(),
   failedFieldCount: z.number().int().nonnegative()
 });
@@ -169,12 +199,18 @@ export type SubmissionStatus = z.infer<typeof submissionStatusSchema>;
 export type ApplicationEventType = z.infer<typeof applicationEventTypeSchema>;
 export type AuditActorType = z.infer<typeof auditActorTypeSchema>;
 export type FieldResult = z.infer<typeof fieldResultSchema>;
+export type UnresolvedAutomationItemStatus = z.infer<typeof unresolvedAutomationItemStatusSchema>;
+export type UnresolvedAutomationItemResolutionKind = z.infer<
+  typeof unresolvedAutomationItemResolutionKindSchema
+>;
+export type UnresolvedAutomationItem = z.infer<typeof unresolvedAutomationItemSchema>;
 export type WorkerLogEntry = z.infer<typeof workerLogEntrySchema>;
 export type FinalSubmissionSnapshot = z.infer<typeof finalSubmissionSnapshotSchema>;
 export type AutomationSessionStatus = z.infer<typeof automationSessionStatusSchema>;
 export type AutomationSession = z.infer<typeof automationSessionSchema>;
 export type ApplicationEvent = z.infer<typeof applicationEventSchema>;
 export type ApplicationDto = z.infer<typeof applicationSchema>;
+export type ApplicationContext = z.infer<typeof applicationContextSchema>;
 export type ApprovalRequest = z.infer<typeof approvalRequestSchema>;
 export type MarkSubmittedRequest = z.infer<typeof markSubmittedRequestSchema>;
 export type MarkSubmitFailedRequest = z.infer<typeof markSubmitFailedRequestSchema>;

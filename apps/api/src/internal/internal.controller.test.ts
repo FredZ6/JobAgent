@@ -42,9 +42,15 @@ describe("InternalController long-answer generation", () => {
     process.env.NODE_ENV = "test";
     const request = createRequest();
 
-    const controller = new InternalController({} as any, {} as any, {} as any, {
-      generateForApplication: vi.fn()
-    } as any);
+    const controller = new InternalController(
+      {} as any,
+      {} as any,
+      {} as any,
+      {
+        generateForApplication: vi.fn()
+      } as any,
+      {} as any
+    );
 
     await expect(
       controller.generateLongAnswers("app_1", request as any, "secret", {
@@ -75,9 +81,15 @@ describe("InternalController long-answer generation", () => {
         }
       ]
     });
-    const controller = new InternalController({} as any, {} as any, {} as any, {
-      generateForApplication
-    } as any);
+    const controller = new InternalController(
+      {} as any,
+      {} as any,
+      {} as any,
+      {
+        generateForApplication
+      } as any,
+      {} as any
+    );
 
     await expect(
       controller.generateLongAnswers("app_1", request as any, "wrong-token", {
@@ -131,9 +143,15 @@ describe("InternalController long-answer generation", () => {
         }
       ]
     });
-    const controller = new InternalController({} as any, {} as any, {} as any, {
-      generateForApplication
-    } as any);
+    const controller = new InternalController(
+      {} as any,
+      {} as any,
+      {} as any,
+      {
+        generateForApplication
+      } as any,
+      {} as any
+    );
 
     const result = await controller.generateLongAnswers("app_2", request as any, "secret", {
       questions: [{ fieldName: "why_fit", questionText: "Why are you a fit for this role?" }]
@@ -163,9 +181,15 @@ describe("InternalController long-answer generation", () => {
       applicationId: "app_3",
       answers: []
     });
-    const controller = new InternalController({} as any, {} as any, {} as any, {
-      generateForApplication
-    } as any);
+    const controller = new InternalController(
+      {} as any,
+      {} as any,
+      {} as any,
+      {
+        generateForApplication
+      } as any,
+      {} as any
+    );
 
     await expect(
       controller.generateLongAnswers("app_3", request as any, "jwt-secret", {
@@ -189,9 +213,15 @@ describe("InternalController long-answer generation", () => {
     delete process.env.INTERNAL_API_TOKEN;
     const request = createRequest();
 
-    const controller = new InternalController({} as any, {} as any, {} as any, {
-      generateForApplication: vi.fn()
-    } as any);
+    const controller = new InternalController(
+      {} as any,
+      {} as any,
+      {} as any,
+      {
+        generateForApplication: vi.fn()
+      } as any,
+      {} as any
+    );
 
     await expect(
       controller.generateLongAnswers("app_4", request as any, "jwt-secret", {

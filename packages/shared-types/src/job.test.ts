@@ -88,6 +88,34 @@ describe("job schemas", () => {
     expect(result.success).toBe(true);
   });
 
+  it("accepts a paused workflow run payload", () => {
+    const timestamp = new Date().toISOString();
+    const result = workflowRunSchema.safeParse({
+      id: "run_paused",
+      jobId: "job_1",
+      retryOfRunId: null,
+      applicationId: null,
+      resumeVersionId: null,
+      kind: "prefill",
+      status: "paused",
+      executionMode: "temporal",
+      workflowId: "prefill-job-job_1-123",
+      workflowType: "prefillJobWorkflow",
+      taskQueue: "rolecraft-analysis",
+      startedAt: timestamp,
+      completedAt: null,
+      pauseRequestedAt: timestamp,
+      pausedAt: timestamp,
+      pauseReason: "Requested from workflow run detail",
+      resumeRequestedAt: null,
+      errorMessage: null,
+      createdAt: timestamp,
+      updatedAt: timestamp
+    });
+
+    expect(result.success).toBe(true);
+  });
+
   it("accepts a valid workflow run event payload", () => {
     const result = workflowRunEventSchema.safeParse({
       id: "event_1",

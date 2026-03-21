@@ -50,7 +50,7 @@ import { buildWorkflowRunsBulkPreflight } from "../../lib/workflow-runs-bulk-pre
 import { getWorkflowRunStatusCopy } from "../../lib/workflow-run-status";
 
 const kindFilters = ["all", "analyze", "generate_resume", "prefill"] as const;
-const statusFilters = ["all", "queued", "running", "completed", "failed", "cancelled"] as const;
+const statusFilters = ["all", "queued", "running", "paused", "completed", "failed", "cancelled"] as const;
 const executionModeFilters = ["all", "direct", "temporal"] as const;
 const sortByOptions = [
   { value: "createdAt", label: "Created time" },

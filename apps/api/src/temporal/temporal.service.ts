@@ -133,6 +133,18 @@ export class TemporalService {
     await handle.cancel();
   }
 
+  async pauseWorkflow(workflowId: string) {
+    const client = await this.getClient();
+    const handle = client.workflow.getHandle(workflowId);
+    await handle.signal("pause");
+  }
+
+  async resumeWorkflow(workflowId: string) {
+    const client = await this.getClient();
+    const handle = client.workflow.getHandle(workflowId);
+    await handle.signal("resume");
+  }
+
   private buildOrchestrationMetadata(
     workflowType: OrchestrationMetadata["workflowType"],
     workflowId: string,

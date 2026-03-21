@@ -69,7 +69,27 @@ const applicationContext = {
     headline: "Platform Engineer resume",
     status: "completed"
   },
-  latestAutomationSession: null
+  latestAutomationSession: null,
+  unresolvedItems: [
+    {
+      id: "unresolved_1",
+      automationSessionId: "session_latest",
+      applicationId: "app_1",
+      fieldName: "resume",
+      fieldLabel: "Resume",
+      fieldType: "resume_upload" as const,
+      questionText: null,
+      status: "unresolved" as const,
+      resolutionKind: null,
+      failureReason: "resume upload control not found",
+      source: "resume_pdf",
+      suggestedValue: "resume.pdf",
+      metadata: {},
+      resolvedAt: null,
+      createdAt: "2026-03-20T09:03:00.000Z",
+      updatedAt: "2026-03-20T09:03:00.000Z"
+    }
+  ]
 };
 
 const automationSessions = [
@@ -149,5 +169,12 @@ describe("ApplicationReviewPage automation session history", () => {
 
     expect(await screen.findByRole("heading", { name: "What the worker tried to fill" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Automation sessions" })).toBeInTheDocument();
+  });
+
+  it("shows a manual follow-up section when unresolved items are present", async () => {
+    render(<ApplicationReviewPage />);
+
+    expect(await screen.findByRole("heading", { name: "Needs attention" })).toBeInTheDocument();
+    expect(screen.getByText("resume upload control not found")).toBeInTheDocument();
   });
 });

@@ -36,6 +36,7 @@ export const workflowRunKindSchema = z.enum(["analyze", "generate_resume", "pref
 export const workflowRunStatusSchema = z.enum([
   "queued",
   "running",
+  "paused",
   "completed",
   "failed",
   "cancelled"
@@ -53,6 +54,9 @@ export const workflowRunSortOrderSchema = z.enum(["asc", "desc"]);
 export const workflowRunEventTypeSchema = z.enum([
   "run_queued",
   "run_started",
+  "run_pause_requested",
+  "run_paused",
+  "run_resumed",
   "run_completed",
   "run_failed",
   "run_cancelled",
@@ -89,6 +93,10 @@ export const workflowRunSchema = z.object({
   taskQueue: z.string().nullable().default(null),
   startedAt: z.string().nullable().default(null),
   completedAt: z.string().nullable().default(null),
+  pauseRequestedAt: z.string().nullable().default(null),
+  pausedAt: z.string().nullable().default(null),
+  pauseReason: z.string().nullable().default(null),
+  resumeRequestedAt: z.string().nullable().default(null),
   errorMessage: z.string().nullable().default(null),
   createdAt: z.string(),
   updatedAt: z.string()

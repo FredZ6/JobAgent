@@ -8,6 +8,7 @@ import { useParams } from "next/navigation";
 import { ApplicationFieldResults } from "../../../../components/application-field-results";
 import { AutomationSessionSummary } from "../../../../components/automation-session-summary";
 import { Panel } from "../../../../components/panel";
+import { UnresolvedAutomationItems } from "../../../../components/unresolved-automation-items";
 import {
   type ApplicationHistoryActorFilter,
   type ApplicationHistoryEventFilter,
@@ -216,7 +217,15 @@ export default function SubmissionReviewPage() {
     );
   }
 
-  const { application, job, resumeVersion, unresolvedFieldCount, failedFieldCount, latestAutomationSession } = review;
+  const {
+    application,
+    job,
+    resumeVersion,
+    unresolvedFieldCount,
+    failedFieldCount,
+    latestAutomationSession,
+    unresolvedItems
+  } = review;
 
   return (
     <section className="content-grid">
@@ -371,6 +380,18 @@ export default function SubmissionReviewPage() {
           results={application.fieldResults}
           emptyCopy="No field details were captured."
           summaryTitle="Submission review summary"
+        />
+      </Panel>
+
+      <Panel
+        className="span-5"
+        eyebrow="Manual follow-up"
+        title="Needs attention"
+        copy="This is the unresolved queue carried forward from automation so you can close the remaining gaps before or after submission."
+      >
+        <UnresolvedAutomationItems
+          items={unresolvedItems}
+          emptyCopy="No unresolved automation items are waiting for manual follow-up."
         />
       </Panel>
 

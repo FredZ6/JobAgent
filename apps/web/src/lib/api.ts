@@ -2,6 +2,7 @@ import {
   type AutomationSession,
   type ApplicationEventType,
   type ApplicationEvent,
+  type ApplicationContext,
   type ApplicationDto,
   type ApprovalRequest,
   type ApprovalStatus,
@@ -52,25 +53,9 @@ export type JobDetail = JobDto & {
   resumeVersions: ResumeVersion[];
 };
 
-export type ApplicationWithContext = {
-  application: ApplicationDto;
-  job: {
-    id: string;
-    title: string;
-    company: string;
-    applyUrl: string | null;
-  } | null;
-  resumeVersion: {
-    id: string;
-    headline: string;
-    status: string;
-  } | null;
-  latestAutomationSession: AutomationSession | null;
-};
+export type ApplicationWithContext = ApplicationContext;
 
-export type SubmissionReviewWithContext = SubmissionReview & {
-  latestAutomationSession: AutomationSession | null;
-};
+export type SubmissionReviewWithContext = SubmissionReview;
 
 export type JobListItem = JobDto & {
   latestAnalysis: {
@@ -265,6 +250,18 @@ export function retryWorkflowRun(id: string) {
 
 export function cancelWorkflowRun(id: string) {
   return request<WorkflowRunDetail>(`/workflow-runs/${id}/cancel`, {
+    method: "POST"
+  });
+}
+
+export function pauseWorkflowRun(id: string) {
+  return request<WorkflowRunDetail>(`/workflow-runs/${id}/pause`, {
+    method: "POST"
+  });
+}
+
+export function resumeWorkflowRun(id: string) {
+  return request<WorkflowRunDetail>(`/workflow-runs/${id}/resume`, {
     method: "POST"
   });
 }

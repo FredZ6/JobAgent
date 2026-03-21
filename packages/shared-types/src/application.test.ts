@@ -166,6 +166,72 @@ describe("application schemas", () => {
     expect(result.success).toBe(true);
   });
 
+  it("preserves unresolved automation items in submission review payloads", () => {
+    const timestamp = "2026-03-20T10:00:00.000Z";
+    const result = submissionReviewSchema.safeParse({
+      application: {
+        id: "app_123",
+        jobId: "job_123",
+        resumeVersionId: "resume_123",
+        status: "completed",
+        approvalStatus: "pending_review",
+        applyUrl: "https://example.com/apply",
+        formSnapshot: {},
+        fieldResults: [richResumeUploadFieldResult],
+        screenshotPaths: [],
+        workerLog: [],
+        submissionStatus: "not_ready",
+        submittedAt: null,
+        submissionNote: "",
+        submittedByUser: false,
+        finalSubmissionSnapshot: null,
+        reviewNote: "",
+        errorMessage: null,
+        createdAt: timestamp,
+        updatedAt: timestamp
+      },
+      job: {
+        id: "job_123",
+        title: "Platform Engineer",
+        company: "Rolecraft",
+        applyUrl: "https://example.com/apply"
+      },
+      resumeVersion: {
+        id: "resume_123",
+        headline: "Platform Engineer",
+        status: "completed"
+      },
+      latestAutomationSession: null,
+      unresolvedItems: [
+        {
+          id: "unresolved_1",
+          automationSessionId: "session_123",
+          applicationId: "app_123",
+          fieldName: "resume",
+          fieldLabel: "Resume",
+          fieldType: "resume_upload",
+          questionText: null,
+          status: "unresolved",
+          resolutionKind: null,
+          failureReason: "resume upload control not found",
+          source: "resume_pdf",
+          suggestedValue: "resume.pdf",
+          metadata: {
+            attemptedStrategies: ["file_input", "dropzone"]
+          },
+          resolvedAt: null,
+          createdAt: timestamp,
+          updatedAt: timestamp
+        }
+      ],
+      unresolvedFieldCount: 1,
+      failedFieldCount: 0
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.success ? (result.data as any).unresolvedItems?.[0]?.fieldName : null).toBe("resume");
+  });
+
   it("accepts legacy field results alongside richer ones", () => {
     const result = applicationSchema.safeParse({
       id: "app_123",

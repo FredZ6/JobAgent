@@ -27,6 +27,13 @@ export function getWorkflowRunStatusCopy(run: WorkflowRun): WorkflowRunStatusCop
     };
   }
 
+  if (run.status === "paused") {
+    return {
+      label: "Paused",
+      detail: "This Temporal run is paused at a safe checkpoint and can be resumed from the workflow detail page."
+    };
+  }
+
   if (run.status === "completed") {
     if (run.resumeVersionId) {
       return {

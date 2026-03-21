@@ -81,6 +81,26 @@ const submissionReview = {
     createdAt: "2026-03-20T09:00:00.000Z",
     updatedAt: "2026-03-20T09:05:00.000Z"
   },
+  unresolvedItems: [
+    {
+      id: "unresolved_1",
+      automationSessionId: "session_latest",
+      applicationId: "app_1",
+      fieldName: "why_company",
+      fieldLabel: "Why do you want to work here?",
+      fieldType: "long_text" as const,
+      questionText: "Why do you want to work here?",
+      status: "unresolved" as const,
+      resolutionKind: null,
+      failureReason: "high-risk question requires saved default answer",
+      source: "manual_review_required",
+      suggestedValue: null,
+      metadata: {},
+      resolvedAt: null,
+      createdAt: "2026-03-20T09:03:00.000Z",
+      updatedAt: "2026-03-20T09:03:00.000Z"
+    }
+  ],
   unresolvedFieldCount: 0,
   failedFieldCount: 0
 };
@@ -110,5 +130,12 @@ describe("SubmissionReviewPage automation session navigation", () => {
     const fullHistoryLink = screen.getByRole("link", { name: "Open full automation history" });
 
     expect(fullHistoryLink).toHaveAttribute("href", "/applications/app_1#automation-sessions");
+  });
+
+  it("shows the unresolved follow-up queue when review still needs manual work", async () => {
+    render(<SubmissionReviewPage />);
+
+    expect(await screen.findByRole("heading", { name: "Needs attention" })).toBeInTheDocument();
+    expect(screen.getByText("high-risk question requires saved default answer")).toBeInTheDocument();
   });
 });

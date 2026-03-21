@@ -29,6 +29,7 @@ import { LongAnswerService } from "./internal/long-answer.service.js";
 import { TemporalService } from "./temporal/temporal.service.js";
 import { WorkflowRunBulkActionsService } from "./workflow-runs/workflow-run-bulk-actions.service.js";
 import { WorkflowRunCancelService } from "./workflow-runs/workflow-run-cancel.service.js";
+import { WorkflowRunPauseResumeService } from "./workflow-runs/workflow-run-pause-resume.service.js";
 import { DirectRunCancellationRegistryService } from "./workflow-runs/direct-run-cancellation-registry.service.js";
 import { WorkflowRunRetriesService } from "./workflow-runs/workflow-run-retries.service.js";
 import { WorkflowRunsController } from "./workflow-runs/workflow-runs.controller.js";
@@ -70,6 +71,7 @@ import { WorkflowRunsService } from "./workflow-runs/workflow-runs.service.js";
     DirectRunCancellationRegistryService,
     WorkflowRunBulkActionsService,
     WorkflowRunCancelService,
+    WorkflowRunPauseResumeService,
     WorkflowRunRetriesService
   ]
 })
