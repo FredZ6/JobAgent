@@ -172,7 +172,6 @@ Runtime shape:
 - Prefill support is heuristic and will not handle every ATS or custom control.
 - The project is not a multi-tenant production system yet.
 - Temporal support exists, but only for the current starter workflow slices.
-- The web build is currently stable but still carries some workaround-specific implementation that should be cleaned up later.
 
 ## Roadmap
 
