@@ -17,6 +17,7 @@ import {
   updateApplicationApproval,
   type ApplicationWithContext
 } from "../../../lib/api";
+import { buildAutomationSessionOverview } from "../../../lib/automation-session";
 import type { AutomationSession } from "@rolecraft/shared-types";
 import type { ApprovalStatus } from "@rolecraft/shared-types";
 
@@ -164,6 +165,7 @@ export default function ApplicationReviewPage() {
 
   const { application, job, resumeVersion, latestAutomationSession, unresolvedItems } = applicationContext;
   const sessionHistory = automationSessions.length > 0 ? automationSessions : latestAutomationSession ? [latestAutomationSession] : [];
+  const automationSummary = buildAutomationSessionOverview(sessionHistory);
 
   return (
     <section className="content-grid">
@@ -263,8 +265,37 @@ export default function ApplicationReviewPage() {
           className="span-12"
           eyebrow="Automation session"
           title="Automation sessions"
-          copy="Browse the browser attempts that populated this application and compare the latest run with earlier tries."
-        >
+        copy="Browse the browser attempts that populated this application and compare the latest run with earlier tries."
+      >
+          {automationSummary.totalAttempts > 0 ? (
+            <div className="stack">
+              <div className="field-grid">
+                <div className="application-field">
+                  <p className="panel-copy">Total attempts: {automationSummary.totalAttempts}</p>
+                </div>
+                <div className="application-field">
+                  <p className="panel-copy">Latest status: {automationSummary.latestStatus ?? "unknown"}</p>
+                </div>
+                <div className="application-field">
+                  <p className="panel-copy">Latest unresolved: {automationSummary.latestUnresolved}</p>
+                </div>
+                {automationSummary.retryTrend ? (
+                  <div className="application-field">
+                    <p className="panel-copy">
+                      Retry trend: filled {automationSummary.retryTrend.filledDelta >= 0 ? "+" : ""}
+                      {automationSummary.retryTrend.filledDelta}, failed {automationSummary.retryTrend.failedDelta >= 0 ? "+" : ""}
+                      {automationSummary.retryTrend.failedDelta}, unresolved {automationSummary.retryTrend.unresolvedDelta >= 0 ? "+" : ""}
+                      {automationSummary.retryTrend.unresolvedDelta}
+                    </p>
+                  </div>
+                ) : null}
+                <div className="application-field">
+                  <p className="panel-copy">Best run: {automationSummary.bestRunId ?? "not available"}</p>
+                </div>
+              </div>
+              {automationSummary.bestRunReason ? <p className="muted">{automationSummary.bestRunReason}</p> : null}
+            </div>
+          ) : null}
           {sessionHistoryError ? <p className="muted">{sessionHistoryError}</p> : null}
           <AutomationSessionHistory
             sessions={sessionHistory}

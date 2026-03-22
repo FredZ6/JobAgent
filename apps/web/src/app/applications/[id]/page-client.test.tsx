@@ -177,6 +177,28 @@ describe("ApplicationReviewPage automation session history", () => {
     expect(document.querySelector("#automation-sessions")).toBeInTheDocument();
   });
 
+  it("shows an automation summary above the session history", async () => {
+    render(<ApplicationReviewPage />);
+
+    expect(await screen.findByText("Total attempts: 2")).toBeInTheDocument();
+    expect(screen.getByText("Latest status: completed")).toBeInTheDocument();
+    expect(screen.getByText("Latest unresolved: 0")).toBeInTheDocument();
+    expect(screen.getByText(/^Retry trend:/i)).toBeInTheDocument();
+    expect(screen.getByText("Best run: session_latest")).toBeInTheDocument();
+    expect(
+      screen.getByText(/best run because it is completed with 0 filled fields, 0 failed fields, 0 unresolved fields, 0 screenshots, and 0 worker log entries/i)
+    ).toBeInTheDocument();
+  });
+
+  it("hides retry trend copy when only one automation session exists", async () => {
+    mockedFetchAutomationSessions.mockResolvedValue([automationSessions[1]]);
+
+    render(<ApplicationReviewPage />);
+
+    expect(await screen.findByText("Total attempts: 1")).toBeInTheDocument();
+    expect(screen.queryByText(/^Retry trend:/i)).not.toBeInTheDocument();
+  });
+
   it("keeps the approval and evidence areas intact alongside the session history", async () => {
     render(<ApplicationReviewPage />);
 
