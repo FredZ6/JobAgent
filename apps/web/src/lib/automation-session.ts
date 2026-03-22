@@ -28,6 +28,19 @@ export type AutomationSessionComparison = {
   screenshotDelta: number;
   logDelta: number;
 };
+export type AutomationSessionOverview = {
+  totalAttempts: number;
+  latestSessionId: string | null;
+  latestStatus: AutomationSession["status"] | null;
+  latestUnresolved: number;
+  bestRunId: string | null;
+  bestRunReason: string | null;
+  retryTrend: {
+    filledDelta: number;
+    failedDelta: number;
+    unresolvedDelta: number;
+  } | null;
+};
 
 export function summarizeAutomationSessionEvidence(session: AutomationSession) {
   const fieldSummary = summarizeFieldResults(session.fieldResults);
@@ -82,6 +95,93 @@ export function compareAutomationSessions(
     unresolvedDelta: latestSummary.unresolved - previousSummary.unresolved,
     screenshotDelta: latestSummary.screenshotCount - previousSummary.screenshotCount,
     logDelta: latestSummary.logCount - previousSummary.logCount
+  };
+}
+
+const sessionStatusRank: Record<AutomationSession["status"], number> = {
+  completed: 4,
+  running: 3,
+  queued: 2,
+  failed: 1,
+  cancelled: 0
+};
+
+function getAutomationSessionSortTimestamp(session: AutomationSession) {
+  return new Date(session.completedAt ?? session.startedAt ?? session.createdAt).getTime();
+}
+
+function compareAutomationSessionQuality(left: AutomationSession, right: AutomationSession) {
+  const leftSummary = summarizeAutomationSessionEvidence(left);
+  const rightSummary = summarizeAutomationSessionEvidence(right);
+
+  if (sessionStatusRank[left.status] !== sessionStatusRank[right.status]) {
+    return sessionStatusRank[right.status] - sessionStatusRank[left.status];
+  }
+
+  if (leftSummary.filled !== rightSummary.filled) {
+    return rightSummary.filled - leftSummary.filled;
+  }
+
+  const leftFailures = leftSummary.failed + leftSummary.unresolved;
+  const rightFailures = rightSummary.failed + rightSummary.unresolved;
+
+  if (leftFailures !== rightFailures) {
+    return leftFailures - rightFailures;
+  }
+
+  const leftEvidence = leftSummary.screenshotCount + leftSummary.logCount;
+  const rightEvidence = rightSummary.screenshotCount + rightSummary.logCount;
+
+  if (leftEvidence !== rightEvidence) {
+    return rightEvidence - leftEvidence;
+  }
+
+  return getAutomationSessionSortTimestamp(right) - getAutomationSessionSortTimestamp(left);
+}
+
+function formatBestRunReason(session: AutomationSession) {
+  const summary = summarizeAutomationSessionEvidence(session);
+  const formatCount = (count: number, singular: string, plural = `${singular}s`) =>
+    `${count} ${count === 1 ? singular : plural}`;
+
+  return `${session.id} is the best run because it is ${session.status} with ${formatCount(summary.filled, "filled field")}, ${formatCount(summary.failed, "failed field")}, ${formatCount(summary.unresolved, "unresolved field")}, ${formatCount(summary.screenshotCount, "screenshot")}, and ${formatCount(summary.logCount, "worker log entry", "worker log entries")}.`;
+}
+
+export function buildAutomationSessionOverview(sessions: AutomationSession[]): AutomationSessionOverview {
+  if (sessions.length === 0) {
+    return {
+      totalAttempts: 0,
+      latestSessionId: null,
+      latestStatus: null,
+      latestUnresolved: 0,
+      bestRunId: null,
+      bestRunReason: null,
+      retryTrend: null
+    };
+  }
+
+  const latestSession = sessions[0];
+  const previousSession = sessions[1] ?? null;
+  const latestSummary = summarizeAutomationSessionEvidence(latestSession);
+  const bestRun = [...sessions].sort(compareAutomationSessionQuality)[0];
+
+  return {
+    totalAttempts: sessions.length,
+    latestSessionId: latestSession.id,
+    latestStatus: latestSession.status,
+    latestUnresolved: latestSummary.unresolved,
+    bestRunId: bestRun?.id ?? null,
+    bestRunReason: bestRun ? formatBestRunReason(bestRun) : null,
+    retryTrend: previousSession
+      ? (() => {
+          const previousSummary = summarizeAutomationSessionEvidence(previousSession);
+          return {
+            filledDelta: latestSummary.filled - previousSummary.filled,
+            failedDelta: latestSummary.failed - previousSummary.failed,
+            unresolvedDelta: latestSummary.unresolved - previousSummary.unresolved
+          };
+        })()
+      : null
   };
 }
 

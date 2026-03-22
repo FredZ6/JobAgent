@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   compareAutomationSessions,
+  buildAutomationSessionOverview,
   filterAutomationSessions,
   getAutomationSessionPhaseLabel,
   summarizeAutomationSessionEvidence
@@ -119,6 +120,14 @@ describe("automation-session helpers", () => {
           filled: false,
           status: "failed" as const,
           source: "resume_pdf"
+        },
+        {
+          fieldName: "location",
+          fieldType: "basic_text" as const,
+          suggestedValue: "Winnipeg, MB",
+          filled: false,
+          status: "unresolved" as const,
+          source: "profile"
         }
       ],
       screenshotPaths: ["shot-1.png", "shot-2.png"],
@@ -137,13 +146,13 @@ describe("automation-session helpers", () => {
         previousStatus: "completed",
         filledDelta: 0,
         failedDelta: 0,
-        unresolvedDelta: -2,
+        unresolvedDelta: -1,
         screenshotDelta: 1,
         logDelta: 1,
         latestSummary: {
           filled: 1,
           failed: 1,
-          unresolved: 0,
+          unresolved: 1,
           screenshotCount: 2,
           logCount: 2
         },
@@ -194,6 +203,102 @@ describe("automation-session helpers", () => {
         }
       })
     );
+  });
+
+  it("builds a summary for a single session without retry trend noise", () => {
+    expect(buildAutomationSessionOverview([baseSession])).toEqual({
+      totalAttempts: 1,
+      latestSessionId: "session_1",
+      latestStatus: "completed",
+      latestUnresolved: 1,
+      bestRunId: "session_1",
+      bestRunReason: "session_1 is the best run because it is completed with 1 filled field, 1 failed field, 1 unresolved field, 2 screenshots, and 2 worker log entries.",
+      retryTrend: null
+    });
+  });
+
+  it("chooses the best run and computes retry deltas from the latest pair", () => {
+    const previous = {
+      ...baseSession,
+      id: "session_prev",
+      status: "failed" as const,
+      fieldResults: [
+        {
+          fieldName: "email",
+          fieldType: "basic_text" as const,
+          suggestedValue: "ada@example.com",
+          filled: true,
+          status: "filled" as const,
+          strategy: "text_input",
+          source: "profile"
+        },
+        {
+          fieldName: "resume",
+          fieldType: "resume_upload" as const,
+          suggestedValue: "resume.pdf",
+          filled: false,
+          status: "failed" as const,
+          source: "resume_pdf"
+        },
+        {
+          fieldName: "location",
+          fieldType: "basic_text" as const,
+          suggestedValue: "Winnipeg, MB",
+          filled: false,
+          status: "unresolved" as const,
+          source: "profile"
+        }
+      ],
+      screenshotPaths: ["shot-1.png"],
+      workerLog: [{ level: "info" as const, message: "started" }],
+      completedAt: null
+    };
+    const latest = {
+      ...baseSession,
+      id: "session_latest",
+      status: "completed" as const,
+      fieldResults: [
+        {
+          fieldName: "email",
+          fieldType: "basic_text" as const,
+          suggestedValue: "ada@example.com",
+          filled: true,
+          status: "filled" as const,
+          strategy: "text_input",
+          source: "profile"
+        },
+        {
+          fieldName: "resume",
+          fieldType: "resume_upload" as const,
+          suggestedValue: "resume.pdf",
+          filled: true,
+          status: "filled" as const,
+          source: "resume_pdf"
+        }
+      ],
+      screenshotPaths: ["shot-1.png", "shot-2.png", "shot-3.png"],
+      workerLog: [
+        { level: "info" as const, message: "started" },
+        { level: "info" as const, message: "finished" }
+      ],
+      errorMessage: null,
+      completedAt: "2026-03-19T09:02:00.000Z"
+    };
+
+    expect(buildAutomationSessionOverview([latest, previous])).toEqual({
+      totalAttempts: 2,
+      latestSessionId: "session_latest",
+      latestStatus: "completed",
+      latestUnresolved: 0,
+      bestRunId: "session_latest",
+      bestRunReason:
+        "session_latest is the best run because it is completed with 2 filled fields, 0 failed fields, 0 unresolved fields, 3 screenshots, and 2 worker log entries.",
+      retryTrend: {
+        filledDelta: 1,
+        failedDelta: -1,
+        unresolvedDelta: -1
+      }
+    });
   });
 
   it("filters sessions by query across workflow metadata and worker evidence", () => {
