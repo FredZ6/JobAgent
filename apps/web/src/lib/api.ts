@@ -40,9 +40,17 @@ import {
 import { extractApiErrorMessage } from "./api-error";
 import { resolveWebApiBaseUrl } from "./api-base";
 
-const API_BASE = resolveWebApiBaseUrl(process.env, {
-  browser: typeof window !== "undefined"
-});
+const IS_BROWSER = typeof window !== "undefined";
+
+const API_BASE = resolveWebApiBaseUrl(
+  {
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+    API_URL: IS_BROWSER ? undefined : process.env.API_URL
+  },
+  {
+    browser: IS_BROWSER
+  }
+);
 
 type AnalysisRecord = JobAnalysisResult & {
   id: string;

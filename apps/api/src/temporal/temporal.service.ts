@@ -129,21 +129,37 @@ export class TemporalService {
   }
 
   async cancelWorkflow(workflowId: string) {
+    if (this.usesFakeSignalMode()) {
+      return;
+    }
+
     const client = await this.getClient();
     const handle = client.workflow.getHandle(workflowId);
     await handle.cancel();
   }
 
   async pauseWorkflow(workflowId: string) {
+    if (this.usesFakeSignalMode()) {
+      return;
+    }
+
     const client = await this.getClient();
     const handle = client.workflow.getHandle(workflowId);
     await handle.signal("pause");
   }
 
   async resumeWorkflow(workflowId: string) {
+    if (this.usesFakeSignalMode()) {
+      return;
+    }
+
     const client = await this.getClient();
     const handle = client.workflow.getHandle(workflowId);
     await handle.signal("resume");
+  }
+
+  usesFakeSignalMode() {
+    return process.env.ROLECRAFT_E2E_FAKE_TEMPORAL === "true";
   }
 
   private buildOrchestrationMetadata(

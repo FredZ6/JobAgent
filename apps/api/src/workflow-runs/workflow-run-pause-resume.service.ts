@@ -30,6 +30,10 @@ export class WorkflowRunPauseResumeService {
     await this.workflowRunsService.requestPause(id, PAUSE_REASON);
     await this.temporalService.pauseWorkflow(run.workflowId);
 
+    if (this.temporalService.usesFakeSignalMode()) {
+      await this.workflowRunsService.markPaused(id, PAUSE_REASON);
+    }
+
     return this.workflowRunsService.getWorkflowRunDetail(id);
   }
 
