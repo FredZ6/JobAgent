@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   compareAutomationSessions,
+  filterAutomationSessions,
   getAutomationSessionPhaseLabel,
   summarizeAutomationSessionEvidence
 } from "./automation-session";
@@ -193,5 +194,72 @@ describe("automation-session helpers", () => {
         }
       })
     );
+  });
+
+  it("filters sessions by query across workflow metadata and worker evidence", () => {
+    const sessions = [
+      baseSession,
+      {
+        ...baseSession,
+        id: "session_2",
+        workflowRunId: "run_temporal_2",
+        status: "failed" as const,
+        errorMessage: "playwright detached",
+        workerLog: [{ level: "error" as const, message: "detached frame during submit" }],
+        screenshotPaths: []
+      }
+    ];
+
+    expect(filterAutomationSessions(sessions, { query: "temporal_2", status: "all", attention: "all" })).toEqual([
+      sessions[1]
+    ]);
+    expect(filterAutomationSessions(sessions, { query: "playwright detached", status: "all", attention: "all" })).toEqual([
+      sessions[1]
+    ]);
+    expect(filterAutomationSessions(sessions, { query: "completed", status: "all", attention: "all" })).toEqual([
+      sessions[0]
+    ]);
+  });
+
+  it("filters sessions by status and attention", () => {
+    const sessions = [
+      baseSession,
+      {
+        ...baseSession,
+        id: "session_failed",
+        status: "failed" as const,
+        screenshotPaths: [],
+        workerLog: [{ level: "error" as const, message: "failed" }]
+      },
+      {
+        ...baseSession,
+        id: "session_clean",
+        status: "running" as const,
+        fieldResults: [
+          {
+            fieldName: "email",
+            fieldType: "basic_text" as const,
+            suggestedValue: "ada@example.com",
+            filled: true,
+            status: "filled" as const,
+            source: "profile"
+          }
+        ],
+        screenshotPaths: [],
+        workerLog: []
+      }
+    ];
+
+    expect(filterAutomationSessions(sessions, { query: "", status: "failed", attention: "all" })).toEqual([
+      sessions[1]
+    ]);
+    expect(filterAutomationSessions(sessions, { query: "", status: "all", attention: "has_unresolved" })).toEqual([
+      sessions[0],
+      sessions[1]
+    ]);
+    expect(filterAutomationSessions(sessions, { query: "", status: "all", attention: "has_screenshots" })).toEqual([
+      sessions[0]
+    ]);
+    expect(filterAutomationSessions(sessions, { query: "", status: "running", attention: "has_worker_logs" })).toEqual([]);
   });
 });

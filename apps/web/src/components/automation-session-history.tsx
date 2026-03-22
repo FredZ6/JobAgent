@@ -5,6 +5,10 @@ import type { AutomationSession } from "@rolecraft/shared-types";
 
 import { buildApplicationScreenshotUrl } from "../lib/api";
 import {
+  filterAutomationSessions,
+  type AutomationSessionAttentionFilter,
+  type AutomationSessionFilterState,
+  type AutomationSessionStatusFilter,
   compareAutomationSessions,
   getAutomationSessionPhaseLabel,
   summarizeAutomationSessionEvidence
@@ -20,6 +24,29 @@ type AutomationSessionPair = {
   latest: AutomationSession;
   previous: AutomationSession;
 };
+
+const defaultFilters: AutomationSessionFilterState = {
+  query: "",
+  status: "all",
+  attention: "all"
+};
+
+const statusOptions: Array<{ value: AutomationSessionStatusFilter; label: string }> = [
+  { value: "all", label: "All statuses" },
+  { value: "completed", label: "Completed" },
+  { value: "running", label: "Running" },
+  { value: "queued", label: "Queued" },
+  { value: "failed", label: "Failed" },
+  { value: "cancelled", label: "Cancelled" }
+];
+
+const attentionOptions: Array<{ value: AutomationSessionAttentionFilter; label: string }> = [
+  { value: "all", label: "All sessions" },
+  { value: "has_failures", label: "Has failures" },
+  { value: "has_unresolved", label: "Has unresolved" },
+  { value: "has_screenshots", label: "Has screenshots" },
+  { value: "has_worker_logs", label: "Has worker logs" }
+];
 
 function formatTimestamp(value: string | null) {
   if (!value) {
@@ -161,21 +188,27 @@ function SessionEvidenceBlock(props: {
 export function AutomationSessionHistory(props: AutomationSessionHistoryProps) {
   const { sessions, emptyCopy } = props;
   const orderedSessions = useMemo(() => sortSessionsByRecency(sessions), [sessions]);
+  const [filters, setFilters] = useState<AutomationSessionFilterState>(defaultFilters);
   const [selectedSessionId, setSelectedSessionId] = useState("");
   const [compareSessionIds, setCompareSessionIds] = useState<string[]>([]);
+  const filteredSessions = useMemo(() => filterAutomationSessions(orderedSessions, filters), [orderedSessions, filters]);
+  const hasActiveFilters =
+    filters.query.trim().length > 0 || filters.status !== "all" || filters.attention !== "all";
 
   useEffect(() => {
-    if (orderedSessions.length === 0) {
+    if (filteredSessions.length === 0) {
       setSelectedSessionId("");
       setCompareSessionIds([]);
       return;
     }
 
     setSelectedSessionId((current) =>
-      orderedSessions.some((session) => session.id === current) ? current : orderedSessions[0].id
+      filteredSessions.some((session) => session.id === current) ? current : filteredSessions[0].id
     );
-    setCompareSessionIds((current) => current.filter((sessionId) => orderedSessions.some((session) => session.id === sessionId)));
-  }, [orderedSessions]);
+    setCompareSessionIds((current) =>
+      current.filter((sessionId) => filteredSessions.some((session) => session.id === sessionId))
+    );
+  }, [filteredSessions]);
 
   useEffect(() => {
     if (compareSessionIds.length === 1) {
@@ -183,8 +216,8 @@ export function AutomationSessionHistory(props: AutomationSessionHistoryProps) {
     }
   }, [compareSessionIds]);
 
-  const selectedSession = orderedSessions.find((session) => session.id === selectedSessionId) ?? null;
-  const selectedPair = getSelectedPair(compareSessionIds, orderedSessions);
+  const selectedSession = filteredSessions.find((session) => session.id === selectedSessionId) ?? null;
+  const selectedPair = getSelectedPair(compareSessionIds, filteredSessions);
   const comparison = selectedPair ? compareAutomationSessions(selectedPair.latest, selectedPair.previous) : null;
 
   function toggleCompare(sessionId: string) {
@@ -211,6 +244,9 @@ export function AutomationSessionHistory(props: AutomationSessionHistoryProps) {
         <strong>Automation sessions</strong>
         <div className="pill-row">
           <span className="mini-pill">{orderedSessions.length} sessions</span>
+          {filteredSessions.length !== orderedSessions.length ? (
+            <span className="mini-pill">{filteredSessions.length} shown</span>
+          ) : null}
           {selectedSession ? <span className="mini-pill">Latest selected</span> : null}
         </div>
       </div>
@@ -219,7 +255,88 @@ export function AutomationSessionHistory(props: AutomationSessionHistoryProps) {
       </p>
 
       <div className="stack">
-        {orderedSessions.map((session, index) => {
+        <label className="stack" htmlFor="automation-session-search">
+          <span className="muted">Search automation sessions</span>
+          <input
+            id="automation-session-search"
+            type="search"
+            className="field-input"
+            aria-label="Search automation sessions"
+            placeholder="Search run id, status, error, or log text"
+            value={filters.query}
+            onChange={(event) =>
+              setFilters((current) => ({
+                ...current,
+                query: event.target.value
+              }))
+            }
+          />
+        </label>
+        <div className="filter-row">
+          <label className="stack" htmlFor="automation-session-status-filter">
+            <span className="muted">Filter by status</span>
+            <select
+              id="automation-session-status-filter"
+              className="field-input"
+              aria-label="Filter by status"
+              value={filters.status}
+              onChange={(event) =>
+                setFilters((current) => ({
+                  ...current,
+                  status: event.target.value as AutomationSessionStatusFilter
+                }))
+              }
+            >
+              {statusOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="stack" htmlFor="automation-session-attention-filter">
+            <span className="muted">Filter by attention</span>
+            <select
+              id="automation-session-attention-filter"
+              className="field-input"
+              aria-label="Filter by attention"
+              value={filters.attention}
+              onChange={(event) =>
+                setFilters((current) => ({
+                  ...current,
+                  attention: event.target.value as AutomationSessionAttentionFilter
+                }))
+              }
+            >
+              {attentionOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </div>
+
+      {filteredSessions.length === 0 ? (
+        <div className="application-card">
+          <div className="stack">
+            <strong>No sessions match the current search or filters.</strong>
+            <p className="muted">Try a broader query or clear the current filters to see the full history again.</p>
+            {hasActiveFilters ? (
+              <div className="button-row">
+                <button className="button button-secondary" type="button" onClick={() => setFilters(defaultFilters)}>
+                  Clear filters
+                </button>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
+      {filteredSessions.length > 0 ? (
+        <div className="stack">
+          {filteredSessions.map((session, index) => {
           const summary = summarizeAutomationSessionEvidence(session);
           const isSelected = session.id === selectedSessionId || compareSessionIds.includes(session.id);
 
@@ -290,8 +407,9 @@ export function AutomationSessionHistory(props: AutomationSessionHistoryProps) {
               </div>
             </div>
           );
-        })}
-      </div>
+          })}
+        </div>
+      ) : null}
 
       {comparison && selectedPair ? (
         <div className="stack">

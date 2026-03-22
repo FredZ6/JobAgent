@@ -14,6 +14,33 @@ const compareAutomationSessionsSpy = vi.spyOn(automationSessionHelpers, "compare
 
 const sessions = [
   {
+    id: "session_failed",
+    applicationId: "app_1",
+    workflowRunId: "run_failed",
+    resumeVersionId: "resume_1",
+    kind: "prefill",
+    status: "failed" as const,
+    applyUrl: "https://apply.example.com",
+    formSnapshot: {},
+    fieldResults: [
+      {
+        fieldName: "portfolio",
+        fieldType: "basic_text" as const,
+        suggestedValue: "https://example.com",
+        filled: false,
+        status: "unresolved" as const,
+        source: "profile"
+      }
+    ],
+    screenshotPaths: [],
+    workerLog: [{ level: "error" as const, message: "detached frame" }],
+    errorMessage: "detached frame",
+    startedAt: "2026-03-20T07:00:00.000Z",
+    completedAt: "2026-03-20T07:01:00.000Z",
+    createdAt: "2026-03-20T07:00:00.000Z",
+    updatedAt: "2026-03-20T07:01:00.000Z"
+  },
+  {
     id: "session_old",
     applicationId: "app_1",
     workflowRunId: "run_old",
@@ -146,7 +173,7 @@ describe("AutomationSessionHistory", () => {
     await user.click(screen.getByRole("checkbox", { name: "Compare session session_latest" }));
     await user.click(screen.getByRole("checkbox", { name: "Compare session session_old" }));
 
-    expect(compareAutomationSessionsSpy).toHaveBeenCalledWith(sessions[1], sessions[0]);
+    expect(compareAutomationSessionsSpy).toHaveBeenCalledWith(sessions[2], sessions[1]);
     expect(screen.getByText("Compare sessions")).toBeInTheDocument();
     expect(screen.getByText("Latest session")).toBeInTheDocument();
     expect(screen.getByText("Previous session")).toBeInTheDocument();
@@ -159,5 +186,48 @@ describe("AutomationSessionHistory", () => {
       "#automation-session-session_old-logs"
     );
     expect(screen.getAllByRole("link", { name: /Open .* screenshots/ })).toHaveLength(2);
+  });
+
+  it("filters sessions by search and auto-switches selected detail", async () => {
+    const user = userEvent.setup();
+
+    render(<AutomationSessionHistory sessions={sessions} emptyCopy="No session history yet." />);
+
+    await user.type(screen.getByRole("searchbox", { name: "Search automation sessions" }), "detached");
+
+    expect(screen.getByRole("button", { name: "View details for session_failed" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "View details for session_latest" })).not.toBeInTheDocument();
+    expect(screen.getByText("Workflow run: run_failed")).toBeInTheDocument();
+  });
+
+  it("filters sessions by status and can clear filters from an empty result", async () => {
+    const user = userEvent.setup();
+
+    render(<AutomationSessionHistory sessions={sessions} emptyCopy="No session history yet." />);
+
+    await user.selectOptions(screen.getByLabelText("Filter by status"), "queued");
+
+    expect(screen.getByText("No sessions match the current search or filters.")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Clear filters" }));
+
+    expect(screen.getByRole("button", { name: "View details for session_latest" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "View details for session_failed" })).toBeInTheDocument();
+  });
+
+  it("filters sessions by attention and prunes compare selections", async () => {
+    const user = userEvent.setup();
+
+    render(<AutomationSessionHistory sessions={sessions} emptyCopy="No session history yet." />);
+
+    await user.click(screen.getByRole("checkbox", { name: "Compare session session_latest" }));
+    await user.click(screen.getByRole("checkbox", { name: "Compare session session_old" }));
+    expect(screen.getByText("Compare sessions")).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("Filter by attention"), "has_unresolved");
+
+    expect(screen.queryByText("Compare sessions")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "View details for session_failed" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "View details for session_old" })).not.toBeInTheDocument();
   });
 });
