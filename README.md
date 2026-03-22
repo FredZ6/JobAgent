@@ -194,6 +194,7 @@ Broader product directions:
 - [Original roadmap](roadmap.md)
 - [Original product spec](spec.md)
 - [Original system design](system-design.md)
+- [Automation sessions enhancement roadmap](docs/backlog/automation-sessions-enhancement-roadmap.md)
 - [Open-source release checklist](docs/plans/2026-03-19-open-source-release-checklist.md)
 - [Alpha release notes](docs/releases/v0.1.0-alpha.md)
 - [Support matrix](docs/releases/support-matrix.md)
