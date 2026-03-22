@@ -160,8 +160,11 @@ export function buildAutomationSessionOverview(sessions: AutomationSession[]): A
     };
   }
 
-  const latestSession = sessions[0];
-  const previousSession = sessions[1] ?? null;
+  const sessionsByRecency = [...sessions].sort(
+    (left, right) => getAutomationSessionSortTimestamp(right) - getAutomationSessionSortTimestamp(left)
+  );
+  const latestSession = sessionsByRecency[0];
+  const previousSession = sessionsByRecency[1] ?? null;
   const latestSummary = summarizeAutomationSessionEvidence(latestSession);
   const bestRun = [...sessions].sort(compareAutomationSessionQuality)[0];
 

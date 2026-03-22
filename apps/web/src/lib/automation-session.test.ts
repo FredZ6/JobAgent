@@ -217,6 +217,96 @@ describe("automation-session helpers", () => {
     });
   });
 
+  it("normalizes unsorted sessions before deriving latest status and retry trend", () => {
+    const older = {
+      ...baseSession,
+      id: "session_older",
+      status: "failed" as const,
+      fieldResults: [
+        {
+          fieldName: "email",
+          fieldType: "basic_text" as const,
+          suggestedValue: "ada@example.com",
+          filled: true,
+          status: "filled" as const,
+          strategy: "text_input",
+          source: "profile"
+        },
+        {
+          fieldName: "resume",
+          fieldType: "resume_upload" as const,
+          suggestedValue: "resume.pdf",
+          filled: false,
+          status: "failed" as const,
+          source: "resume_pdf"
+        },
+        {
+          fieldName: "location",
+          fieldType: "basic_text" as const,
+          suggestedValue: "Winnipeg, MB",
+          filled: false,
+          status: "unresolved" as const,
+          source: "profile"
+        }
+      ],
+      screenshotPaths: ["shot-1.png"],
+      workerLog: [{ level: "info" as const, message: "started" }],
+      startedAt: "2026-03-19T08:00:00.000Z",
+      completedAt: null,
+      createdAt: "2026-03-19T08:00:00.000Z",
+      updatedAt: "2026-03-19T08:05:00.000Z"
+    };
+    const newer = {
+      ...baseSession,
+      id: "session_newer",
+      status: "completed" as const,
+      fieldResults: [
+        {
+          fieldName: "email",
+          fieldType: "basic_text" as const,
+          suggestedValue: "ada@example.com",
+          filled: true,
+          status: "filled" as const,
+          strategy: "text_input",
+          source: "profile"
+        },
+        {
+          fieldName: "resume",
+          fieldType: "resume_upload" as const,
+          suggestedValue: "resume.pdf",
+          filled: true,
+          status: "filled" as const,
+          source: "resume_pdf"
+        }
+      ],
+      screenshotPaths: ["shot-1.png", "shot-2.png", "shot-3.png"],
+      workerLog: [
+        { level: "info" as const, message: "started" },
+        { level: "info" as const, message: "finished" }
+      ],
+      errorMessage: null,
+      startedAt: "2026-03-19T09:00:00.000Z",
+      completedAt: "2026-03-19T09:02:00.000Z",
+      createdAt: "2026-03-19T09:00:00.000Z",
+      updatedAt: "2026-03-19T09:02:00.000Z"
+    };
+
+    expect(buildAutomationSessionOverview([older, newer])).toEqual({
+      totalAttempts: 2,
+      latestSessionId: "session_newer",
+      latestStatus: "completed",
+      latestUnresolved: 0,
+      bestRunId: "session_newer",
+      bestRunReason:
+        "session_newer is the best run because it is completed with 2 filled fields, 0 failed fields, 0 unresolved fields, 3 screenshots, and 2 worker log entries.",
+      retryTrend: {
+        filledDelta: 1,
+        failedDelta: -1,
+        unresolvedDelta: -1
+      }
+    });
+  });
+
   it("chooses the best run and computes retry deltas from the latest pair", () => {
     const previous = {
       ...baseSession,
