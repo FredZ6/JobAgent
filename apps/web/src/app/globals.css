@@ -148,6 +148,27 @@ textarea {
   overflow: hidden;
 }
 
+.card-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.card-link .panel {
+  height: 100%;
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease;
+}
+
+.card-link:hover .panel,
+.card-link:focus-visible .panel {
+  transform: translateY(-2px);
+  box-shadow: 0 26px 56px rgba(84, 57, 38, 0.16);
+  border-color: rgba(203, 90, 46, 0.26);
+}
+
 .panel-inner {
   padding: 24px;
 }

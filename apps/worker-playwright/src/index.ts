@@ -17,7 +17,16 @@ app.use(express.json());
 const port = resolveServicePort(process.env, 4000);
 const storageDir = resolveApplicationStorageDir(process.env);
 
-app.post("/prefill", async (req: any, res: any) => {
+type PrefillRouteRequest = {
+  body: PrefillRequest;
+};
+
+type PrefillRouteResponse = {
+  status(code: number): PrefillRouteResponse;
+  json(body: unknown): void;
+};
+
+app.post("/prefill", async (req: PrefillRouteRequest, res: PrefillRouteResponse) => {
   const payload = req.body as PrefillRequest;
 
   if (!payload?.applicationId || !payload.applyUrl) {

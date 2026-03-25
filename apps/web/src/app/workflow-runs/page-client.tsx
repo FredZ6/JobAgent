@@ -102,17 +102,20 @@ function WorkflowRunsPageContent() {
   const [bulkFollowUpMessage, setBulkFollowUpMessage] = useState("");
   const [bulkFollowUpError, setBulkFollowUpError] = useState("");
 
-  const currentFilters: WorkflowRunsFilter = {
-    kind: kindFilter === "all" ? undefined : kindFilter,
-    status: statusFilter === "all" ? undefined : statusFilter,
-    executionMode: executionModeFilter === "all" ? undefined : executionModeFilter,
-    q: query.trim() || undefined,
-    from: fromDate || undefined,
-    to: toDate || undefined,
-    sortBy,
-    sortOrder,
-    limit: 20
-  };
+  const currentFilters = useMemo<WorkflowRunsFilter>(
+    () => ({
+      kind: kindFilter === "all" ? undefined : kindFilter,
+      status: statusFilter === "all" ? undefined : statusFilter,
+      executionMode: executionModeFilter === "all" ? undefined : executionModeFilter,
+      q: query.trim() || undefined,
+      from: fromDate || undefined,
+      to: toDate || undefined,
+      sortBy,
+      sortOrder,
+      limit: 20
+    }),
+    [executionModeFilter, fromDate, kindFilter, query, sortBy, sortOrder, statusFilter, toDate]
+  );
 
   const currentQueryState = useMemo(
     () => ({
@@ -201,7 +204,7 @@ function WorkflowRunsPageContent() {
     return () => {
       cancelled = true;
     };
-  }, [kindFilter, statusFilter, executionModeFilter, query, fromDate, toDate, sortBy, sortOrder]);
+  }, [currentFilters]);
 
   function clearAllFilters() {
     setKindFilter(defaultWorkflowRunsQueryState.kindFilter);

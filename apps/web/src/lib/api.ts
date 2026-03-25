@@ -3,7 +3,6 @@ import {
   type ApplicationEventType,
   type ApplicationEvent,
   type ApplicationContext,
-  type ApplicationDto,
   type ApprovalRequest,
   type ApprovalStatus,
   type AuditActorType,

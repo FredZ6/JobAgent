@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
+import React, { useMemo, useState } from "react";
 import type { AutomationSession } from "@rolecraft/shared-types";
 
 import { buildApplicationScreenshotUrl } from "../lib/api";
@@ -170,10 +171,14 @@ function SessionEvidenceBlock(props: {
               return (
                 <div key={`${session.id}-${screenshotPath}`} className="screenshot-card">
                   <p className="panel-copy">{filename}</p>
-                  <img
+                  <Image
                     src={buildApplicationScreenshotUrl(session.applicationId, screenshotPath)}
                     alt={`${title} screenshot ${filename}`}
                     className="screenshot-image"
+                    width={1200}
+                    height={900}
+                    unoptimized
+                    style={{ width: "100%", height: "auto" }}
                   />
                 </div>
               );
@@ -194,30 +199,29 @@ export function AutomationSessionHistory(props: AutomationSessionHistoryProps) {
   const filteredSessions = useMemo(() => filterAutomationSessions(orderedSessions, filters), [orderedSessions, filters]);
   const hasActiveFilters =
     filters.query.trim().length > 0 || filters.status !== "all" || filters.attention !== "all";
-
-  useEffect(() => {
+  const visibleCompareSessionIds = useMemo(
+    () =>
+      compareSessionIds.filter((sessionId) =>
+        filteredSessions.some((session) => session.id === sessionId)
+      ),
+    [compareSessionIds, filteredSessions]
+  );
+  const activeSelectedSessionId = useMemo(() => {
     if (filteredSessions.length === 0) {
-      setSelectedSessionId("");
-      setCompareSessionIds([]);
-      return;
+      return "";
     }
 
-    setSelectedSessionId((current) =>
-      filteredSessions.some((session) => session.id === current) ? current : filteredSessions[0].id
-    );
-    setCompareSessionIds((current) =>
-      current.filter((sessionId) => filteredSessions.some((session) => session.id === sessionId))
-    );
-  }, [filteredSessions]);
-
-  useEffect(() => {
-    if (compareSessionIds.length === 1) {
-      setSelectedSessionId(compareSessionIds[0]);
+    if (visibleCompareSessionIds.length === 1) {
+      return visibleCompareSessionIds[0];
     }
-  }, [compareSessionIds]);
 
-  const selectedSession = filteredSessions.find((session) => session.id === selectedSessionId) ?? null;
-  const selectedPair = getSelectedPair(compareSessionIds, filteredSessions);
+    return filteredSessions.some((session) => session.id === selectedSessionId)
+      ? selectedSessionId
+      : filteredSessions[0].id;
+  }, [filteredSessions, selectedSessionId, visibleCompareSessionIds]);
+  const selectedSession =
+    filteredSessions.find((session) => session.id === activeSelectedSessionId) ?? null;
+  const selectedPair = getSelectedPair(visibleCompareSessionIds, filteredSessions);
   const comparison = selectedPair ? compareAutomationSessions(selectedPair.latest, selectedPair.previous) : null;
 
   function toggleCompare(sessionId: string) {
@@ -338,7 +342,8 @@ export function AutomationSessionHistory(props: AutomationSessionHistoryProps) {
         <div className="stack">
           {filteredSessions.map((session, index) => {
           const summary = summarizeAutomationSessionEvidence(session);
-          const isSelected = session.id === selectedSessionId || compareSessionIds.includes(session.id);
+          const isSelected =
+            session.id === activeSelectedSessionId || visibleCompareSessionIds.includes(session.id);
 
           return (
             <div key={session.id} className={`application-card ${isSelected ? "featured" : ""}`.trim()}>
@@ -398,7 +403,7 @@ export function AutomationSessionHistory(props: AutomationSessionHistoryProps) {
                   <input
                     type="checkbox"
                     className="selection-checkbox"
-                    checked={compareSessionIds.includes(session.id)}
+                    checked={visibleCompareSessionIds.includes(session.id)}
                     onChange={() => toggleCompare(session.id)}
                     aria-label={`Compare session ${session.id}`}
                   />
