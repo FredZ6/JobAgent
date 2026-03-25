@@ -15,11 +15,9 @@ import {
   type WorkflowRunEvent,
   type WorkflowRunListItem,
   type WorkflowRun,
-  type WorkflowRunExecutionMode,
   type WorkflowRunKind,
   type WorkflowRunSortBy,
   type WorkflowRunSortOrder,
-  type WorkflowRunsListQuery,
   type WorkflowRunsListResponse
 } from "@rolecraft/shared-types";
 

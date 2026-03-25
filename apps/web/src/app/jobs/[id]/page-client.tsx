@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { startTransition, useEffect, useMemo, useState } from "react";
+import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import type { WorkflowRun } from "@rolecraft/shared-types";
@@ -47,6 +47,9 @@ export default function JobDetailPage() {
   const [prefillLoading, setPrefillLoading] = useState(false);
   const [prefillMessage, setPrefillMessage] = useState("");
   const [prefillError, setPrefillError] = useState("");
+  const refreshJobContextRef = useRef<(currentJobId: string) => Promise<JobDetail | null>>(
+    async () => null
+  );
 
   useEffect(() => {
     if (!jobId) {
@@ -90,7 +93,7 @@ export default function JobDetailPage() {
 
     const intervalId = window.setInterval(() => {
       startTransition(() => {
-        void refreshJobContext(jobId);
+        void refreshJobContextRef.current(jobId);
       });
     }, 3000);
 
@@ -145,6 +148,8 @@ export default function JobDetailPage() {
       return null;
     }
   }
+
+  refreshJobContextRef.current = refreshJobContext;
 
   async function runAnalysis() {
     if (!jobId) {

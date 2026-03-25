@@ -73,7 +73,6 @@ describe("LlmAnalysisService", () => {
     const gateway = {
       generateStructuredJson: vi.fn()
     };
-    const originalMode = process.env.JOB_ANALYSIS_MODE;
     process.env.JOB_ANALYSIS_MODE = "mock";
 
     const service = new (LlmAnalysisService as any)(gateway);

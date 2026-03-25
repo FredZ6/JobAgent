@@ -25,7 +25,6 @@ import {
   MarkSubmitFailedRequest,
   MarkSubmittedRequest,
   ReopenSubmissionRequest,
-  applicationSchema,
   applicationStatusSchema,
   approvalStatusSchema,
   approvalRequestSchema,

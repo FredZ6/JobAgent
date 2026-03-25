@@ -6,17 +6,6 @@ import { fileURLToPath } from "node:url";
 import request from "supertest";
 
 import { AppModule } from "../src/app.module.js";
-import { PrismaService } from "../src/lib/prisma.service.js";
-
-const happyPathSteps = [
-  "PUT /profile",
-  "PUT /settings/llm",
-  "POST /jobs/import-by-url",
-  "POST /jobs/:id/analyze",
-  "POST /jobs/:id/generate-resume",
-  "POST /jobs/:id/prefill",
-  "GET /applications/:id"
-] as const;
 
 const workerStubUrl = "http://worker-stub.invalid";
 const apiStubUrl = "http://api-test.invalid";
@@ -36,7 +25,6 @@ const execFileAsync = promisify(execFile);
 const repoRoot = fileURLToPath(new URL("../../../", import.meta.url));
 
 let appInstance: Awaited<ReturnType<typeof NestFactory.create>> | null = null;
-let prismaService: PrismaService | null = null;
 let postgresContainerName: string | null = null;
 let postgresHostPort: string | null = null;
 
@@ -226,8 +214,6 @@ describe.skipIf(!process.env.RUN_RUNTIME_HAPPY_PATH)("runtime happy path API", (
       logger: false
     });
     await appInstance.init();
-
-    prismaService = appInstance.get(PrismaService);
   }, 60_000);
 
   afterAll(async () => {

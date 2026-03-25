@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function NotFoundPage() {
   return (
     <section className="content-grid">
@@ -9,12 +11,12 @@ export default function NotFoundPage() {
             The link may be outdated, or the resource may have been removed from this local run.
           </p>
           <div className="button-row">
-            <a className="button button-primary" href="/">
+            <Link className="button button-primary" href="/">
               Back to overview
-            </a>
-            <a className="button button-secondary" href="/dashboard">
+            </Link>
+            <Link className="button button-secondary" href="/dashboard">
               Open dashboard
-            </a>
+            </Link>
           </div>
         </div>
       </div>

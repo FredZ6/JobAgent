@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Panel } from "../components/panel";
 
 export default function HomePage() {
@@ -10,12 +11,12 @@ export default function HomePage() {
           copy="This build is intentionally narrow: capture candidate context, import a job, and return a structured analysis that helps decide whether the role is worth deeper effort."
         >
           <div className="button-row">
-            <a className="button button-primary" href="/settings">
+            <Link className="button button-primary" href="/settings">
               Configure LLM
-            </a>
-            <a className="button button-secondary" href="/jobs">
+            </Link>
+            <Link className="button button-secondary" href="/jobs">
               Import a job
-            </a>
+            </Link>
           </div>
         </Panel>
         <Panel eyebrow="Acceptance" title="Round-one outcome">
@@ -25,24 +26,18 @@ export default function HomePage() {
       </section>
 
       <section className="content-grid">
-        <Panel
-          className="span-4"
-          eyebrow="1"
-          title="Settings"
-          copy="One provider, one model, one API key path."
-        />
-        <Panel
-          className="span-4"
-          eyebrow="2"
-          title="Profile"
-          copy="Save the candidate context the analyzer actually needs."
-        />
-        <Panel
-          className="span-4"
-          eyebrow="3"
-          title="Jobs + Analysis"
-          copy="Import a URL, inspect the JD, then run analysis on demand."
-        />
+        <Link className="card-link span-4" href="/settings">
+          <Panel title="Settings" copy="One provider, one model, one API key path." />
+        </Link>
+        <Link className="card-link span-4" href="/profile">
+          <Panel title="Profile" copy="Save the candidate context the analyzer actually needs." />
+        </Link>
+        <Link className="card-link span-4" href="/jobs">
+          <Panel
+            title="Jobs + Analysis"
+            copy="Import a URL, inspect the JD, then run analysis on demand."
+          />
+        </Link>
       </section>
     </>
   );

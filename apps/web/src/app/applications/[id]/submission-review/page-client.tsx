@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import React from "react";
 import Link from "next/link";
 import { startTransition, useEffect, useMemo, useState } from "react";
@@ -24,7 +25,7 @@ import {
   type ApplicationWithContext,
   type SubmissionReviewWithContext
 } from "../../../../lib/api";
-import type { ApplicationEvent, SubmissionReview } from "@rolecraft/shared-types";
+import type { ApplicationEvent } from "@rolecraft/shared-types";
 
 const historyActorFilters: ApplicationHistoryActorFilter[] = ["all", "user", "worker", "api", "system"];
 const historySourceFilters = [
@@ -534,11 +535,15 @@ export default function SubmissionReviewPage() {
         ) : (
           <div className="application-screenshots">
             {screenshotFilenames.map((filename) => (
-              <img
+              <Image
                 key={filename}
                 src={buildApplicationScreenshotUrl(application.id, filename)}
                 alt="Submission review screenshot"
                 className="application-screenshot"
+                width={1200}
+                height={900}
+                unoptimized
+                style={{ width: "100%", height: "auto" }}
               />
             ))}
           </div>
