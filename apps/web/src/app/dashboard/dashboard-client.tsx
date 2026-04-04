@@ -146,7 +146,7 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <section className="content-grid">
+      <section className="workspace-page content-grid">
         <Panel className="span-12" eyebrow="Tracker dashboard" title="Loading dashboard">
           <div className="inline-note">Loading jobs, applications, and recent activity...</div>
         </Panel>
@@ -156,7 +156,7 @@ export default function DashboardPage() {
 
   if (error || !overview || !history) {
     return (
-      <section className="content-grid">
+      <section className="workspace-page content-grid">
         <Panel className="span-12" eyebrow="Tracker dashboard" title="Dashboard unavailable">
           <div className="error-text">{error || "Failed to load tracker dashboard."}</div>
         </Panel>
@@ -173,28 +173,61 @@ export default function DashboardPage() {
   ];
 
   return (
-    <section className="content-grid">
-      <Panel
-        className="span-12"
-        eyebrow="Tracker dashboard"
-        title="Workflow status at a glance"
-        copy="One page for job progress, application review state, and the most recent workflow activity."
-      >
-        <div className="dashboard-metrics">
-          {metrics.map((metric) => (
-            <div key={metric.label} className="metric-card">
-              <div className="eyebrow">{metric.label}</div>
-              <div className="panel-metric">{metric.value}</div>
-            </div>
-          ))}
-        </div>
-      </Panel>
+    <div className="workspace-page">
+      <section className="workspace-hero-grid">
+        <Panel
+          className="workspace-hero-main"
+          eyebrow="Tracker dashboard"
+          title="Executive dashboard"
+          copy="A premium control surface for queue volume, workflow state, and the decisions that still require human attention."
+        >
+          <div className="dashboard-metrics workspace-metric-band">
+            {metrics.map((metric) => (
+              <div key={metric.label} className="metric-card workspace-metric-card">
+                <div className="eyebrow">{metric.label}</div>
+                <div className="panel-metric">{metric.value}</div>
+              </div>
+            ))}
+          </div>
+        </Panel>
 
+        <Panel
+          className="workspace-hero-aside"
+          eyebrow="Attention now"
+          title="Current operating posture"
+          copy="Use the dashboard as the workspace index, then drop into the exact queue that needs action."
+        >
+          <div className="workspace-summary-list">
+            <div className="workspace-summary-item">
+              <strong>Pending review</strong>
+              <p>{overview.metrics.pendingReviewApplications} applications are waiting on a human approval call.</p>
+            </div>
+            <div className="workspace-summary-item">
+              <strong>Resume ready</strong>
+              <p>{overview.metrics.resumeReadyJobs} roles already have a prepared resume version attached.</p>
+            </div>
+            <div className="workspace-summary-item">
+              <strong>Pipeline visibility</strong>
+              <p>Timeline, jobs, and applications all stay linked to the same evidence chain.</p>
+            </div>
+          </div>
+          <div className="button-row">
+            <Link className="button button-secondary" href="/jobs">
+              Open jobs
+            </Link>
+            <Link className="button button-secondary" href="/workflow-runs">
+              Open runs
+            </Link>
+          </div>
+        </Panel>
+      </section>
+
+      <section className="content-grid workspace-section-grid">
       <Panel
         className="span-12"
         eyebrow="Pipeline overview"
-        title="Current stage counts"
-        copy="Each job is mapped to one current stage from imported through approval review."
+        title="Current stage inventory"
+        copy="Each role is assigned one current stage so you can see where the queue is actually pooling."
       >
         <div className="pipeline-grid">
           {Object.entries(overview.pipeline).map(([stage, count]) => (
@@ -210,7 +243,7 @@ export default function DashboardPage() {
         className="span-12"
         eyebrow="Global timeline"
         title="Workflow history"
-        copy="A unified feed of the latest job and application events, with light filters for entity type and event type."
+        copy="A unified feed of job and application activity with enough filtering to answer what changed, who changed it, and where it came from."
       >
         <div className="stack">
           <div className="filter-row">
@@ -519,7 +552,8 @@ export default function DashboardPage() {
           <div className="inline-note">No applications match the selected approval state.</div>
         )}
       </Panel>
-    </section>
+      </section>
+    </div>
   );
 }
 

@@ -15,15 +15,30 @@ afterEach(() => {
 });
 
 describe("HomePage overview cards", () => {
-  it("links each overview card to the matching page and omits numeric eyebrows", () => {
+  it("presents the premium workspace landing page with the main entry points", () => {
     render(<HomePage />);
 
-    expect(screen.getByRole("link", { name: /settings/i })).toHaveAttribute("href", "/settings");
-    expect(screen.getByRole("link", { name: /profile/i })).toHaveAttribute("href", "/profile");
-    expect(screen.getByRole("link", { name: /jobs \+ analysis/i })).toHaveAttribute("href", "/jobs");
-
-    expect(screen.queryByText("1")).not.toBeInTheDocument();
-    expect(screen.queryByText("2")).not.toBeInTheDocument();
-    expect(screen.queryByText("3")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: /run every application from one high-trust workspace/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/rolecraft keeps candidate context, job evidence, generated assets, and final review checkpoints/i)
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /open dashboard/i })).toHaveAttribute(
+      "href",
+      "/dashboard"
+    );
+    expect(screen.getByRole("link", { name: /review case queue/i })).toHaveAttribute("href", "/jobs");
+    expect(screen.getByRole("link", { name: /open profile/i })).toHaveAttribute(
+      "href",
+      "/profile"
+    );
+    expect(screen.getByRole("link", { name: /review settings/i })).toHaveAttribute(
+      "href",
+      "/settings"
+    );
+    expect(screen.getByRole("heading", { name: /operating model/i })).toBeInTheDocument();
+    expect(screen.getByText(/local-first context/i)).toBeInTheDocument();
+    expect(screen.getByText(/manual submission/i)).toBeInTheDocument();
   });
 });

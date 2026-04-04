@@ -307,19 +307,37 @@ export default function JobDetailPage() {
     () => buildImportDiagnosticsRows(job?.importDiagnostics),
     [job?.importDiagnostics]
   );
+  const summaryTiles = [
+    { label: "Import quality", value: job?.importSummary?.statusLabel ?? "Pending" },
+    { label: "Latest match", value: latestAnalysis ? `${latestAnalysis.matchScore}` : "No score" },
+    { label: "Resume state", value: latestResumeVersion?.status ?? "Not started" },
+    { label: "Application runs", value: `${applications.length}` }
+  ];
 
   return (
-    <section className="content-grid">
+    <div className="workspace-page">
+      <section className="content-grid workspace-section-grid">
       <Panel
-        className="span-7"
+        className="span-7 workspace-hero-main"
         eyebrow="Imported role"
-        title={job?.title ?? "Job detail"}
-        copy={job ? `${job.company} · ${job.location}` : "Loading job detail..."}
+        title="Case file"
+        copy="A single place to inspect the role record, trigger guided automation, and review the evidence that comes back."
       >
         {loading ? (
           <div className="inline-note">Loading job detail...</div>
         ) : job ? (
           <>
+            <div className="case-header">
+              <div>
+                <h3 className="detail-title">{job.title}</h3>
+                <p className="detail-meta">
+                  {job.company} · {job.location}
+                </p>
+              </div>
+              <div className="pill-row">
+                <span className="mini-pill">{job.importStatus}</span>
+              </div>
+            </div>
             <div className="button-row">
               <button className="button button-primary" type="button" onClick={runAnalysis} disabled={running}>
                 {running ? "Analyzing..." : "Analyze job"}
@@ -357,7 +375,7 @@ export default function JobDetailPage() {
       </Panel>
 
       <Panel
-        className="span-5"
+        className="span-5 workspace-hero-aside"
         eyebrow="Import quality"
         title="Import quality"
         copy="Importer diagnostics help you tell the difference between live page content and placeholder fallback content."
@@ -397,6 +415,15 @@ export default function JobDetailPage() {
           <div className="inline-note">No importer quality details are available for this job yet.</div>
         )}
       </Panel>
+
+      <div className="span-12 workspace-stat-strip">
+        {summaryTiles.map((tile) => (
+          <div key={tile.label} className="workspace-stat-tile">
+            <div className="workspace-stat-label">{tile.label}</div>
+            <strong>{tile.value}</strong>
+          </div>
+        ))}
+      </div>
 
       <Panel
         className="span-5"
@@ -489,7 +516,7 @@ export default function JobDetailPage() {
       <Panel
         className="span-12"
         eyebrow="Workflow runs"
-        title="Execution attempts"
+        title="Execution ledger"
         copy="Each analyze, resume, or prefill run is tracked separately so we can tell whether work is queued, running, completed, or failed."
       >
         {workflowRunsError ? <div className="error-text">{workflowRunsError}</div> : null}
@@ -693,6 +720,7 @@ export default function JobDetailPage() {
           )}
         </Panel>
       ) : null}
-    </section>
+      </section>
+    </div>
   );
 }

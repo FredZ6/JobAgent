@@ -470,9 +470,10 @@ function WorkflowRunsPageContent() {
   }
 
   return (
-    <section className="content-grid">
+    <div className="workspace-page">
+      <section className="content-grid workspace-section-grid">
       <Panel
-        className="span-12"
+        className="span-8 workspace-hero-main"
         eyebrow="Workflow runs"
         title="Global execution attempts"
         copy="A cross-job view of analyze, resume, and prefill runs. Filter here, then drill into run detail when you need the full lifecycle."
@@ -489,6 +490,28 @@ function WorkflowRunsPageContent() {
             ))}
           </div>
         ) : null}
+      </Panel>
+
+      <Panel
+        className="span-4 workspace-hero-aside"
+        eyebrow="Bulk posture"
+        title="Selection controls"
+        copy="Use bulk actions only after the filters and selected runs reflect the exact scope you want."
+      >
+        <div className="workspace-summary-list">
+          <div className="workspace-summary-item">
+            <strong>Selected runs</strong>
+            <p>{selectedCount > 0 ? `${selectedCount} runs currently selected.` : "No runs currently selected."}</p>
+          </div>
+          <div className="workspace-summary-item">
+            <strong>Retry eligible</strong>
+            <p>{eligibilitySummary.retryEligibleCount} runs can be retried from the current selection.</p>
+          </div>
+          <div className="workspace-summary-item">
+            <strong>Cancel eligible</strong>
+            <p>{eligibilitySummary.cancelEligibleCount} runs can be cancelled from the current selection.</p>
+          </div>
+        </div>
       </Panel>
 
       <Panel
@@ -927,7 +950,8 @@ function WorkflowRunsPageContent() {
           </div>
         ) : null}
       </Panel>
-    </section>
+      </section>
+    </div>
   );
 }
 
@@ -935,7 +959,7 @@ export default function WorkflowRunsPage() {
   return (
     <Suspense
       fallback={
-        <section className="content-grid">
+        <section className="workspace-page content-grid">
           <Panel
             className="span-12"
             eyebrow="Workflow runs"

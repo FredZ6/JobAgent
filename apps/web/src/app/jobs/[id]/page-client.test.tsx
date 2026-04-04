@@ -3,7 +3,7 @@
 import "@testing-library/jest-dom/vitest";
 
 import React from "react";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import JobDetailPage from "./page-client";
@@ -148,14 +148,21 @@ describe("JobDetailPage shared workflow-run cards", () => {
       expect(mockedFetchJob).toHaveBeenCalledWith("job_1");
     });
 
-    expect(await screen.findByRole("heading", { name: "Import quality" })).toBeInTheDocument();
-    expect(screen.getByText("Live import · warnings")).toBeInTheDocument();
-    expect(screen.getByText("Apply URL not detected")).toBeInTheDocument();
-    expect(screen.getByText("Title source: og:title")).toBeInTheDocument();
-    expect(screen.getByText("Company source: json_ld")).toBeInTheDocument();
-    expect(screen.getByText("Description source: json_ld")).toBeInTheDocument();
-    expect(screen.getByText("Apply URL source: source_url")).toBeInTheDocument();
-    expect(screen.getByText("Used JSON-LD: yes")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Case file" })).toBeInTheDocument();
+    const importQualityHeading = screen.getByRole("heading", { name: "Import quality" });
+    expect(importQualityHeading).toBeInTheDocument();
+    const importQualityPanel = importQualityHeading.closest("section");
+
+    expect(importQualityPanel).not.toBeNull();
+
+    const importQuality = within(importQualityPanel as HTMLElement);
+    expect(importQuality.getByText("Live import · warnings")).toBeInTheDocument();
+    expect(importQuality.getByText("Apply URL not detected")).toBeInTheDocument();
+    expect(importQuality.getByText("Title source: og:title")).toBeInTheDocument();
+    expect(importQuality.getByText("Company source: json_ld")).toBeInTheDocument();
+    expect(importQuality.getByText("Description source: json_ld")).toBeInTheDocument();
+    expect(importQuality.getByText("Apply URL source: source_url")).toBeInTheDocument();
+    expect(importQuality.getByText("Used JSON-LD: yes")).toBeInTheDocument();
   });
 
   it("renders workflow-run cards with retry and cancel controls intact", async () => {
@@ -167,7 +174,7 @@ describe("JobDetailPage shared workflow-run cards", () => {
       expect(mockedFetchJobWorkflowRuns).toHaveBeenCalledWith("job_1");
     });
 
-    expect(await screen.findByRole("heading", { name: "Execution attempts" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Execution ledger" })).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: "Open run detail" })).toHaveLength(2);
     expect(screen.getByRole("link", { name: "Open application run" })).toHaveAttribute(
       "href",

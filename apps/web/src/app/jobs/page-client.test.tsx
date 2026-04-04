@@ -101,13 +101,15 @@ beforeEach(() => {
 });
 
 describe("JobsPage importer quality hints", () => {
-  it("shows lightweight importer quality labels for live, warning, and fallback imports", async () => {
+  it("shows the redesigned intake page with importer quality labels", async () => {
     render(<JobsPage />);
 
     await waitFor(() => {
       expect(mockedFetchJobs).toHaveBeenCalled();
     });
 
+    expect(await screen.findByRole("heading", { name: /role intake/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /case queue/i })).toBeInTheDocument();
     expect(await screen.findByText("Live import")).toBeInTheDocument();
     expect(screen.getByText("Live import · warnings")).toBeInTheDocument();
     expect(screen.getByText("Fallback import")).toBeInTheDocument();

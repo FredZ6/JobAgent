@@ -8,7 +8,10 @@ describe("brand copy", () => {
   });
 
   it("keeps the current product positioning copy together in one place", () => {
-    expect(appBrand.subtitle).toContain("human-in-the-loop");
-    expect(appBrand.description).toBe("Semi-automated job application MVP");
+    expect(appBrand.subtitle).toContain("reviewable automation");
+    expect(appBrand.subtitle).toContain("high-trust submission prep");
+    expect(appBrand.description).toBe(
+      "A premium, human-in-the-loop workspace for deliberate job applications"
+    );
   });
 });

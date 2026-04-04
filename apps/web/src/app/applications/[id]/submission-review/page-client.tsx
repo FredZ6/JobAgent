@@ -242,7 +242,7 @@ export default function SubmissionReviewPage() {
 
   if (loading) {
     return (
-      <section className="content-grid">
+      <section className="workspace-page content-grid">
         <div className="inline-note">Loading submission review...</div>
       </section>
     );
@@ -250,7 +250,7 @@ export default function SubmissionReviewPage() {
 
   if (error || !review) {
     return (
-      <section className="content-grid">
+      <section className="workspace-page content-grid">
         <div className="error-text">{error || "Submission review not found."}</div>
       </section>
     );
@@ -267,9 +267,10 @@ export default function SubmissionReviewPage() {
   } = review;
 
   return (
-    <section className="content-grid">
+    <div className="workspace-page">
+      <section className="content-grid workspace-section-grid">
       <Panel
-        className="span-7"
+        className="span-7 workspace-hero-main"
         eyebrow="Submission review"
         title={job?.title ?? "Application submission"}
         copy="This is the final human-controlled checkpoint. Open the real apply page yourself, then record what happened here."
@@ -307,7 +308,7 @@ export default function SubmissionReviewPage() {
       </Panel>
 
       <Panel
-        className="span-5"
+        className="span-5 workspace-hero-aside"
         eyebrow="Submission summary"
         title="Final check"
         copy="Unresolved fields do not block you here, but they make the manual submission step more likely to need edits."
@@ -549,7 +550,8 @@ export default function SubmissionReviewPage() {
           </div>
         )}
       </Panel>
-    </section>
+      </section>
+    </div>
   );
 }
 

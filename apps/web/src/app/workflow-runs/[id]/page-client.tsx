@@ -185,9 +185,10 @@ export default function WorkflowRunDetailPage() {
     workflowRun?.executionMode === "temporal" && workflowRun.status === "paused";
 
   return (
-    <section className="content-grid">
+    <div className="workspace-page">
+      <section className="content-grid workspace-section-grid">
       <Panel
-        className="span-7"
+        className="span-7 workspace-hero-main"
         eyebrow="Workflow run"
         title={workflowRun ? `${workflowRun.kind.replace(/_/g, " ")} · ${workflowRun.id}` : "Workflow run detail"}
         copy={
@@ -242,7 +243,7 @@ export default function WorkflowRunDetailPage() {
       </Panel>
 
       <Panel
-        className="span-5"
+        className="span-5 workspace-hero-aside"
         eyebrow="Actions"
         title="Controls"
         copy="Retry or cancel from the run itself when that action is valid."
@@ -392,6 +393,7 @@ export default function WorkflowRunDetailPage() {
           <div className="inline-note">No lifecycle events recorded yet.</div>
         )}
       </Panel>
-    </section>
+      </section>
+    </div>
   );
 }
