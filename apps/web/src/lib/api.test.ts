@@ -49,3 +49,38 @@ describe("fetchAutomationSessions", () => {
     expect(result).toEqual(responseBody);
   });
 });
+
+describe("demo fallback data", () => {
+  beforeEach(() => {
+    vi.unstubAllGlobals();
+    vi.resetModules();
+  });
+
+  it("falls back to demo jobs in the browser when the API cannot be reached", async () => {
+    vi.stubGlobal("window", {} as Window & typeof globalThis);
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
+
+    const { fetchJobs } = await import("./api");
+
+    const result = await fetchJobs();
+
+    expect(result).toHaveLength(1);
+    expect(result[0]?.title).toBe("Senior Product Platform Engineer");
+    expect(result[0]?.company).toBe("Northstar");
+    expect(result[0]?.latestAnalysis?.matchScore).toBe(84);
+  });
+
+  it("falls back to demo dashboard overview in the browser when the API cannot be reached", async () => {
+    vi.stubGlobal("window", {} as Window & typeof globalThis);
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
+
+    const { fetchDashboardOverview } = await import("./api");
+
+    const result = await fetchDashboardOverview();
+
+    expect(result.metrics.totalJobs).toBe(1);
+    expect(result.metrics.totalApplications).toBe(2);
+    expect(result.jobs[0]?.title).toBe("Senior Product Platform Engineer");
+    expect(result.recentActivity[0]?.type).toBe("approval_updated");
+  });
+});

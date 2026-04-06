@@ -168,9 +168,10 @@ export default function ApplicationReviewPage() {
   const automationSummary = buildAutomationSessionOverview(sessionHistory);
 
   return (
-    <section className="content-grid">
+    <div className="workspace-page">
+      <section className="content-grid workspace-section-grid">
       <Panel
-        className="span-7"
+        className="span-7 workspace-hero-main"
         eyebrow="Application context"
         title={job?.title ?? "Application"}
         copy={`Applying to ${job?.company ?? "Unknown"} via ${application.applyUrl}`}
@@ -214,7 +215,7 @@ export default function ApplicationReviewPage() {
       </Panel>
 
       <Panel
-        className="span-5"
+        className="span-5 workspace-hero-aside"
         eyebrow="Human approval"
         title="Review status"
         copy="This interface lets you gate the application before any final submit happens."
@@ -330,6 +331,7 @@ export default function ApplicationReviewPage() {
         />
       </Panel>
 
-    </section>
+      </section>
+    </div>
   );
 }

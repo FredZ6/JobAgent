@@ -1,6 +1,6 @@
 export const appBrand = {
   name: "Rolecraft",
-  description: "Semi-automated job application MVP",
-  subtitle: "A warm-start MVP for focused, human-in-the-loop job application prep.",
-  statusPill: "Round one focus: settings, profile, import, analysis"
+  description: "A premium, human-in-the-loop workspace for deliberate job applications",
+  subtitle: "A local-first workspace for candidate context, reviewable automation, and high-trust submission prep.",
+  statusPill: "Human approval is always explicit"
 } as const;

@@ -38,6 +38,7 @@ import {
 } from "@rolecraft/shared-types";
 import { extractApiErrorMessage } from "./api-error";
 import { resolveWebApiBaseUrl } from "./api-base";
+import { getDemoGetResponse } from "./demo-data";
 
 const IS_BROWSER = typeof window !== "undefined";
 
@@ -97,14 +98,31 @@ export type WorkflowRunsFilter = {
 };
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, {
+  const requestInit = {
     ...init,
     headers: {
       "Content-Type": "application/json",
       ...(init?.headers ?? {})
     },
-    cache: "no-store"
-  });
+    cache: "no-store" as const
+  };
+  const method = (requestInit.method ?? "GET").toUpperCase();
+  let response: Response;
+
+  try {
+    response = await fetch(`${API_BASE}${path}`, requestInit);
+  } catch (error) {
+    if (IS_BROWSER && method === "GET") {
+      const demoResponse = getDemoGetResponse(path);
+
+      if (demoResponse !== undefined) {
+        console.warn(`[Rolecraft] Falling back to built-in demo data for ${path}.`, error);
+        return demoResponse as T;
+      }
+    }
+
+    throw error;
+  }
 
   if (!response.ok) {
     const message = extractApiErrorMessage(await response.text(), response.status);

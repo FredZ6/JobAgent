@@ -116,68 +116,87 @@ export default function SettingsPage() {
     }
   }
 
+  const providerDefaultsForCurrent = getProviderDefaults(form.provider);
+
   return (
-    <section className="content-grid">
-      <Panel
-        className="span-7"
-        eyebrow="LLM configuration"
-        title="Settings"
-        copy="Keep the first round narrow: one provider, one model, one credential path."
-      >
-        {loading ? (
-          <div className="inline-note">Loading current settings...</div>
-        ) : (
-          <form action={onSubmit} className="stack">
-            <Field
-              label="Provider"
-              name="provider"
-              value={form.provider}
-              onChange={handleProviderChange}
-              select
-              options={[
-                { value: "openai", label: "OpenAI" },
-                { value: "gemini", label: "Gemini" }
-              ]}
-              error={validationErrors.provider}
-            />
-            <Field
-              label="Model"
-              name="model"
-              value={form.model}
-              onChange={(value) => setForm((current) => ({ ...current, model: value }))}
-              placeholder="gpt-5.4"
-              error={validationErrors.model}
-            />
-            <Field
-              label="API Key"
-              name="apiKey"
-              value={form.apiKey}
-              onChange={(value) => setForm((current) => ({ ...current, apiKey: value }))}
-              placeholder={apiKeyPlaceholder}
-            />
-            <div className="button-row">
-              <button className="button button-primary" type="submit" disabled={saving || !isDirty || !isValid}>
-                {saving ? "Saving..." : "Save settings"}
-              </button>
-              {isDirty ? <span className="dirty-text">Unsaved changes</span> : <span className="inline-note">Saved</span>}
-              {message ? <span className="success-text">{message}</span> : null}
-              {error ? <span className="error-text">{error}</span> : null}
+    <div className="workspace-page">
+      <section className="workspace-hero-grid">
+        <Panel
+          className="workspace-hero-main"
+          eyebrow="LLM configuration"
+          title="Settings"
+          copy="Keep the first round narrow: one provider, one model, one credential path."
+        >
+          {loading ? (
+            <div className="inline-note">Loading current settings...</div>
+          ) : (
+            <form action={onSubmit} className="stack">
+              <Field
+                label="Provider"
+                name="provider"
+                value={form.provider}
+                onChange={handleProviderChange}
+                select
+                options={[
+                  { value: "openai", label: "OpenAI" },
+                  { value: "gemini", label: "Gemini" }
+                ]}
+                error={validationErrors.provider}
+              />
+              <Field
+                label="Model"
+                name="model"
+                value={form.model}
+                onChange={(value) => setForm((current) => ({ ...current, model: value }))}
+                placeholder="gpt-5.4"
+                error={validationErrors.model}
+              />
+              <Field
+                label="API Key"
+                name="apiKey"
+                value={form.apiKey}
+                onChange={(value) => setForm((current) => ({ ...current, apiKey: value }))}
+                placeholder={apiKeyPlaceholder}
+              />
+              <div className="button-row">
+                <button className="button button-primary" type="submit" disabled={saving || !isDirty || !isValid}>
+                  {saving ? "Saving..." : "Save settings"}
+                </button>
+                {isDirty ? <span className="dirty-text">Unsaved changes</span> : <span className="inline-note">Saved</span>}
+                {message ? <span className="success-text">{message}</span> : null}
+                {error ? <span className="error-text">{error}</span> : null}
+              </div>
+            </form>
+          )}
+        </Panel>
+
+        <Panel
+          className="workspace-hero-aside"
+          eyebrow="Runtime controls"
+          title="Control room"
+          copy="Configuration should feel explicit and inspectable before any generation begins."
+        >
+          <div className="workspace-summary-list">
+            <div className="workspace-summary-item">
+              <strong>Current provider</strong>
+              <p>{loading ? "Loading..." : form.provider}</p>
             </div>
-          </form>
-        )}
-      </Panel>
-      <Panel
-        className="span-5"
-        eyebrow="Why this matters"
-        title="First-run checklist"
-        copy="For round one, success is not about provider orchestration. It is about one reliable path from job import to structured analysis."
-      >
-        <div className="pill-row">
-          <span className="mini-pill">single provider</span>
-          <span className="mini-pill">manual analyze trigger</span>
-          <span className="mini-pill">human-in-the-loop</span>
-        </div>
-      </Panel>
-    </section>
+            <div className="workspace-summary-item">
+              <strong>Recommended default</strong>
+              <p>{loading ? "Loading..." : providerDefaultsForCurrent?.model ?? "Custom model path"}</p>
+            </div>
+            <div className="workspace-summary-item">
+              <strong>Configuration state</strong>
+              <p>{form.isConfigured ? "A runtime configuration is already saved." : "No provider has been confirmed yet."}</p>
+            </div>
+          </div>
+          <div className="pill-row">
+            <span className="mini-pill">single provider</span>
+            <span className="mini-pill">manual analyze trigger</span>
+            <span className="mini-pill">human-in-the-loop</span>
+          </div>
+        </Panel>
+      </section>
+    </div>
   );
 }

@@ -222,17 +222,18 @@ export default function ProfilePage() {
   }
 
   return (
-    <section className="content-grid">
-      <Panel
-        className="span-8"
-        eyebrow="Candidate context"
-        title="Profile"
-        copy="Keep this honest and current. The analyzer is only as good as the context it receives."
-      >
-        {loading ? (
-          <div className="inline-note">Loading candidate profile...</div>
-        ) : (
-          <form action={onSubmit} className="stack">
+    <div className="workspace-page">
+      <section className="workspace-hero-grid">
+        <Panel
+          className="workspace-hero-main"
+          eyebrow="Candidate context"
+          title="Profile"
+          copy="Keep this honest and current. The analyzer is only as good as the context it receives."
+        >
+          {loading ? (
+            <div className="inline-note">Loading candidate profile...</div>
+          ) : (
+            <form action={onSubmit} className="stack">
             <div className="analysis-grid">
               <Field
                 label="Full name"
@@ -392,15 +393,34 @@ export default function ProfilePage() {
               {message ? <span className="success-text">{message}</span> : null}
               {error ? <span className="error-text">{error}</span> : null}
             </div>
-          </form>
-        )}
-      </Panel>
-      <Panel
-        className="span-4"
-        eyebrow="Ground rule"
-        title="No invented experience"
-        copy="This MVP is opinionated: the system should help with focus and framing, not fabricate background you do not have."
-      />
-    </section>
+            </form>
+          )}
+        </Panel>
+        <Panel
+          className="workspace-hero-aside"
+          eyebrow="Candidate dossier"
+          title="Record quality"
+          copy="Treat the profile as the durable source of truth that every later workflow depends on."
+        >
+          <div className="workspace-summary-list">
+            <div className="workspace-summary-item">
+              <strong>Identity fields</strong>
+              <p>{loading ? "Loading..." : `${[form.fullName, form.email, form.location].filter(Boolean).length} core identity fields already filled.`}</p>
+            </div>
+            <div className="workspace-summary-item">
+              <strong>Reusable experience</strong>
+              <p>{loading ? "Loading..." : `${form.experienceLibrary.length} experience entries and ${form.projectLibrary.length} project entries available.`}</p>
+            </div>
+            <div className="workspace-summary-item">
+              <strong>Default answers</strong>
+              <p>{loading ? "Loading..." : `${Object.keys(form.defaultAnswers).length} reusable answers saved for future prefills.`}</p>
+            </div>
+          </div>
+          <div className="inline-note">
+            No invented experience. The system should help with focus and framing, not fabricate background you do not have.
+          </div>
+        </Panel>
+      </section>
+    </div>
   );
 }
