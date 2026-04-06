@@ -18,6 +18,7 @@ describe("RootLayout", () => {
     );
 
     expect(React.isValidElement(body)).toBe(true);
+    expect(React.isValidElement(body) ? body.props.suppressHydrationWarning : undefined).toBe(true);
     const shell = React.isValidElement(body) ? body.props.children : undefined;
 
     expect(React.isValidElement(shell)).toBe(true);
